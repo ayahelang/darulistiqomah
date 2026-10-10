@@ -172,15 +172,20 @@
     if (!box) return;
     box.innerHTML = '';
     const list = [];
-    (items || []).forEach((g) => list.push({ title: g.title, image: g.image, type: 'foto' }));
-    (media || []).filter((m) => m.type === 'foto' || m.type === 'image').forEach((m) => {
-      list.push({
-        title: m.title || 'Foto',
-        image: m.thumb || '',
-        url: m.url,
-        source: m.source,
-        type: 'foto'
-      });
+    (items || []).forEach((g, idx) => {
+      list.push({ title: g.title, image: g.image, type: 'foto', _edit: 'gallery:' + idx });
+    });
+    (media || []).forEach((m, idx) => {
+      if (m.type === 'foto' || m.type === 'image') {
+        list.push({
+          title: m.title || 'Foto',
+          image: m.thumb || '',
+          url: m.url,
+          source: m.source,
+          type: 'foto',
+          _edit: 'media:' + idx
+        });
+      }
     });
     list.forEach((g) => {
       const isIg = g.source === 'instagram' || (g.url && g.url.indexOf('instagram.com') !== -1);
@@ -190,7 +195,11 @@
       children.push(el('figcaption', {}, [g.title || 'Foto']));
       box.appendChild(el('figure', {
         class: 'gallery-item',
-        onclick: function () {
+        'data-admin-edit': g._edit || '',
+        title: 'Ctrl+Alt+Shift + double-click untuk edit',
+        onclick: function (ev) {
+          // Jangan buka lightbox jika sedang mode edit cepat
+          if (ev.ctrlKey && ev.altKey && ev.shiftKey) return;
           if (isIg && g.url) window.open(g.url, '_blank', 'noopener');
           else if (g.image) openLightbox(g.image, g.title);
           else if (g.url) window.open(g.url, '_blank', 'noopener');
@@ -204,27 +213,35 @@
     if (!box) return;
     box.innerHTML = '';
     const list = [];
-    (videos || []).forEach((v) => {
-      list.push({ title: v.title, thumb: v.thumb, youtubeId: v.youtubeId, source: 'youtube' });
+    (videos || []).forEach((v, idx) => {
+      list.push({ title: v.title, thumb: v.thumb, youtubeId: v.youtubeId, source: 'youtube', _edit: 'videos:' + idx });
     });
-    (media || []).filter((m) => m.type === 'video').forEach((m) => {
-      list.push({
-        title: m.title || 'Video',
-        thumb: m.thumb,
-        embedUrl: m.embedUrl,
-        url: m.url,
-        source: m.source
-      });
+    (media || []).forEach((m, idx) => {
+      if (m.type === 'video') {
+        list.push({
+          title: m.title || 'Video',
+          thumb: m.thumb,
+          embedUrl: m.embedUrl,
+          url: m.url,
+          source: m.source,
+          _edit: 'media:' + idx
+        });
+      }
     });
     list.forEach((v) => {
       const kids = [];
       if (v.thumb) kids.push(el('img', { src: v.thumb, alt: v.title || '', loading: 'lazy' }));
       else kids.push(el('div', { class: 'video-placeholder' }, [v.source === 'instagram' ? 'Instagram Reel' : (v.source || 'Video')]));
       kids.push(el('div', { class: 'play' }, [el('span', {}, ['▶'])]));
-      box.appendChild(el('article', { class: 'video-card' }, [
+      box.appendChild(el('article', {
+        class: 'video-card',
+        'data-admin-edit': v._edit || '',
+        title: 'Ctrl+Alt+Shift + double-click untuk edit'
+      }, [
         el('div', {
           class: 'video-thumb',
-          onclick: function () {
+          onclick: function (ev) {
+            if (ev.ctrlKey && ev.altKey && ev.shiftKey) return;
             if (v.youtubeId) openVideo(v.youtubeId);
             else if (v.embedUrl) openEmbed(v.embedUrl);
             else if (v.url) window.open(v.url, '_blank', 'noopener');
@@ -363,16 +380,17 @@
       if (!(e.ctrlKey && e.altKey && e.shiftKey)) return;
       const target = e.target.closest('[data-admin-edit]');
       if (!target) return;
+      const key = (target.getAttribute('data-admin-edit') || '').trim();
+      if (!key || key.indexOf(':') < 0) return;
       e.preventDefault();
       e.stopPropagation();
-      const key = target.getAttribute('data-admin-edit');
-      const pass = window.prompt('Password admin untuk mengedit item ini:');
+      if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      const pass = window.prompt('Password admin untuk mengedit item ini:\n(' + key + ')');
       if (pass === null) return;
       if (pass !== ADMIN_PASS) {
         window.alert('Password salah.');
         return;
       }
-      // Mark session so admin can open without re-login immediately
       try { sessionStorage.setItem('sdit_di_admin_auth_v1', '1'); } catch (_) {}
       const url = 'admin/?edit=' + encodeURIComponent(key);
       window.open(url, '_blank');
@@ -401,15 +419,9 @@
       renderGallery(data.gallery, data.media);
       renderVideos(data.videos, data.media);
       renderActivities(data.activities);
-      // Tag gallery/video cards for quick-edit (index in visible list maps to gallery array for static items)
-      document.querySelectorAll('#gallery .card').forEach((card, i) => {
-        if (!card.getAttribute('data-admin-edit')) card.setAttribute('data-admin-edit', 'gallery:' + i);
-      });
-      document.querySelectorAll('#videos .card, #video .card, .video-card').forEach((card, i) => {
-        if (!card.getAttribute('data-admin-edit')) card.setAttribute('data-admin-edit', 'videos:' + i);
-      });
-      document.querySelectorAll('#ppdb, .ppdb-box').forEach((el) => {
-        el.setAttribute('data-admin-edit', 'ppdb:0');
+      // Tag sections that are not item-level
+      document.querySelectorAll('#ppdb, .ppdb-box').forEach((node) => {
+        node.setAttribute('data-admin-edit', 'school:0');
       });
     } catch (err) {
       console.error(err);
