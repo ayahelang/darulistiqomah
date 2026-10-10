@@ -183,6 +183,26 @@
     .preview-status.ok { color: #0B6E4F; font-weight: 700; }
     .preview-status.err { color: #c0392b; font-weight: 700; }
     #detectPreview { margin-top: 14px; }
+
+    #previewOverlay {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(15,23,42,.55); align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #previewOverlay.open { display: flex; }
+    .preview-card {
+      background: #fff; border-radius: 16px; max-width: 560px; width: 100%;
+      box-shadow: 0 24px 64px rgba(0,0,0,.25); overflow: hidden;
+    }
+    .preview-card-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; border-bottom: 1px solid #e8e4d8;
+    }
+    .preview-card-body { padding: 14px 16px 18px; }
+    .status-bar.flash {
+      background: #0B6E4F !important; color: #fff !important;
+      transition: background .2s;
+    }
   </style>
   <link rel="stylesheet" href="../css/lock.css">
 </head>

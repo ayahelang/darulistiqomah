@@ -147,8 +147,8 @@
     const box = document.getElementById('articles');
     if (!box || !articles) return;
     box.innerHTML = '';
-    articles.forEach((a) => {
-      box.appendChild(el('article', { class: 'card article-card' }, [
+    articles.forEach((a, idx) => {
+      box.appendChild(el('article', { class: 'card article-card', 'data-admin-edit': 'articles:' + idx }, [
         el('img', { src: a.image, alt: a.title, loading: 'lazy' }),
         el('div', { class: 'article-body' }, [
           el('div', { class: 'meta' }, [`${a.category || 'Berita'} · ${a.date || ''}`]),
@@ -334,9 +334,47 @@
     });
   }
 
+
+  function setupQuickAdminEdit() {
+    const ADMIN_PASS = 'Bismillaah9999#';
+    // Visual cue when modifier held
+    let armed = false;
+    function setArmed(on) {
+      armed = on;
+      document.body.classList.toggle('admin-edit-armed', on);
+    }
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.altKey && e.shiftKey) setArmed(true);
+    });
+    window.addEventListener('keyup', (e) => {
+      if (!e.ctrlKey || !e.altKey || !e.shiftKey) setArmed(false);
+    });
+    window.addEventListener('blur', () => setArmed(false));
+
+    document.addEventListener('dblclick', (e) => {
+      if (!(e.ctrlKey && e.altKey && e.shiftKey)) return;
+      const target = e.target.closest('[data-admin-edit]');
+      if (!target) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const key = target.getAttribute('data-admin-edit');
+      const pass = window.prompt('Password admin untuk mengedit item ini:');
+      if (pass === null) return;
+      if (pass !== ADMIN_PASS) {
+        window.alert('Password salah.');
+        return;
+      }
+      // Mark session so admin can open without re-login immediately
+      try { sessionStorage.setItem('sdit_di_admin_auth_v1', '1'); } catch (_) {}
+      const url = 'admin/?edit=' + encodeURIComponent(key);
+      window.open(url, '_blank');
+    }, true);
+  }
+
   async function init() {
     setupNav();
     setupSecretAdminEntry();
+    setupQuickAdminEdit();
     document.getElementById('lightbox')?.addEventListener('click', (e) => {
       if (e.target.id === 'lightbox' || e.target.classList.contains('lightbox-close')) closeLightbox();
     });
@@ -355,6 +393,16 @@
       renderGallery(data.gallery, data.media);
       renderVideos(data.videos, data.media);
       renderActivities(data.activities);
+      // Tag gallery/video cards for quick-edit (index in visible list maps to gallery array for static items)
+      document.querySelectorAll('#gallery .card').forEach((card, i) => {
+        if (!card.getAttribute('data-admin-edit')) card.setAttribute('data-admin-edit', 'gallery:' + i);
+      });
+      document.querySelectorAll('#videos .card, #video .card, .video-card').forEach((card, i) => {
+        if (!card.getAttribute('data-admin-edit')) card.setAttribute('data-admin-edit', 'videos:' + i);
+      });
+      document.querySelectorAll('#ppdb, .ppdb-box').forEach((el) => {
+        el.setAttribute('data-admin-edit', 'ppdb:0');
+      });
     } catch (err) {
       console.error(err);
       const h = document.getElementById('schoolName');

@@ -6,7 +6,16 @@
   let editCtx = null; // { type, index }
 
   const $ = (id) => document.getElementById(id);
-  const status = (msg) => { const s = $('status'); if (s) s.textContent = msg; };
+  const status = (msg) => {
+    const s = $('status');
+    if (!s) return;
+    const now = new Date();
+    const ts = now.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'medium' });
+    s.innerHTML = `<strong>${msg}</strong> <span style="opacity:.75;font-weight:500">· ${ts}</span>`;
+    s.classList.add('flash');
+    clearTimeout(status._t);
+    status._t = setTimeout(() => s.classList.remove('flash'), 2500);
+  };
   const cfg = () => window.SDIT_CONFIG || {};
 
   // --- Auth ---
@@ -97,14 +106,25 @@
     status('Anda telah keluar. Masukkan password untuk mengakses panel.');
   }
 
-  // Paksa login setiap kali buka halaman admin (hapus auto-login dari session lama)
-  try { sessionStorage.removeItem(AUTH_KEY); } catch (_) {}
+  // Paksa login setiap buka admin, kecuali deep-link edit dari frontend (sudah prompt password)
+  const _deepEdit = new URLSearchParams(location.search).get('edit');
+  if (!_deepEdit) {
+    try { sessionStorage.removeItem(AUTH_KEY); } catch (_) {}
+  }
   lockAdmin();
 
   const btnLogin = document.getElementById('btnLogin');
   const inpLogin = document.getElementById('loginPass');
   if (btnLogin) btnLogin.onclick = tryLogin;
   if (inpLogin) inpLogin.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
+
+  // Auto-unlock if deep-link + already authenticated from frontend prompt
+  if (_deepEdit && isAuthed()) {
+    unlockAdmin();
+  } else {
+    lockAdmin();
+  }
+
   const btnLogout = document.getElementById('btnLogout');
   if (btnLogout) btnLogout.onclick = logoutAdmin;
 
@@ -172,7 +192,20 @@
   function escapeHtml(str) {
     return String(str || '').replace(/[&<>"']/g, (c) => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    })[c]);
+    }
+
+  /** Path relatif di site.json (images/…) harus ../ di panel /admin/ */
+  function resolveAdminAsset(src) {
+    if (!src) return '';
+    const s = String(src).trim();
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s) || s.startsWith('data:') || s.startsWith('blob:')) return s;
+    if (s.startsWith('../')) return s;
+    if (s.startsWith('/')) return s;
+    // images/foo.jpg or ./images/foo.jpg from admin folder
+    return '../' + s.replace(/^\.\//, '');
+  }
+)[c]);
   }
 
   // --- CRUD Modal ---
@@ -314,13 +347,35 @@
     return wrap;
   }
 
-  function listThumbHtml(src, label) {
+  function openPreviewCard(title, htmlBody) {
+    let overlay = document.getElementById('previewOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'previewOverlay';
+      overlay.innerHTML = `<div class="preview-card">
+        <div class="preview-card-head">
+          <strong id="previewCardTitle">Preview</strong>
+          <button type="button" class="btn btn-ghost" id="previewCardClose">Tutup</button>
+        </div>
+        <div class="preview-card-body" id="previewCardBody"></div>
+      </div>`;
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
+      document.getElementById('previewCardClose').onclick = () => overlay.classList.remove('open');
+    }
+    document.getElementById('previewCardTitle').textContent = title || 'Preview';
+    document.getElementById('previewCardBody').innerHTML = htmlBody;
+    overlay.classList.add('open');
+  }
+
+    function listThumbHtml(src, label) {
     if (!src) {
       return `<div class="thumb-prev" title="Tidak ada thumbnail" style="display:grid;place-items:center;font-size:.7rem;color:#888">—</div>`;
     }
-    return `<img class="thumb-prev" src="${escapeHtml(src)}" alt="" loading="lazy"
-      onload="this.nextElementSibling&&(this.nextElementSibling.textContent='✓ Preview OK',this.nextElementSibling.className='preview-status ok')"
-      onerror="this.classList.add('err');this.nextElementSibling&&(this.nextElementSibling.textContent='✗ Gagal load',this.nextElementSibling.className='preview-status err')">`;
+    const resolved = resolveAdminAsset(src);
+    return `<img class="thumb-prev" src="${escapeHtml(resolved)}" alt="" loading="lazy"
+      onload="var s=this.nextElementSibling;if(s){s.textContent='✓ OK';s.className='preview-status ok'}"
+      onerror="this.classList.add('err');var s=this.nextElementSibling;if(s){s.textContent='✗ Gagal';s.className='preview-status err'}">`;
   }
 
   function renderLists() {
@@ -354,13 +409,8 @@
       mBox.querySelectorAll('[data-preview-embed]').forEach((btn) => {
         btn.onclick = () => {
           const emb = btn.getAttribute('data-preview-embed');
-          const wrap = document.createElement('div');
-          wrap.className = 'media-preview-box';
-          wrap.style.marginTop = '8px';
-          wrap.innerHTML = `<iframe src="${emb}" style="width:100%;height:320px;border:0;border-radius:10px" allowfullscreen loading="lazy"></iframe>`;
-          btn.insertAdjacentElement('afterend', wrap);
-          btn.disabled = true;
-          btn.textContent = 'Preview dibuka';
+          openPreviewCard('Preview embed', `<iframe src="${emb}" style="width:100%;height:360px;border:0;border-radius:12px;background:#111" allowfullscreen loading="lazy"></iframe>
+            <p class="hint" style="margin-top:8px">Jika kosong, platform memblokir embed di domain ini.</p>`);
         };
       });
     }
@@ -444,12 +494,7 @@
       vBox.querySelectorAll('[data-yt]').forEach((btn) => {
         btn.onclick = () => {
           const id = btn.getAttribute('data-yt');
-          const wrap = document.createElement('div');
-          wrap.className = 'media-preview-box ok';
-          wrap.style.marginTop = '8px';
-          wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" style="width:100%;height:240px;border:0;border-radius:10px" allowfullscreen loading="lazy"></iframe>`;
-          btn.insertAdjacentElement('afterend', wrap);
-          btn.disabled = true;
+          openPreviewCard('Preview YouTube', `<iframe src="https://www.youtube.com/embed/${id}" style="width:100%;height:320px;border:0;border-radius:12px" allowfullscreen loading="lazy"></iframe>`);
         };
       });
     }
@@ -458,7 +503,7 @@
   function save() {
     readForm();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    status('Tersimpan di browser. Buka halaman utama untuk melihat perubahan.');
+    status('✓ Tersimpan di localStorage browser (kunci: sdit_di_site_data_v1). Perubahan terlihat di halaman utama perangkat ini. Untuk produksi: Export JSON → upload ke data/site.json.');
   }
 
   async function reset() {
@@ -487,6 +532,7 @@
     if (thumbInput && thumbInput.value.trim()) {
       merged.thumb = thumbInput.value.trim();
     }
+    if (merged.thumb) merged.thumb = resolveAdminAsset(merged.thumb);
     const p = window.MediaUtils.buildPreviewHtml(merged);
     prev.innerHTML = p.html + (p.note ? `<p class="hint" style="margin-top:6px">${escapeHtml(p.note)}</p>` : '');
   }
@@ -605,4 +651,36 @@
   (async () => {
     if (!loadFromStorage()) await loadFromFile();
   })();
+
+  // Deep-link from frontend quick-edit: admin/?edit=carousel:0
+  function handleDeepLinkEdit() {
+    const params = new URLSearchParams(location.search);
+    const edit = params.get('edit');
+    if (!edit) return;
+    const [type, idxStr] = edit.split(':');
+    const index = parseInt(idxStr, 10);
+    if (!type || Number.isNaN(index)) return;
+    // Wait until unlocked & data loaded
+    const tryOpen = () => {
+      if (!isAuthed()) return;
+      if (!data || !data[type]) return;
+      openEditor(type, index);
+      status('Membuka editor untuk ' + type + ' #' + (index + 1));
+      // clean URL
+      try {
+        const u = new URL(location.href);
+        u.searchParams.delete('edit');
+        history.replaceState({}, '', u.pathname + u.search);
+      } catch (_) {}
+    };
+    // Poll briefly until auth + data ready
+    let n = 0;
+    const t = setInterval(() => {
+      n++;
+      if (isAuthed() && data) { clearInterval(t); tryOpen(); }
+      if (n > 40) clearInterval(t);
+    }, 250);
+  }
+  handleDeepLinkEdit();
+
 })();

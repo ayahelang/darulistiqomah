@@ -80,15 +80,57 @@ button, input, textarea, select { font: inherit; }
 .btn-primary, a.btn-primary { background: var(--primary); color: #fff !important; box-shadow: 0 8px 20px rgba(11,110,79,.25); }
 .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); color: #fff; }
 .btn-accent, a.btn-accent {
-  background: #E8C547;
-  color: #111111;
-  box-shadow: 0 8px 20px rgba(201,162,39,.4);
+  background: linear-gradient(135deg, #E8C547, #d4a017);
+  color: #1a1f2c !important;
+  box-shadow: 0 6px 18px rgba(201,162,39,.35);
   text-shadow: none;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: .01em;
+  padding: .55rem 1.15rem;
+  font-size: .9rem;
+  width: fit-content;
+  max-width: max-content;
 }
-.btn-accent:hover { background: #d4b030; color: #000; transform: translateY(-1px); }
+.btn-accent:hover, a.btn-accent:hover {
+  background: linear-gradient(135deg, #0B6E4F, #12A87A);
+  color: #ffffff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(11,110,79,.35);
+}
 .btn-accent:focus-visible { outline: 3px solid #0B6E4F; outline-offset: 2px; }
+
+/* Slide CTA specifically more compact */
+.slide-content .btn {
+  width: fit-content;
+  align-self: flex-start;
+}
+.slide-content .btn-accent {
+  padding: .5rem 1.1rem;
+  font-size: .88rem;
+  border-radius: 999px;
+}
+
+/* Order / Daftar / primary CTAs — hover text hijau on light variants, white on green fill */
+.btn-primary:hover, a.btn-primary:hover {
+  background: var(--primary-dark);
+  color: #fff !important;
+}
+/* Ghost / outline order-style: text becomes green on hover */
+.btn-order, a.btn-order,
+.ppdb-actions .btn-ghost:hover,
+.ppdb-actions a.btn-ghost:hover {
+  color: var(--primary) !important;
+}
+.ppdb-actions .btn-primary:hover,
+.ppdb-actions a.btn-primary:hover {
+  color: #fff !important;
+}
+/* Explicit order hover green text when background lightens */
+a.btn-ghost:hover, .btn-ghost:hover {
+  color: var(--primary) !important;
+  border-color: var(--primary);
+  background: rgba(11,110,79,.08);
+}
 .btn-ghost {
   background: transparent;
   border: 1.5px solid rgba(11,110,79,.35);
@@ -444,4 +486,15 @@ dialog::backdrop {
 input, textarea, select {
   accent-color: #0B6E4F;
   caret-color: #0B6E4F;
+}
+
+/* Quick admin-edit mode (Ctrl+Alt+Shift held) */
+body.admin-edit-armed [data-admin-edit] {
+  outline: 2px dashed rgba(11,110,79,.55);
+  outline-offset: 3px;
+  cursor: copy !important;
+}
+body.admin-edit-armed [data-admin-edit]:hover {
+  outline-color: #C9A227;
+  box-shadow: 0 0 0 4px rgba(201,162,39,.25);
 }
