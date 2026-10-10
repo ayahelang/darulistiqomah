@@ -11,6 +11,6 @@ window.SDIT_CONFIG = {
   apiToken: 'sdit-di-rahasia-2026',
   // true = frontend & admin pakai Google Sheets sebagai sumber media
   useSheets: true,
-  // Cache media di browser (ms)
-  mediaCacheTtl: 5 * 60 * 1000
+  // Cache Site (ms)
+   siteCacheTtl: 60000
 };
