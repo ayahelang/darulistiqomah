@@ -197,7 +197,8 @@
   function escapeHtml(str) {
     return String(str || '').replace(/[&<>"']/g, (c) => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }
+    })[c]);
+  }
 
   /** Path relatif di site.json (images/…) harus ../ di panel /admin/ */
   function resolveAdminAsset(src) {
@@ -207,10 +208,7 @@
     if (/^https?:\/\//i.test(s) || s.startsWith('data:') || s.startsWith('blob:')) return s;
     if (s.startsWith('../')) return s;
     if (s.startsWith('/')) return s;
-    // images/foo.jpg or ./images/foo.jpg from admin folder
     return '../' + s.replace(/^\.\//, '');
-  }
-)[c]);
   }
 
   // --- CRUD Modal ---
