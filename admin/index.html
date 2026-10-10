@@ -256,6 +256,18 @@
       background: #0B6E4F !important; color: #fff !important;
       transition: background .2s;
     }
+
+    .ann-admin-preview {
+      border: 1px dashed rgba(11,110,79,.3); border-radius: 12px; padding: 10px;
+      background: #f8faf8; margin-top: 8px; min-height: 80px;
+    }
+    .ann-admin-preview img { max-width: 100%; max-height: 160px; border-radius: 8px; display: block; margin-bottom: 8px; }
+    .ann-paste-zone {
+      border: 2px dashed rgba(11,110,79,.35); border-radius: 12px; padding: 14px;
+      text-align: center; color: var(--muted); font-size: .88rem; margin-top: 8px;
+      background: #fff; cursor: pointer;
+    }
+    .ann-paste-zone:focus, .ann-paste-zone.drag { border-color: var(--primary); background: #f0faf5; outline: none; }
   </style>
   <link rel="stylesheet" href="../css/lock.css">
 </head>
@@ -359,6 +371,107 @@
         <div>
           <label>WhatsApp (62…)</label>
           <input id="fWa" type="text">
+        </div>
+      </div>
+    </div>
+
+
+    <div class="admin-card">
+      <h2>📢 Pengumuman</h2>
+      <p class="hint">
+        Tampil di halaman publik sebagai <strong>popup</strong>, banner atas/bawah, atau float.
+        Atur jadwal mulai–selesai, durasi, dan frekuensi. Gambar bisa di-upload URL atau
+        <strong>Ctrl+V screenshot</strong> di zona paste.
+        Default aman: popup, 12 detik, sekali per sesi, bisa ditutup.
+      </p>
+      <div class="list" id="annList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddAnn">+ Tambah Pengumuman</button>
+      </div>
+
+      <div id="annEditor" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(11,110,79,.12)">
+        <h3 id="annEditorTitle" style="font-size:1rem;color:#084C37;margin-bottom:.75rem">Edit pengumuman</h3>
+        <label>Judul</label>
+        <input type="text" id="annTitle" placeholder="Judul pengumuman">
+        <label>Isi pesan</label>
+        <textarea id="annBody" placeholder="Teks pengumuman…"></textarea>
+        <div class="row">
+          <div>
+            <label>Mode tampilan</label>
+            <select id="annMode">
+              <option value="popup">Popup tengah (modal)</option>
+              <option value="top">Banner atas (sticky)</option>
+              <option value="bottom">Banner bawah (sticky)</option>
+              <option value="float-left">Float kiri bawah</option>
+              <option value="float-right">Float kanan bawah</option>
+              <option value="corner">Kartu pojok kanan</option>
+            </select>
+          </div>
+          <div>
+            <label>Frekuensi</label>
+            <select id="annFreq">
+              <option value="session">Sekali per sesi tab</option>
+              <option value="once">Sekali saja (selamanya di browser)</option>
+              <option value="always">Setiap kunjungan / refresh</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Mulai (kosong = segera)</label>
+            <input type="datetime-local" id="annStart">
+          </div>
+          <div>
+            <label>Selesai (kosong = tanpa batas)</label>
+            <input type="datetime-local" id="annEnd">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Durasi tampil (detik, default 12)</label>
+            <input type="number" id="annDuration" min="3" max="300" placeholder="12">
+          </div>
+          <div>
+            <label>Prioritas (angka besar = lebih dulu)</label>
+            <input type="number" id="annPriority" min="0" max="100" placeholder="0">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Teks tombol CTA (opsional)</label>
+            <input type="text" id="annCtaText" placeholder="Selengkapnya">
+          </div>
+          <div>
+            <label>Link CTA</label>
+            <input type="url" id="annCtaLink" placeholder="https://…">
+          </div>
+        </div>
+        <label>URL gambar (opsional)</label>
+        <input type="url" id="annImage" placeholder="https://… atau tempel screenshot di bawah">
+        <div class="ann-paste-zone" id="annPaste" tabindex="0">
+          Klik di sini lalu <strong>Ctrl+V</strong> untuk menempel screenshot dari clipboard<br>
+          <span style="font-size:.8rem">Gambar di-resize otomatis agar muat di Sheets</span>
+        </div>
+        <div class="ann-admin-preview" id="annPreview"></div>
+        <div class="row" style="margin-top:.75rem">
+          <div>
+            <label>Aktif</label>
+            <select id="annActive">
+              <option value="true">Ya</option>
+              <option value="false">Tidak</option>
+            </select>
+          </div>
+          <div>
+            <label>Bisa ditutup (tombol ×)</label>
+            <select id="annDismiss">
+              <option value="true">Ya</option>
+              <option value="false">Tidak</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-accent" type="button" id="btnAnnSave">Simpan pengumuman</button>
+          <button class="btn btn-ghost" type="button" id="btnAnnCancel">Batal</button>
         </div>
       </div>
     </div>

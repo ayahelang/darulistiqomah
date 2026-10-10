@@ -157,6 +157,7 @@
     if (!j.data) throw new Error('Sheets belum berisi data site — klik Simpan sekali untuk mengisi');
     data = j.data;
     if (!data.media) data.media = [];
+    if (!data.announcements) data.announcements = [];
     fillForm();
     status('✓ Data dimuat dari Google Sheets');
     return true;
@@ -166,6 +167,7 @@
     const res = await fetch(DATA_URL, { cache: 'no-store' });
     data = await res.json();
     if (!data.media) data.media = [];
+    if (!data.announcements) data.announcements = [];
     fillForm();
     status('Data dimuat dari data/site.json (fallback lokal)');
   }
@@ -273,10 +275,20 @@
       { key: 'title', label: 'Judul', type: 'text' },
       { key: 'youtubeId', label: 'YouTube ID', type: 'text' },
       { key: 'thumb', label: 'URL Thumbnail', type: 'text' }
+    ],
+    announcements: [
+      { key: 'title', label: 'Judul', type: 'text' },
+      { key: 'body', label: 'Isi', type: 'textarea' },
+      { key: 'mode', label: 'Mode', type: 'text' },
+      { key: 'image', label: 'Gambar', type: 'text' }
     ]
   };
 
   function openEditor(type, index) {
+    if (type === 'announcements') {
+      openAnnEditor(index);
+      return;
+    }
     editCtx = { type, index };
     const list = data[type] || [];
     const item = index >= 0 ? Object.assign({}, list[index]) : {};
@@ -406,7 +418,140 @@
       onerror="this.classList.add('err');var s=this.nextElementSibling;if(s){s.textContent='✗ Gagal';s.className='preview-status err'}">`;
   }
 
+  let annEditIndex = -1;
+
+  function toLocalInput(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function fromLocalInput(v) {
+    if (!v) return '';
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? '' : d.toISOString();
+  }
+
+  function compressImageFile(file, maxW, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, (maxW || 800) / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', quality || 0.72));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  function updateAnnPreview() {
+    const prev = $('annPreview');
+    if (!prev) return;
+    const title = ($('annTitle') && $('annTitle').value) || 'Pengumuman';
+    const body = ($('annBody') && $('annBody').value) || '';
+    const image = ($('annImage') && $('annImage').value) || '';
+    prev.innerHTML = (image ? '<img src="' + escapeHtml(image) + '" alt="">' : '') +
+      '<strong>' + escapeHtml(title) + '</strong>' +
+      '<p class="hint" style="margin:4px 0 0">' + escapeHtml(body).slice(0, 180) + '</p>';
+  }
+
+  function openAnnEditor(index) {
+    annEditIndex = index;
+    const list = data.announcements || [];
+    const a = index >= 0 ? (list[index] || {}) : {};
+    $('annEditor').hidden = false;
+    $('annEditorTitle').textContent = index >= 0 ? 'Edit pengumuman' : 'Tambah pengumuman';
+    $('annTitle').value = a.title || '';
+    $('annBody').value = a.body || '';
+    $('annMode').value = a.mode || 'popup';
+    $('annFreq').value = a.frequency || 'session';
+    $('annStart').value = toLocalInput(a.startAt);
+    $('annEnd').value = toLocalInput(a.endAt);
+    $('annDuration').value = a.durationSec != null ? a.durationSec : 12;
+    $('annPriority').value = a.priority != null ? a.priority : 0;
+    $('annCtaText').value = a.ctaText || '';
+    $('annCtaLink').value = a.ctaLink || '';
+    $('annImage').value = a.image || '';
+    $('annActive').value = a.active === false ? 'false' : 'true';
+    $('annDismiss').value = a.dismissible === false ? 'false' : 'true';
+    updateAnnPreview();
+    $('annEditor').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closeAnnEditor() {
+    annEditIndex = -1;
+    $('annEditor').hidden = true;
+  }
+
+  function saveAnnEditor() {
+    if (!data.announcements) data.announcements = [];
+    const item = {
+      id: (annEditIndex >= 0 && data.announcements[annEditIndex] && data.announcements[annEditIndex].id)
+        ? data.announcements[annEditIndex].id
+        : ('ann' + Date.now()),
+      title: ($('annTitle').value || '').trim() || 'Pengumuman',
+      body: ($('annBody').value || '').trim(),
+      mode: $('annMode').value || 'popup',
+      frequency: $('annFreq').value || 'session',
+      startAt: fromLocalInput($('annStart').value),
+      endAt: fromLocalInput($('annEnd').value),
+      durationSec: Math.max(3, parseInt($('annDuration').value, 10) || 12),
+      priority: parseInt($('annPriority').value, 10) || 0,
+      ctaText: ($('annCtaText').value || '').trim(),
+      ctaLink: ($('annCtaLink').value || '').trim(),
+      image: ($('annImage').value || '').trim(),
+      active: $('annActive').value !== 'false',
+      dismissible: $('annDismiss').value !== 'false'
+    };
+    if (annEditIndex >= 0) data.announcements[annEditIndex] = item;
+    else data.announcements.unshift(item);
+    closeAnnEditor();
+    renderLists();
+    status('Pengumuman disimpan di form. Klik "Simpan ke Google Sheets" agar tampil di website.');
+  }
+
+  function renderAnnList() {
+    const box = $('annList');
+    if (!box) return;
+    box.innerHTML = '';
+    const list = data.announcements || [];
+    if (!list.length) {
+      box.innerHTML = '<p class="hint">Belum ada pengumuman.</p>';
+      return;
+    }
+    list.forEach((a, i) => {
+      const row = document.createElement('div');
+      row.className = 'list-item';
+      const left = document.createElement('div');
+      left.className = 'li-thumb';
+      left.innerHTML = listThumbHtml(a.image) + '<span class="preview-status">…</span>';
+      const mid = document.createElement('div');
+      mid.className = 'li-info';
+      mid.innerHTML = '<span class="badge">' + escapeHtml(a.mode || 'popup') + '</span>' +
+        (a.active === false ? '<span class="badge" style="background:#fee2e2;color:#991b1b">nonaktif</span>' : '<span class="badge foto">aktif</span>') +
+        ' <strong>' + escapeHtml(a.title || 'Pengumuman') + '</strong>' +
+        '<div class="meta">' + escapeHtml((a.body || '').slice(0, 80)) + '</div>' +
+        '<div class="meta">⏱ ' + (a.durationSec || 12) + 's · ' + escapeHtml(a.frequency || 'session') +
+        (a.startAt ? ' · mulai ' + escapeHtml(a.startAt.slice(0, 16)) : '') +
+        (a.endAt ? ' · selesai ' + escapeHtml(a.endAt.slice(0, 16)) : '') + '</div>';
+      row.appendChild(left);
+      row.appendChild(mid);
+      row.appendChild(rowActions('announcements', i));
+      box.appendChild(row);
+    });
+  }
+
   function renderLists() {
+    renderAnnList();
+
     // Media
     const mBox = $('mediaList');
     if (mBox) {
@@ -721,6 +866,45 @@
       if (n > 40) clearInterval(t);
     }, 250);
   }
+  
+  // Announcements UI
+  const btnAddAnn = $('btnAddAnn');
+  if (btnAddAnn) btnAddAnn.onclick = () => openAnnEditor(-1);
+  const btnAnnSave = $('btnAnnSave');
+  if (btnAnnSave) btnAnnSave.onclick = saveAnnEditor;
+  const btnAnnCancel = $('btnAnnCancel');
+  if (btnAnnCancel) btnAnnCancel.onclick = closeAnnEditor;
+  ['annTitle','annBody','annImage'].forEach((id) => {
+    const n = $(id);
+    if (n) n.addEventListener('input', updateAnnPreview);
+  });
+  const pasteZone = $('annPaste');
+  if (pasteZone) {
+    pasteZone.addEventListener('click', () => pasteZone.focus());
+    pasteZone.addEventListener('paste', async (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (const it of items) {
+        if (it.type && it.type.indexOf('image') === 0) {
+          e.preventDefault();
+          const file = it.getAsFile();
+          try {
+            const dataUrl = await compressImageFile(file, 900, 0.7);
+            if (dataUrl.length > 45000) {
+              status('Screenshot masih besar setelah kompres. Coba crop dulu atau pakai URL gambar.');
+            }
+            $('annImage').value = dataUrl;
+            updateAnnPreview();
+            status('Screenshot ditempel ke pengumuman.');
+          } catch (err) {
+            status('Gagal memproses gambar clipboard.');
+          }
+          break;
+        }
+      }
+    });
+  }
+
   handleDeepLinkEdit();
 
 })();

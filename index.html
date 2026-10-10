@@ -41,6 +41,8 @@
   </header>
 
   <main>
+    <!-- Pengumuman dinamis -->
+    <div id="annRoot" aria-live="polite"></div>
     <section class="hero" id="beranda">
       <div class="carousel" id="carousel" aria-label="Carousel"></div>
       <div class="carousel-nav" id="carouselDots"></div>
@@ -96,6 +98,9 @@
           <p>Kabar kegiatan, prestasi, dan informasi terbaru dari sekolah.</p>
         </div>
         <div class="grid-3" id="articles"></div>
+        <div class="load-more-wrap" id="articlesMoreWrap" hidden>
+          <button type="button" class="btn btn-ghost load-more-btn" id="articlesMore">Muat lebih banyak</button>
+        </div>
       </div>
     </section>
 
@@ -107,6 +112,9 @@
           <p>Momen belajar, ibadah, dan kebersamaan siswa.</p>
         </div>
         <div class="gallery-grid" id="gallery"></div>
+        <div class="load-more-wrap" id="galleryMoreWrap" hidden>
+          <button type="button" class="btn btn-ghost load-more-btn" id="galleryMore">Muat lebih banyak</button>
+        </div>
       </div>
     </section>
 
@@ -118,6 +126,9 @@
           <p>Cuplikan kegiatan dan dokumentasi sekolah.</p>
         </div>
         <div class="grid-2" id="videos"></div>
+        <div class="load-more-wrap" id="videosMoreWrap" hidden>
+          <button type="button" class="btn btn-ghost load-more-btn" id="videosMore">Muat lebih banyak</button>
+        </div>
       </div>
     </section>
 

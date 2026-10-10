@@ -84,6 +84,34 @@
     return node;
   }
 
+
+  const PAGE = { articles: 6, gallery: 6, videos: 4 };
+  const shown = { articles: 0, gallery: 0, videos: 0 };
+  let _lists = { articles: [], gallery: [], videos: [] };
+
+  function bindLoadMore(btnId, wrapId, key, renderPage) {
+    const btn = document.getElementById(btnId);
+    const wrap = document.getElementById(wrapId);
+    if (!btn || !wrap) return;
+    btn.onclick = () => {
+      shown[key] = Math.min(shown[key] + PAGE[key], _lists[key].length);
+      renderPage();
+    };
+  }
+
+  function updateMoreBtn(wrapId, key) {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    const left = _lists[key].length - shown[key];
+    if (left <= 0) {
+      wrap.hidden = true;
+    } else {
+      wrap.hidden = false;
+      const btn = wrap.querySelector('button');
+      if (btn) btn.textContent = 'Muat lebih banyak (' + left + ' tersisa)';
+    }
+  }
+
   function renderCarousel(items) {
     const track = document.getElementById('carousel');
     const dots = document.getElementById('carouselDots');
@@ -153,24 +181,30 @@
 
   function renderArticles(articles) {
     const box = document.getElementById('articles');
-    if (!box || !articles) return;
-    box.innerHTML = '';
-    articles.forEach((a, idx) => {
-      box.appendChild(el('article', { class: 'card article-card', 'data-admin-edit': 'articles:' + idx }, [
-        el('img', { src: a.image, alt: a.title, loading: 'lazy' }),
-        el('div', { class: 'article-body' }, [
-          el('div', { class: 'meta' }, [`${a.category || 'Berita'} · ${a.date || ''}`]),
-          el('h3', {}, [a.title]),
-          el('p', {}, [a.excerpt])
-        ])
-      ]));
-    });
+    if (!box) return;
+    _lists.articles = articles || [];
+    shown.articles = Math.min(PAGE.articles, _lists.articles.length);
+    const paint = () => {
+      box.innerHTML = '';
+      _lists.articles.slice(0, shown.articles).forEach((a, idx) => {
+        box.appendChild(el('article', { class: 'card article-card', 'data-admin-edit': 'articles:' + idx }, [
+          el('img', { src: a.image, alt: a.title || '', loading: 'lazy' }),
+          el('div', { class: 'article-body' }, [
+            el('div', { class: 'meta' }, [`${a.category || 'Berita'} · ${a.date || ''}`]),
+            el('h3', {}, [a.title || '']),
+            el('p', {}, [a.excerpt || ''])
+          ])
+        ]));
+      });
+      updateMoreBtn('articlesMoreWrap', 'articles');
+    };
+    bindLoadMore('articlesMore', 'articlesMoreWrap', 'articles', paint);
+    paint();
   }
 
   function renderGallery(items, media) {
     const box = document.getElementById('gallery');
     if (!box) return;
-    box.innerHTML = '';
     const list = [];
     (items || []).forEach((g, idx) => {
       list.push({ title: g.title, image: g.image, type: 'foto', _edit: 'gallery:' + idx });
@@ -187,31 +221,37 @@
         });
       }
     });
-    list.forEach((g) => {
-      const isIg = g.source === 'instagram' || (g.url && g.url.indexOf('instagram.com') !== -1);
-      const children = [];
-      if (g.image) children.push(el('img', { src: g.image, alt: g.title || '', loading: 'lazy' }));
-      else children.push(el('div', { class: 'gallery-placeholder' }, [isIg ? 'Instagram' : 'Foto']));
-      children.push(el('figcaption', {}, [g.title || 'Foto']));
-      box.appendChild(el('figure', {
-        class: 'gallery-item',
-        'data-admin-edit': g._edit || '',
-        title: 'Ctrl+Alt+Shift + double-click untuk edit',
-        onclick: function (ev) {
-          // Jangan buka lightbox jika sedang mode edit cepat
-          if (ev.ctrlKey && ev.altKey && ev.shiftKey) return;
-          if (isIg && g.url) window.open(g.url, '_blank', 'noopener');
-          else if (g.image) openLightbox(g.image, g.title);
-          else if (g.url) window.open(g.url, '_blank', 'noopener');
-        }
-      }, children));
-    });
+    _lists.gallery = list;
+    shown.gallery = Math.min(PAGE.gallery, list.length);
+    const paint = () => {
+      box.innerHTML = '';
+      _lists.gallery.slice(0, shown.gallery).forEach((g) => {
+        const isIg = g.source === 'instagram' || (g.url && g.url.indexOf('instagram.com') !== -1);
+        const children = [];
+        if (g.image) children.push(el('img', { src: g.image, alt: g.title || '', loading: 'lazy' }));
+        else children.push(el('div', { class: 'gallery-placeholder' }, [isIg ? 'Instagram' : 'Foto']));
+        children.push(el('figcaption', {}, [g.title || 'Foto']));
+        box.appendChild(el('figure', {
+          class: 'gallery-item',
+          'data-admin-edit': g._edit || '',
+          title: 'Ctrl+Alt+Shift + double-click untuk edit',
+          onclick: function (ev) {
+            if (ev.ctrlKey && ev.altKey && ev.shiftKey) return;
+            if (isIg && g.url) window.open(g.url, '_blank', 'noopener');
+            else if (g.image) openLightbox(g.image, g.title);
+            else if (g.url) window.open(g.url, '_blank', 'noopener');
+          }
+        }, children));
+      });
+      updateMoreBtn('galleryMoreWrap', 'gallery');
+    };
+    bindLoadMore('galleryMore', 'galleryMoreWrap', 'gallery', paint);
+    paint();
   }
 
   function renderVideos(videos, media) {
     const box = document.getElementById('videos');
     if (!box) return;
-    box.innerHTML = '';
     const list = [];
     (videos || []).forEach((v, idx) => {
       list.push({ title: v.title, thumb: v.thumb, youtubeId: v.youtubeId, source: 'youtube', _edit: 'videos:' + idx });
@@ -228,28 +268,152 @@
         });
       }
     });
-    list.forEach((v) => {
-      const kids = [];
-      if (v.thumb) kids.push(el('img', { src: v.thumb, alt: v.title || '', loading: 'lazy' }));
-      else kids.push(el('div', { class: 'video-placeholder' }, [v.source === 'instagram' ? 'Instagram Reel' : (v.source || 'Video')]));
-      kids.push(el('div', { class: 'play' }, [el('span', {}, ['▶'])]));
-      box.appendChild(el('article', {
-        class: 'video-card',
-        'data-admin-edit': v._edit || '',
-        title: 'Ctrl+Alt+Shift + double-click untuk edit'
-      }, [
-        el('div', {
-          class: 'video-thumb',
-          onclick: function (ev) {
-            if (ev.ctrlKey && ev.altKey && ev.shiftKey) return;
-            if (v.youtubeId) openVideo(v.youtubeId);
-            else if (v.embedUrl) openEmbed(v.embedUrl);
-            else if (v.url) window.open(v.url, '_blank', 'noopener');
+    _lists.videos = list;
+    shown.videos = Math.min(PAGE.videos, list.length);
+    const paint = () => {
+      box.innerHTML = '';
+      _lists.videos.slice(0, shown.videos).forEach((v) => {
+        const kids = [];
+        if (v.thumb) kids.push(el('img', { src: v.thumb, alt: v.title || '', loading: 'lazy' }));
+        else kids.push(el('div', { class: 'video-placeholder' }, [v.source === 'instagram' ? 'Instagram Reel' : (v.source || 'Video')]));
+        kids.push(el('div', { class: 'play' }, [el('span', {}, ['▶'])]));
+        box.appendChild(el('article', {
+          class: 'video-card',
+          'data-admin-edit': v._edit || '',
+          title: 'Ctrl+Alt+Shift + double-click untuk edit'
+        }, [
+          el('div', {
+            class: 'video-thumb',
+            onclick: function (ev) {
+              if (ev.ctrlKey && ev.altKey && ev.shiftKey) return;
+              if (v.youtubeId) openVideo(v.youtubeId);
+              else if (v.embedUrl) openEmbed(v.embedUrl);
+              else if (v.url) window.open(v.url, '_blank', 'noopener');
+            }
+          }, kids),
+          el('h3', {}, [v.title || 'Video'])
+        ]));
+      });
+      updateMoreBtn('videosMoreWrap', 'videos');
+    };
+    bindLoadMore('videosMore', 'videosMoreWrap', 'videos', paint);
+    paint();
+  }
+
+
+  function annDefaults(a) {
+    const now = Date.now();
+    return {
+      id: a.id || ('ann' + now),
+      title: a.title || 'Pengumuman',
+      body: a.body || '',
+      image: a.image || '',
+      mode: a.mode || 'popup', // popup | top | bottom | float-left | float-right | corner
+      active: a.active !== false,
+      startAt: a.startAt || '',
+      endAt: a.endAt || '',
+      durationSec: Number(a.durationSec) > 0 ? Number(a.durationSec) : 12,
+      dismissible: a.dismissible !== false,
+      frequency: a.frequency || 'session', // once | session | always
+      ctaText: a.ctaText || '',
+      ctaLink: a.ctaLink || '',
+      priority: Number(a.priority) || 0
+    };
+  }
+
+  function annIsInSchedule(a) {
+    const now = Date.now();
+    if (a.startAt) {
+      const t = Date.parse(a.startAt);
+      if (!isNaN(t) && now < t) return false;
+    }
+    if (a.endAt) {
+      const t = Date.parse(a.endAt);
+      if (!isNaN(t) && now > t) return false;
+    }
+    return true;
+  }
+
+  function annSeenKey(id) {
+    return 'sdit_ann_seen_' + id;
+  }
+
+  function annShouldShow(a) {
+    if (!a.active) return false;
+    if (!annIsInSchedule(a)) return false;
+    const freq = a.frequency || 'session';
+    if (freq === 'always') return true;
+    try {
+      if (freq === 'once' && localStorage.getItem(annSeenKey(a.id))) return false;
+      if (freq === 'session' && sessionStorage.getItem(annSeenKey(a.id))) return false;
+    } catch (_) {}
+    return true;
+  }
+
+  function annMarkSeen(a) {
+    try {
+      if (a.frequency === 'once') localStorage.setItem(annSeenKey(a.id), '1');
+      else sessionStorage.setItem(annSeenKey(a.id), '1');
+    } catch (_) {}
+  }
+
+  function renderAnnouncements(list) {
+    const root = document.getElementById('annRoot');
+    if (!root) return;
+    root.innerHTML = '';
+    const items = (list || []).map(annDefaults).filter(annShouldShow)
+      .sort((x, y) => (y.priority || 0) - (x.priority || 0));
+    if (!items.length) return;
+
+    items.forEach((a) => {
+      const mode = a.mode || 'popup';
+      const card = el('div', { class: 'ann-card ann-mode-' + mode, 'data-ann-id': a.id }, []);
+      const inner = el('div', { class: 'ann-inner' }, []);
+      if (a.image) {
+        inner.appendChild(el('img', { class: 'ann-img', src: a.image, alt: '', loading: 'lazy' }));
+      }
+      const text = el('div', { class: 'ann-text' }, [
+        el('strong', { class: 'ann-title' }, [a.title]),
+        el('p', { class: 'ann-body' }, [a.body])
+      ]);
+      if (a.ctaText && a.ctaLink) {
+        text.appendChild(el('a', { class: 'btn btn-primary ann-cta', href: a.ctaLink }, [a.ctaText]));
+      }
+      inner.appendChild(text);
+      if (a.dismissible) {
+        const close = el('button', {
+          type: 'button',
+          class: 'ann-close',
+          'aria-label': 'Tutup',
+          onclick: function () {
+            hideAnn(card, a);
           }
-        }, kids),
-        el('h3', {}, [v.title || 'Video'])
-      ]));
+        }, ['×']);
+        card.appendChild(close);
+      }
+      card.appendChild(inner);
+
+      if (mode === 'popup') {
+        const overlay = el('div', { class: 'ann-overlay', 'data-ann-id': a.id }, [card]);
+        root.appendChild(overlay);
+        // auto dismiss after duration
+        const ms = (a.durationSec || 12) * 1000;
+        setTimeout(() => hideAnn(overlay, a), ms);
+      } else {
+        root.appendChild(card);
+        if (mode !== 'top' && mode !== 'bottom') {
+          const ms = (a.durationSec || 12) * 1000;
+          setTimeout(() => hideAnn(card, a), ms);
+        }
+      }
+      annMarkSeen(a);
     });
+  }
+
+  function hideAnn(node, a) {
+    if (!node) return;
+    node.classList.add('ann-hide');
+    setTimeout(() => node.remove(), 320);
   }
 
   function renderActivities(list) {
@@ -419,6 +583,7 @@
       renderGallery(data.gallery, data.media);
       renderVideos(data.videos, data.media);
       renderActivities(data.activities);
+      renderAnnouncements(data.announcements);
       // Tag sections that are not item-level
       document.querySelectorAll('#ppdb, .ppdb-box').forEach((node) => {
         node.setAttribute('data-admin-edit', 'school:0');
