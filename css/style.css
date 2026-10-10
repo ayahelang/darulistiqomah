@@ -112,7 +112,7 @@ button, input, textarea, select { font: inherit; }
 
 /* Hero / Carousel */
 .hero { position: relative; isolation: isolate; }
-.carousel { position: relative; min-height: clamp(160px, 18vh, 640px); overflow: hidden; }
+.carousel { position: relative; min-height: clamp(260px, 168vh, 340px); overflow: hidden; }
 .slide {
   position: absolute; inset: 0; opacity: 0; pointer-events: none;
   transition: opacity .7s ease;
