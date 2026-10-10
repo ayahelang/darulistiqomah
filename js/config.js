@@ -6,11 +6,11 @@
  */
 window.SDIT_CONFIG = {
   // URL Web App dari Google Apps Script (kosongkan jika belum setup)
-  sheetsApiUrl: '',
+  sheetsApiUrl: 'https://script.google.com/macros/s/AKfycbxsEoAUFqVq2Pa11lYASnBFuUK1Q70Zbz-Wi_eXlDnGhHPzkaNbQ0JdLnRpsZnY-mHr6g/exec',
   // Token rahasia (sama dengan Script Property API_TOKEN)
-  apiToken: '',
+  apiToken: 'sdit-di-rahasia-2026',
   // true = frontend & admin pakai Google Sheets sebagai sumber media
-  useSheets: false,
+  useSheets: true,
   // Cache media di browser (ms)
   mediaCacheTtl: 5 * 60 * 1000
 };
