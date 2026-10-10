@@ -311,6 +311,20 @@
     if (m) m.classList.remove('open');
   }
 
+
+  function setupSecretAdminEntry() {
+    const logo = document.querySelector('.brand-logo-img, .brand');
+    if (!logo) return;
+    logo.style.cursor = 'default';
+    logo.addEventListener('click', (e) => {
+      if (e.ctrlKey && e.altKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = 'admin/';
+      }
+    });
+  }
+
   function setupNav() {
     const toggle = document.getElementById('navToggle');
     const links = document.getElementById('navLinks');
@@ -322,6 +336,7 @@
 
   async function init() {
     setupNav();
+    setupSecretAdminEntry();
     document.getElementById('lightbox')?.addEventListener('click', (e) => {
       if (e.target.id === 'lightbox' || e.target.classList.contains('lightbox-close')) closeLightbox();
     });

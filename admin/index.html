@@ -71,6 +71,22 @@
     }
     .login-card .err { color: #b91c1c; font-size: .85rem; min-height: 1.2em; margin-bottom: .5rem; }
     #adminApp.locked { display: none !important; }
+
+    .edit-modal {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(8,30,22,.55);
+      display: grid; place-items: center; padding: 1rem;
+    }
+    .edit-modal[hidden] { display: none !important; }
+    .edit-modal-inner {
+      background: #fff; border-radius: 16px; padding: 1.35rem 1.4rem;
+      width: min(520px, 100%); max-height: 90vh; overflow: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,.3);
+    }
+    .edit-modal-inner h2 { font-size: 1.1rem; color: #084C37; margin-bottom: .75rem; }
+    .list-item .actions-row { display: flex; gap: .35rem; flex-shrink: 0; }
+    .list-item .actions-row .btn { padding: .35rem .65rem; font-size: .8rem; }
+
   
   </style>
 </head>
@@ -79,7 +95,7 @@
   <div id="adminLogin">
     <div class="login-card">
       <h1>🔒 Admin SDIT Daarul Istiqomah</h1>
-      <p>Masukkan password untuk mengakses panel admin.</p>
+      <p>Masukkan password admin, atau gunakan keystroke rahasia.</p>
       <div class="err" id="loginErr"></div>
       <input type="password" id="loginPass" placeholder="Password admin" autocomplete="current-password">
       <button class="btn btn-primary" type="button" id="btnLogin" style="width:100%">Masuk</button>
@@ -186,6 +202,15 @@
       </div>
     </div>
 
+    
+    <div class="admin-card">
+      <h2>Video (YouTube)</h2>
+      <div class="list" id="videoList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddVideo">+ Tambah Video</button>
+      </div>
+    </div>
+
     <div class="admin-card">
       <h2>Galeri Foto (URL langsung)</h2>
       <div class="list" id="galleryList"></div>
@@ -230,6 +255,19 @@
       <span class="powered">Powered by <a href="https://silverhawk.web.id" target="_blank" rel="noopener">silverhawk.web.id</a></span>
     </div>
   </footer>
+
+  
+  <!-- CRUD Editor Modal -->
+  <div id="editModal" class="edit-modal" hidden>
+    <div class="edit-modal-inner">
+      <h2 id="editModalTitle">Edit</h2>
+      <div id="editFields"></div>
+      <div class="actions" style="margin-top:1rem">
+        <button class="btn btn-accent" type="button" id="btnEditSave">Simpan</button>
+        <button class="btn btn-ghost" type="button" id="btnEditCancel">Batal</button>
+      </div>
+    </div>
+  </div>
 
   <script src="../js/config.js"></script>
   <script src="../js/media-utils.js"></script>

@@ -3,6 +3,7 @@
   const DATA_URL = '../data/site.json';
   let data = null;
   let lastParsed = null;
+  let editCtx = null; // { type, index }
 
   const $ = (id) => document.getElementById(id);
   const status = (msg) => { const s = $('status'); if (s) s.textContent = msg; };
@@ -13,28 +14,58 @@
   const ADMIN_PASS = 'Bismillaah9999#';
 
   function isAuthed() {
-    try {
-      return sessionStorage.getItem(AUTH_KEY) === '1';
-    } catch (_) { return false; }
+    try { return sessionStorage.getItem(AUTH_KEY) === '1'; } catch (_) { return false; }
   }
   function unlockAdmin() {
     const login = document.getElementById('adminLogin');
     const app = document.getElementById('adminApp');
     if (login) login.classList.add('hidden');
     if (app) app.classList.remove('locked');
+    status('Berhasil masuk panel admin.');
+  }
+  function grantAuth() {
+    try { sessionStorage.setItem(AUTH_KEY, '1'); } catch (_) {}
+    unlockAdmin();
   }
   function tryLogin() {
     const pass = (document.getElementById('loginPass') || {}).value || '';
     const err = document.getElementById('loginErr');
     if (pass === ADMIN_PASS) {
-      try { sessionStorage.setItem(AUTH_KEY, '1'); } catch (_) {}
-      unlockAdmin();
-      status('Berhasil masuk panel admin.');
+      grantAuth();
     } else {
       if (err) err.textContent = 'Password salah. Coba lagi.';
       status('Password salah.');
     }
   }
+
+  // Secret keystroke on login: Ctrl+Alt then type 9999
+  let secretBuf = '';
+  let secretArmed = false;
+  document.addEventListener('keydown', (e) => {
+    if (isAuthed()) return;
+    // Arm when Ctrl+Alt held and a digit pressed, or track sequence
+    if (e.ctrlKey && e.altKey) {
+      const k = e.key;
+      if (k >= '0' && k <= '9') {
+        e.preventDefault();
+        secretBuf += k;
+        if (secretBuf.length > 4) secretBuf = secretBuf.slice(-4);
+        if (secretBuf === '9999') {
+          secretBuf = '';
+          grantAuth();
+          status('Masuk via keystroke rahasia.');
+        }
+      } else if (k === 'Control' || k === 'Alt') {
+        // ignore
+      } else {
+        secretBuf = '';
+      }
+    } else if (!e.ctrlKey && !e.altKey) {
+      // reset if released without completing
+      if (secretBuf && secretBuf.length < 4) secretBuf = '';
+    }
+  });
+
   if (isAuthed()) {
     unlockAdmin();
   } else {
@@ -43,8 +74,6 @@
     if (btn) btn.onclick = tryLogin;
     if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
   }
-
-
 
   function sheetsConfigured() {
     const c = cfg();
@@ -113,8 +142,123 @@
     })[c]);
   }
 
+  // --- CRUD Modal ---
+  const SCHEMAS = {
+    media: [
+      { key: 'title', label: 'Judul', type: 'text' },
+      { key: 'url', label: 'URL / Link', type: 'text' },
+      { key: 'type', label: 'Tipe (foto/video)', type: 'text' },
+      { key: 'source', label: 'Sumber', type: 'text' },
+      { key: 'category', label: 'Kategori', type: 'text' },
+      { key: 'description', label: 'Deskripsi', type: 'textarea' },
+      { key: 'thumb', label: 'URL Thumbnail', type: 'text' },
+      { key: 'embedUrl', label: 'Embed URL', type: 'text' },
+      { key: 'date', label: 'Tanggal', type: 'text' }
+    ],
+    carousel: [
+      { key: 'title', label: 'Judul', type: 'text' },
+      { key: 'subtitle', label: 'Subtitle', type: 'text' },
+      { key: 'image', label: 'URL / path gambar', type: 'text' },
+      { key: 'imagePosition', label: 'Posisi gambar (mis. center 30%)', type: 'text' },
+      { key: 'cta', label: 'Teks tombol CTA', type: 'text' },
+      { key: 'ctaLink', label: 'Link CTA', type: 'text' }
+    ],
+    articles: [
+      { key: 'title', label: 'Judul', type: 'text' },
+      { key: 'category', label: 'Kategori', type: 'text' },
+      { key: 'date', label: 'Tanggal', type: 'text' },
+      { key: 'excerpt', label: 'Ringkasan', type: 'textarea' },
+      { key: 'image', label: 'URL / path gambar', type: 'text' }
+    ],
+    gallery: [
+      { key: 'title', label: 'Judul', type: 'text' },
+      { key: 'image', label: 'URL / path gambar', type: 'text' },
+      { key: 'type', label: 'Tipe', type: 'text' }
+    ],
+    videos: [
+      { key: 'title', label: 'Judul', type: 'text' },
+      { key: 'youtubeId', label: 'YouTube ID', type: 'text' },
+      { key: 'thumb', label: 'URL Thumbnail', type: 'text' }
+    ]
+  };
+
+  function openEditor(type, index) {
+    editCtx = { type, index };
+    const list = data[type] || [];
+    const item = index >= 0 ? Object.assign({}, list[index]) : {};
+    const schema = SCHEMAS[type] || [];
+    $('editModalTitle').textContent = index >= 0 ? 'Edit ' + type : 'Tambah ' + type;
+    const box = $('editFields');
+    box.innerHTML = '';
+    schema.forEach((f) => {
+      const lab = document.createElement('label');
+      lab.textContent = f.label;
+      box.appendChild(lab);
+      let input;
+      if (f.type === 'textarea') {
+        input = document.createElement('textarea');
+        input.value = item[f.key] || '';
+      } else {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = item[f.key] || '';
+      }
+      input.dataset.key = f.key;
+      input.id = 'ef_' + f.key;
+      box.appendChild(input);
+    });
+    $('editModal').hidden = false;
+  }
+
+  function closeEditor() {
+    $('editModal').hidden = true;
+    editCtx = null;
+  }
+
+  function saveEditor() {
+    if (!editCtx) return;
+    const { type, index } = editCtx;
+    const schema = SCHEMAS[type] || [];
+    const item = index >= 0 ? Object.assign({}, (data[type] || [])[index]) : { id: type[0] + Date.now() };
+    schema.forEach((f) => {
+      const el = document.getElementById('ef_' + f.key);
+      if (el) item[f.key] = el.value.trim();
+    });
+    if (!data[type]) data[type] = [];
+    if (index >= 0) data[type][index] = item;
+    else data[type].unshift(item);
+    closeEditor();
+    renderLists();
+    status('Perubahan disimpan di form. Klik "Simpan ke Browser" agar permanen di sesi ini.');
+  }
+
+  function deleteItem(type, index) {
+    if (!confirm('Hapus item ini?')) return;
+    data[type].splice(index, 1);
+    renderLists();
+    status('Item dihapus. Klik Simpan ke Browser.');
+  }
+
+  function rowActions(type, index) {
+    const wrap = document.createElement('div');
+    wrap.className = 'actions-row';
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'btn btn-primary';
+    edit.textContent = 'Edit';
+    edit.onclick = () => openEditor(type, index);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'btn btn-ghost';
+    del.textContent = 'Hapus';
+    del.onclick = () => deleteItem(type, index);
+    wrap.appendChild(edit);
+    wrap.appendChild(del);
+    return wrap;
+  }
+
   function renderLists() {
-    // Media (new unified list)
+    // Media
     const mBox = $('mediaList');
     if (mBox) {
       mBox.innerHTML = '';
@@ -126,19 +270,12 @@
           <span class="badge ${badge}">${escapeHtml(m.type || 'foto')}</span>
           <span class="badge">${escapeHtml(m.source || '')}</span>
           <strong>${escapeHtml(m.title || m.url)}</strong>
-          <div class="meta">${escapeHtml(m.category || '')} · ${escapeHtml(m.date || '')}<br>${escapeHtml(m.url)}</div>
+          <div class="meta">${escapeHtml(m.category || '')} · ${escapeHtml(m.date || '')}</div>
         </div>`;
-        const del = document.createElement('button');
-        del.className = 'btn btn-ghost';
-        del.type = 'button';
-        del.textContent = 'Hapus';
-        del.onclick = () => { data.media.splice(i, 1); renderLists(); };
-        row.appendChild(del);
+        row.appendChild(rowActions('media', i));
         mBox.appendChild(row);
       });
-      if (!(data.media || []).length) {
-        mBox.innerHTML = '<p class="hint">Belum ada media. Paste link IG/FB di atas.</p>';
-      }
+      if (!(data.media || []).length) mBox.innerHTML = '<p class="hint">Belum ada media.</p>';
     }
 
     const cBox = $('carouselList');
@@ -147,13 +284,9 @@
       (data.carousel || []).forEach((c, i) => {
         const row = document.createElement('div');
         row.className = 'list-item';
-        row.innerHTML = `<div><span class="badge">#${i + 1}</span> ${escapeHtml(c.title)}</div>`;
-        const del = document.createElement('button');
-        del.className = 'btn btn-ghost';
-        del.type = 'button';
-        del.textContent = 'Hapus';
-        del.onclick = () => { data.carousel.splice(i, 1); renderLists(); };
-        row.appendChild(del);
+        row.innerHTML = `<div><span class="badge">#${i + 1}</span> <strong>${escapeHtml(c.title)}</strong>
+          <div class="meta">${escapeHtml(c.image || '')}</div></div>`;
+        row.appendChild(rowActions('carousel', i));
         cBox.appendChild(row);
       });
     }
@@ -164,13 +297,9 @@
       (data.articles || []).forEach((a, i) => {
         const row = document.createElement('div');
         row.className = 'list-item';
-        row.innerHTML = `<div><span class="badge">${escapeHtml(a.category || 'Berita')}</span> ${escapeHtml(a.title)}</div>`;
-        const del = document.createElement('button');
-        del.className = 'btn btn-ghost';
-        del.type = 'button';
-        del.textContent = 'Hapus';
-        del.onclick = () => { data.articles.splice(i, 1); renderLists(); };
-        row.appendChild(del);
+        row.innerHTML = `<div><span class="badge">${escapeHtml(a.category || 'Berita')}</span> <strong>${escapeHtml(a.title)}</strong>
+          <div class="meta">${escapeHtml(a.date || '')}</div></div>`;
+        row.appendChild(rowActions('articles', i));
         aBox.appendChild(row);
       });
     }
@@ -181,14 +310,26 @@
       (data.gallery || []).forEach((g, i) => {
         const row = document.createElement('div');
         row.className = 'list-item';
-        row.innerHTML = `<div><span class="badge foto">foto</span> ${escapeHtml(g.title)}</div>`;
-        const del = document.createElement('button');
-        del.className = 'btn btn-ghost';
-        del.type = 'button';
-        del.textContent = 'Hapus';
-        del.onclick = () => { data.gallery.splice(i, 1); renderLists(); };
-        row.appendChild(del);
+        row.innerHTML = `<div><span class="badge foto">foto</span> <strong>${escapeHtml(g.title)}</strong>
+          <div class="meta">${escapeHtml(g.image || '')}</div></div>`;
+        row.appendChild(rowActions('gallery', i));
         gBox.appendChild(row);
+      });
+    }
+
+    // Videos list if container exists
+    let vBox = $('videoList');
+    if (!vBox) {
+      // optional - create under media if needed
+    } else {
+      vBox.innerHTML = '';
+      (data.videos || []).forEach((v, i) => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.innerHTML = `<div><span class="badge video">video</span> <strong>${escapeHtml(v.title)}</strong>
+          <div class="meta">YT: ${escapeHtml(v.youtubeId || '')}</div></div>`;
+        row.appendChild(rowActions('videos', i));
+        vBox.appendChild(row);
       });
     }
   }
@@ -200,6 +341,7 @@
   }
 
   function reset() {
+    if (!confirm('Reset semua edit lokal ke data/site.json?')) return;
     localStorage.removeItem(STORAGE_KEY);
     loadFromFile();
     status('localStorage dihapus. Kembali ke data/site.json.');
@@ -215,7 +357,6 @@
     status('File site.json diunduh. Upload ke folder data/ untuk produksi.');
   }
 
-  // --- Media detect / add ---
   function detectMedia() {
     const url = $('mediaUrl').value;
     const parsed = window.MediaUtils.parseMediaUrl(url);
@@ -251,10 +392,9 @@
     $('mediaUrl').value = '';
     $('detectBox').classList.remove('show');
     lastParsed = null;
-    status('Media ditambahkan. Klik Simpan ke Browser (dan opsional Sinkron ke Sheets).');
+    status('Media ditambahkan. Klik Simpan ke Browser.');
   }
 
-  // --- Sheets API ---
   async function sheetsRequest(action, payload) {
     const c = cfg();
     if (!c.sheetsApiUrl) throw new Error('sheetsApiUrl belum diisi di config.js');
@@ -267,17 +407,13 @@
       });
       return res.json();
     }
-    const url = c.sheetsApiUrl + '?action=' + encodeURIComponent(action) +
-      (c.apiToken && action === 'publish' ? '&token=' + encodeURIComponent(c.apiToken) : '');
+    const url = c.sheetsApiUrl + '?action=' + encodeURIComponent(action);
     const res = await fetch(url);
     return res.json();
   }
 
   async function syncToSheets() {
-    if (!sheetsConfigured()) {
-      status('Aktifkan useSheets + sheetsApiUrl di js/config.js');
-      return;
-    }
+    if (!sheetsConfigured()) { status('Aktifkan useSheets + sheetsApiUrl di js/config.js'); return; }
     status('Menyinkronkan media ke Google Sheets…');
     try {
       const items = data.media || [];
@@ -286,17 +422,12 @@
         const r = await sheetsRequest('add', { item: item });
         if (r.ok) ok++;
       }
-      status(`Sinkron selesai: ${ok}/${items.length} item dikirim ke Sheets.`);
-    } catch (e) {
-      status('Gagal sinkron: ' + e.message);
-    }
+      status(`Sinkron selesai: ${ok}/${items.length} item.`);
+    } catch (e) { status('Gagal sinkron: ' + e.message); }
   }
 
   async function pullFromSheets() {
-    if (!sheetsConfigured()) {
-      status('Aktifkan useSheets + sheetsApiUrl di js/config.js');
-      return;
-    }
+    if (!sheetsConfigured()) { status('Aktifkan useSheets + sheetsApiUrl di js/config.js'); return; }
     status('Mengambil media dari Google Sheets…');
     try {
       const r = await sheetsRequest('list');
@@ -304,10 +435,8 @@
       data.media = (r.media || []).filter((m) => m.active !== false && String(m.active).toUpperCase() !== 'FALSE');
       renderLists();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      status(`Diambil ${data.media.length} media dari Sheets + disimpan ke browser.`);
-    } catch (e) {
-      status('Gagal ambil dari Sheets: ' + e.message);
-    }
+      status(`Diambil ${data.media.length} media dari Sheets.`);
+    } catch (e) { status('Gagal ambil: ' + e.message); }
   }
 
   // Bind
@@ -319,50 +448,14 @@
   $('btnAddMedia').onclick = addMedia;
   $('btnSyncSheets').onclick = syncToSheets;
   $('btnPullSheets').onclick = pullFromSheets;
+  $('btnEditSave').onclick = saveEditor;
+  $('btnEditCancel').onclick = closeEditor;
+  $('editModal').addEventListener('click', (e) => { if (e.target.id === 'editModal') closeEditor(); });
 
-  $('btnAddCarousel').onclick = () => {
-    const title = prompt('Judul slide:');
-    if (!title) return;
-    data.carousel = data.carousel || [];
-    data.carousel.push({
-      id: 'c' + Date.now(),
-      title,
-      subtitle: prompt('Subtitle:') || '',
-      cta: 'Selengkapnya',
-      ctaLink: '#ppdb',
-      image: prompt('URL gambar / path images/…:') || 'images/upacara.jpg',
-      active: true
-    });
-    renderLists();
-  };
-
-  $('btnAddArticle').onclick = () => {
-    const title = prompt('Judul artikel:');
-    if (!title) return;
-    data.articles = data.articles || [];
-    data.articles.unshift({
-      id: 'a' + Date.now(),
-      title,
-      date: new Date().toISOString().slice(0, 10),
-      excerpt: prompt('Ringkasan:') || '',
-      image: prompt('URL gambar:') || 'images/belajar.jpg',
-      category: prompt('Kategori:') || 'Berita'
-    });
-    renderLists();
-  };
-
-  $('btnAddGallery').onclick = () => {
-    const title = prompt('Judul foto:');
-    if (!title) return;
-    data.gallery = data.gallery || [];
-    data.gallery.unshift({
-      id: 'g' + Date.now(),
-      title,
-      image: prompt('URL gambar:') || 'images/belajar.jpg',
-      type: 'foto'
-    });
-    renderLists();
-  };
+  $('btnAddCarousel').onclick = () => openEditor('carousel', -1);
+  $('btnAddArticle').onclick = () => openEditor('articles', -1);
+  $('btnAddGallery').onclick = () => openEditor('gallery', -1);
+  const bv = $('btnAddVideo'); if (bv) bv.onclick = () => openEditor('videos', -1);
 
   updateSheetsHint();
   (async () => {
