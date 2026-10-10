@@ -5,14 +5,42 @@
   const STORAGE_KEY = 'sdit_di_site_data_v1';
 
   async function loadData() {
-    // Prefer local overrides from admin demo (localStorage), else fetch JSON
+    let data = null;
     try {
       const local = localStorage.getItem(STORAGE_KEY);
-      if (local) return JSON.parse(local);
+      if (local) data = JSON.parse(local);
     } catch (_) {}
-    const res = await fetch(DATA_URL, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Gagal memuat data/site.json');
-    return res.json();
+    if (!data) {
+      const res = await fetch(DATA_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('Gagal memuat data/site.json');
+      data = await res.json();
+    }
+    try {
+      const c = window.SDIT_CONFIG || {};
+      if (c.useSheets && c.sheetsApiUrl) {
+        const cacheKey = 'sdit_di_media_cache_v1';
+        let fromCache = null;
+        try {
+          const raw = localStorage.getItem(cacheKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Date.now() - parsed.ts < (c.mediaCacheTtl || 300000)) fromCache = parsed.media;
+          }
+        } catch (_) {}
+        if (fromCache) {
+          data.media = fromCache;
+        } else {
+          const r = await fetch(c.sheetsApiUrl + '?action=list');
+          const j = await r.json();
+          if (j.ok && Array.isArray(j.media)) {
+            data.media = j.media.filter((m) => m.active !== false && String(m.active).toUpperCase() !== 'FALSE');
+            localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), media: data.media }));
+          }
+        }
+      }
+    } catch (e) { console.warn('Sheets media skip', e); }
+    if (!data.media) data.media = [];
+    return data;
   }
 
   function applyBrand(brand) {
@@ -58,7 +86,7 @@
     active.forEach((item, idx) => {
       const slide = el('div', {
         class: 'slide' + (idx === 0 ? ' active' : ''),
-        style: `background-image:url('${item.image}')`
+        style: `background-image:url('${item.image}');background-position:${item.imagePosition||'center 40%'}`
       }, [
         el('div', { class: 'slide-content' }, [
           el('div', { class: 'eyebrow' }, ['SDIT · Islam Terpadu']),
@@ -131,36 +159,70 @@
     });
   }
 
-  function renderGallery(items) {
+  function renderGallery(items, media) {
     const box = document.getElementById('gallery');
-    if (!box || !items) return;
+    if (!box) return;
     box.innerHTML = '';
-    items.forEach((g) => {
-      const fig = el('figure', {
+    const list = [];
+    (items || []).forEach((g) => list.push({ title: g.title, image: g.image, type: 'foto' }));
+    (media || []).filter((m) => m.type === 'foto' || m.type === 'image').forEach((m) => {
+      list.push({
+        title: m.title || 'Foto',
+        image: m.thumb || '',
+        url: m.url,
+        source: m.source,
+        type: 'foto'
+      });
+    });
+    list.forEach((g) => {
+      const isIg = g.source === 'instagram' || (g.url && g.url.indexOf('instagram.com') !== -1);
+      const children = [];
+      if (g.image) children.push(el('img', { src: g.image, alt: g.title || '', loading: 'lazy' }));
+      else children.push(el('div', { class: 'gallery-placeholder' }, [isIg ? 'Instagram' : 'Foto']));
+      children.push(el('figcaption', {}, [g.title || 'Foto']));
+      box.appendChild(el('figure', {
         class: 'gallery-item',
-        onclick: () => openLightbox(g.image, g.title)
-      }, [
-        el('img', { src: g.image, alt: g.title, loading: 'lazy' }),
-        el('figcaption', {}, [g.title])
-      ]);
-      box.appendChild(fig);
+        onclick: function () {
+          if (isIg && g.url) window.open(g.url, '_blank', 'noopener');
+          else if (g.image) openLightbox(g.image, g.title);
+          else if (g.url) window.open(g.url, '_blank', 'noopener');
+        }
+      }, children));
     });
   }
 
-  function renderVideos(videos) {
+  function renderVideos(videos, media) {
     const box = document.getElementById('videos');
-    if (!box || !videos) return;
+    if (!box) return;
     box.innerHTML = '';
-    videos.forEach((v) => {
+    const list = [];
+    (videos || []).forEach((v) => {
+      list.push({ title: v.title, thumb: v.thumb, youtubeId: v.youtubeId, source: 'youtube' });
+    });
+    (media || []).filter((m) => m.type === 'video').forEach((m) => {
+      list.push({
+        title: m.title || 'Video',
+        thumb: m.thumb,
+        embedUrl: m.embedUrl,
+        url: m.url,
+        source: m.source
+      });
+    });
+    list.forEach((v) => {
+      const kids = [];
+      if (v.thumb) kids.push(el('img', { src: v.thumb, alt: v.title || '', loading: 'lazy' }));
+      else kids.push(el('div', { class: 'video-placeholder' }, [v.source === 'instagram' ? 'Instagram Reel' : (v.source || 'Video')]));
+      kids.push(el('div', { class: 'play' }, [el('span', {}, ['▶'])]));
       box.appendChild(el('article', { class: 'video-card' }, [
         el('div', {
           class: 'video-thumb',
-          onclick: () => openVideo(v.youtubeId)
-        }, [
-          el('img', { src: v.thumb, alt: v.title, loading: 'lazy' }),
-          el('div', { class: 'play' }, [el('span', {}, ['▶'])])
-        ]),
-        el('h3', {}, [v.title])
+          onclick: function () {
+            if (v.youtubeId) openVideo(v.youtubeId);
+            else if (v.embedUrl) openEmbed(v.embedUrl);
+            else if (v.url) window.open(v.url, '_blank', 'noopener');
+          }
+        }, kids),
+        el('h3', {}, [v.title || 'Video'])
       ]));
     });
   }
@@ -232,14 +294,21 @@
     const m = document.getElementById('videoModal');
     const frame = document.getElementById('videoFrame');
     if (!m || !frame || !id) return;
-    frame.src = `https://www.youtube.com/embed/${id}?autoplay=1`;
+    frame.src = 'https://www.youtube.com/embed/' + id + '?autoplay=1';
+    m.classList.add('open');
+  }
+  function openEmbed(embedUrl) {
+    const m = document.getElementById('videoModal');
+    const frame = document.getElementById('videoFrame');
+    if (!m || !frame || !embedUrl) return;
+    frame.src = embedUrl;
     m.classList.add('open');
   }
   function closeVideo() {
     const m = document.getElementById('videoModal');
     const frame = document.getElementById('videoFrame');
     if (frame) frame.src = '';
-    m?.classList.remove('open');
+    if (m) m.classList.remove('open');
   }
 
   function setupNav() {
@@ -268,8 +337,8 @@
       renderStats(data.stats);
       renderPrograms(data.programs);
       renderArticles(data.articles);
-      renderGallery(data.gallery);
-      renderVideos(data.videos);
+      renderGallery(data.gallery, data.media);
+      renderVideos(data.videos, data.media);
       renderActivities(data.activities);
     } catch (err) {
       console.error(err);

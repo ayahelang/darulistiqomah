@@ -32,7 +32,8 @@
       "cta": "Daftar PPDB",
       "ctaLink": "#ppdb",
       "image": "images/upacara.jpg",
-      "active": true
+      "active": true,
+      "imagePosition": "center 40%"
     },
     {
       "id": "c2",
@@ -41,7 +42,8 @@
       "cta": "Lihat Program",
       "ctaLink": "#program",
       "image": "images/sanlat.jpg",
-      "active": true
+      "active": true,
+      "imagePosition": "center 30%"
     },
     {
       "id": "c3",
@@ -50,7 +52,8 @@
       "cta": "Jelajahi Galeri",
       "ctaLink": "#galeri",
       "image": "images/belajar.jpg",
-      "active": true
+      "active": true,
+      "imagePosition": "center 45%"
     }
   ],
   "stats": [
@@ -218,5 +221,21 @@
       "Fotokopi KTP orang tua/wali",
       "Pas foto terbaru"
     ]
-  }
+  },
+  "media": [
+    {
+      "id": "m_sample_reel",
+      "url": "https://www.instagram.com/reel/Dd2o1WyysUR/",
+      "type": "video",
+      "source": "instagram",
+      "shortcode": "Dd2o1WyysUR",
+      "title": "Contoh Reel Instagram",
+      "description": "Ganti dengan link resmi sekolah di panel admin.",
+      "category": "Video",
+      "thumb": "",
+      "embedUrl": "https://www.instagram.com/reel/Dd2o1WyysUR/embed",
+      "active": true,
+      "date": "2026-10-10"
+    }
+  ]
 }

@@ -28,3 +28,20 @@ Firebase cocok untuk prototipe cepat; Supabase lebih nyaman untuk SQL, RLS, dan 
 
 ## Powered by
 [silverhawk.web.id](https://silverhawk.web.id)
+
+
+## Admin & Media (Instagram / Facebook)
+
+1. Buka `/admin/`
+2. Paste link IG/FB/YouTube → **Deteksi** → **Tambahkan**
+3. **Simpan ke Browser** untuk preview lokal
+4. Setup Google Sheets: ikuti `apps-script/SETUP.md`
+5. Isi `js/config.js` (`sheetsApiUrl`, `apiToken`, `useSheets: true`)
+6. **Sinkron ke Google Sheets** / **Ambil dari Sheets**
+
+Multi-guru: share spreadsheet (Editor) atau pakai token yang sama di panel admin.
+
+## Deploy
+
+Upload seluruh folder ke hosting statis (GitHub Pages, Netlify, atau VPS).
+Pastikan path `images/`, `data/`, `js/`, `css/`, `admin/` ikut ter-upload.

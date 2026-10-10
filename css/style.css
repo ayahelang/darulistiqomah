@@ -108,7 +108,7 @@ button, input, textarea, select { font: inherit; }
 .slide {
   position: absolute; inset: 0; opacity: 0; pointer-events: none;
   transition: opacity .7s ease;
-  background-size: cover; background-position: center;
+  background-size: cover; background-position: center 40%;
 }
 .slide::before {
   content: ""; position: absolute; inset: 0;
@@ -156,7 +156,7 @@ section { padding: clamp(2.5rem, 6vw, 4.5rem) 0; }
 
 .stats {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
-  margin-top: -2.5rem; position: relative; z-index: 5;
+  margin-top: 1.25rem; position: relative; z-index: 2;
 }
 .stat-card {
   background: #fff; border-radius: var(--radius); padding: 1.15rem 1rem; text-align: center;
@@ -182,7 +182,7 @@ section { padding: clamp(2.5rem, 6vw, 4.5rem) 0; }
 .program-card h3 { font-size: 1.05rem; color: var(--primary-dark); margin-bottom: .35rem; }
 .program-card p { color: var(--muted); font-size: .92rem; }
 
-.article-card img { aspect-ratio: 16/10; object-fit: cover; width: 100%; }
+.article-card img { aspect-ratio: 16/10; object-fit: cover; object-position: center 25%; width: 100%; }
 .article-body { padding: 1.1rem 1.15rem 1.25rem; }
 .article-body .meta { font-size: .78rem; color: var(--primary); font-weight: 700; margin-bottom: .35rem; }
 .article-body h3 { font-size: 1.05rem; margin-bottom: .4rem; color: var(--ink); }
@@ -193,7 +193,7 @@ section { padding: clamp(2.5rem, 6vw, 4.5rem) 0; }
   position: relative; border-radius: var(--radius); overflow: hidden; aspect-ratio: 4/3;
   cursor: pointer; box-shadow: var(--shadow);
 }
-.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; transition: transform .35s ease; }
 .gallery-item:hover img { transform: scale(1.06); }
 .gallery-item figcaption {
   position: absolute; inset: auto 0 0 0; padding: .7rem .9rem;
@@ -324,5 +324,14 @@ section { padding: clamp(2.5rem, 6vw, 4.5rem) 0; }
   .nav-links.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
   .nav-cta { margin: .5rem 0 0; width: 100%; justify-content: center; }
   .grid-3, .gallery-grid, .grid-2 { grid-template-columns: 1fr; }
-  .stats { margin-top: -1.5rem; }
+  .stats { margin-top: 1rem; }
 }
+
+.gallery-placeholder, .video-placeholder {
+  width: 100%; height: 100%; min-height: 160px;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: #fff; font-weight: 700; font-size: .95rem; text-align: center; padding: 1rem;
+}
+.video-placeholder { aspect-ratio: 16/9; min-height: 0; }
+.gallery-item .gallery-placeholder { aspect-ratio: 1; }

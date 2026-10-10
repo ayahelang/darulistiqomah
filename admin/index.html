@@ -3,68 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Demo — SDIT Daarul Istiqomah</title>
+  <title>Admin — SDIT Daarul Istiqomah</title>
   <meta name="theme-color" content="#0B6E4F">
+  <link rel="icon" href="../images/logo.jpg" type="image/jpeg">
   <link rel="stylesheet" href="../css/style.css">
   <style>
     body { background: #eef5f1; }
-    .admin-wrap { width: min(960px, 94vw); margin: 2rem auto 3rem; }
+    .admin-wrap { width: min(960px, 94vw); margin: 1.5rem auto 3rem; }
     .admin-card {
       background: #fff; border-radius: 16px; padding: 1.25rem 1.35rem;
-      box-shadow: 0 12px 40px rgba(8,76,55,.1); margin-bottom: 1rem;
-      border: 1px solid rgba(11,110,79,.08);
+      box-shadow: 0 8px 28px rgba(8,76,55,.08); margin-bottom: 1.1rem;
+      border: 1px solid rgba(11,110,79,.07);
     }
     .admin-card h1 { font-size: 1.35rem; color: var(--primary-dark); margin-bottom: .35rem; }
     .admin-card h2 { font-size: 1.05rem; color: var(--primary); margin: 0 0 .75rem; }
     label { display: block; font-size: .85rem; font-weight: 700; color: var(--muted); margin: .6rem 0 .25rem; }
     input, textarea, select {
-      width: 100%; padding: .65rem .75rem; border-radius: 10px;
+      width: 100%; padding: .65rem .8rem; border-radius: 10px;
       border: 1px solid rgba(11,110,79,.2); background: #fafcfa;
     }
-    textarea { min-height: 90px; resize: vertical; }
+    textarea { min-height: 72px; resize: vertical; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+    .hint { font-size: .88rem; color: var(--muted); margin-top: .5rem; line-height: 1.5; }
     .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
-    .hint { font-size: .88rem; color: var(--muted); margin-top: .5rem; }
-    .list { display: grid; gap: .5rem; }
     .list-item {
-      display: flex; justify-content: space-between; gap: .75rem; align-items: center;
+      display: flex; justify-content: space-between; align-items: center; gap: .75rem;
       padding: .7rem .8rem; background: #f4faf7; border-radius: 10px; font-size: .9rem;
+      margin-bottom: .45rem;
     }
+    .list-item .meta { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
     .badge {
-      display: inline-block; font-size: .72rem; font-weight: 800; padding: .2rem .5rem;
+      display: inline-block; padding: .15rem .5rem; font-size: .72rem; font-weight: 700;
       border-radius: 999px; background: var(--accent-soft); color: var(--primary-dark);
+      margin-right: .35rem;
     }
-    @media (max-width: 700px) { .row { grid-template-columns: 1fr; } }
+    .badge.video { background: #dbeafe; color: #1e40af; }
+    .badge.foto { background: #d1fae5; color: #065f46; }
+    .status-bar {
+      position: sticky; top: 0; z-index: 50; background: var(--primary-dark); color: #fff;
+      padding: .55rem 1rem; font-size: .88rem; text-align: center;
+    }
+    .detect-box {
+      background: #f0fdf4; border: 1px dashed rgba(11,110,79,.3);
+      border-radius: 12px; padding: 1rem; margin-top: .75rem; display: none;
+    }
+    .detect-box.show { display: block; }
+    .detect-box strong { color: var(--primary-dark); }
+    code { background: #eef5f1; padding: .1rem .35rem; border-radius: 4px; font-size: .85em; }
   </style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container nav-wrap">
-      <a class="brand" href="../">
-        <div class="brand-logo">DI</div>
-        <div class="brand-text">
-          <strong>Admin Demo</strong>
-          <span>SDIT Daarul Istiqomah</span>
-        </div>
-      </a>
-      <a class="btn btn-ghost" href="../">← Kembali ke Website</a>
-    </div>
-  </header>
+  <div class="status-bar" id="status">Memuat…</div>
 
   <div class="admin-wrap">
     <div class="admin-card">
-      <h1>Panel Admin (Demo Lokal)</h1>
-      <p class="hint">
-        Versi ini menyimpan perubahan di <strong>localStorage</strong> browser Anda — cocok untuk demo.
-        Untuk produksi, hubungkan ke <strong>Supabase</strong> (disarankan) agar multi-perangkat & aman.
-      </p>
+      <h1>Panel Admin</h1>
+      <p class="hint">SDIT Daarul Istiqomah — kelola profil, berita, dan media dari link Instagram/Facebook.</p>
       <div class="actions">
+        <a class="btn btn-ghost" href="../">← Kembali ke Website</a>
         <button class="btn btn-primary" type="button" id="btnLoad">Muat Data</button>
         <button class="btn btn-accent" type="button" id="btnSave">Simpan ke Browser</button>
         <button class="btn btn-ghost" type="button" id="btnReset">Reset ke JSON Asli</button>
         <button class="btn btn-ghost" type="button" id="btnExport">Export JSON</button>
+        <button class="btn btn-primary" type="button" id="btnSyncSheets">Sinkron ke Google Sheets</button>
+        <button class="btn btn-ghost" type="button" id="btnPullSheets">Ambil dari Sheets</button>
       </div>
-      <p class="hint" id="status">Siap.</p>
+      <p class="hint" id="sheetsHint">Google Sheets: belum dikonfigurasi. Isi <code>js/config.js</code> — lihat <code>apps-script/SETUP.md</code>.</p>
+    </div>
+
+    <div class="admin-card">
+      <h2>➕ Tambah Media dari Instagram / Facebook / YouTube</h2>
+      <p class="hint">
+        Paste link post/reel IG, post FB, video YouTube, atau URL gambar langsung.
+        Sistem mendeteksi otomatis <strong>foto</strong> atau <strong>video</strong>.
+        Judul, deskripsi, dan kategori boleh dikosongkan (default otomatis).
+      </p>
+      <label>Link media</label>
+      <input id="mediaUrl" type="url" placeholder="https://www.instagram.com/reel/… atau /p/…">
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnDetect">Deteksi Link</button>
+      </div>
+      <div class="detect-box" id="detectBox">
+        <p><strong>Hasil deteksi:</strong> <span id="detectResult">—</span></p>
+        <div class="row">
+          <div>
+            <label>Judul (opsional)</label>
+            <input id="mediaTitle" type="text" placeholder="Otomatis dari jenis media">
+          </div>
+          <div>
+            <label>Kategori (opsional)</label>
+            <input id="mediaCategory" type="text" placeholder="Foto / Video / Kegiatan">
+          </div>
+        </div>
+        <label>Deskripsi (opsional)</label>
+        <textarea id="mediaDesc" placeholder="Caption singkat — boleh kosong"></textarea>
+        <div class="actions">
+          <button class="btn btn-accent" type="button" id="btnAddMedia">Tambahkan ke Galeri</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-card">
+      <h2>Media (Foto & Video)</h2>
+      <div class="list" id="mediaList"></div>
+      <p class="hint">Item <span class="badge video">video</span> → section Video. <span class="badge foto">foto</span> → Galeri Foto.</p>
     </div>
 
     <div class="admin-card">
@@ -80,7 +123,7 @@
         </div>
       </div>
       <label>Alamat</label>
-      <textarea id="fAddress"></textarea>
+      <input id="fAddress" type="text">
       <div class="row">
         <div>
           <label>Email</label>
@@ -110,10 +153,10 @@
     </div>
 
     <div class="admin-card">
-      <h2>Galeri Foto</h2>
+      <h2>Galeri Foto (URL langsung)</h2>
       <div class="list" id="galleryList"></div>
       <div class="actions">
-        <button class="btn btn-primary" type="button" id="btnAddGallery">+ Tambah Foto</button>
+        <button class="btn btn-primary" type="button" id="btnAddGallery">+ Tambah Foto (URL gambar)</button>
       </div>
     </div>
 
@@ -137,24 +180,23 @@
     </div>
 
     <div class="admin-card">
-      <h2>Roadmap Database (Saran)</h2>
+      <h2>Setup database</h2>
       <p class="hint">
-        <strong>Supabase (paling disarankan)</strong> — PostgreSQL gratis, Auth email, Row Level Security,
-        Storage untuk gambar, Realtime opsional. Cocok untuk CRUD admin multi-user.<br><br>
-        <strong>Firebase</strong> — cepat untuk prototipe; Auth + Firestore + Storage.<br><br>
-        Alur produksi: Admin login → CRUD tabel <code>carousel</code>, <code>articles</code>,
-        <code>gallery</code>, <code>videos</code>, <code>activities</code> → website publik membaca API/JSON ter-generate.
+        <strong>Google Sheets + Apps Script</strong> — ikuti <code>apps-script/SETUP.md</code>.
+        Multi-guru: share Spreadsheet (Editor). Token di <code>js/config.js</code>.
       </p>
     </div>
   </div>
 
   <footer class="site-footer" style="margin-top:2rem;">
     <div class="container footer-bottom" style="border:0;padding:1rem 0;">
-      <span>Admin Demo SDIT Daarul Istiqomah</span>
+      <span>Admin SDIT Daarul Istiqomah</span>
       <span class="powered">Powered by <a href="https://silverhawk.web.id" target="_blank" rel="noopener">silverhawk.web.id</a></span>
     </div>
   </footer>
 
+  <script src="../js/config.js"></script>
+  <script src="../js/media-utils.js"></script>
   <script src="../js/admin.js"></script>
 </body>
 </html>
