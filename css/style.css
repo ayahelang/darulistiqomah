@@ -116,7 +116,7 @@ button, input, textarea, select { font: inherit; }
 .slide {
   position: absolute; inset: 0; opacity: 0; pointer-events: none;
   transition: opacity .7s ease;
-  background-size: cover; background-position: center 40%;
+  background-size: cover; background-position: center 10%;
 }
 .slide::before {
   content: ""; position: absolute; inset: 0;
