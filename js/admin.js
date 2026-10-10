@@ -393,9 +393,10 @@
         const thumbSrc = m.thumb || (m.source === 'youtube' && m.shortcode
           ? `https://img.youtube.com/vi/${m.shortcode}/hqdefault.jpg` : '');
         const left = document.createElement('div');
-        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.className = 'li-thumb';
         left.innerHTML = listThumbHtml(thumbSrc) + `<span class="preview-status">…</span>`;
         const mid = document.createElement('div');
+        mid.className = 'li-info';
         mid.innerHTML = `
           <span class="badge ${badge}">${escapeHtml(m.type || 'foto')}</span>
           <span class="badge">${escapeHtml(m.source || '')}</span>
@@ -425,9 +426,10 @@
         const row = document.createElement('div');
         row.className = 'list-item';
         const left = document.createElement('div');
-        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.className = 'li-thumb';
         left.innerHTML = listThumbHtml(cItem.image) + `<span class="preview-status">…</span>`;
         const mid = document.createElement('div');
+        mid.className = 'li-info';
         mid.innerHTML = `<span class="badge">#${i + 1}</span> <strong>${escapeHtml(cItem.title)}</strong>
           <div class="meta">${escapeHtml(cItem.image || '')}</div>`;
         row.appendChild(left);
@@ -444,9 +446,10 @@
         const row = document.createElement('div');
         row.className = 'list-item';
         const left = document.createElement('div');
-        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.className = 'li-thumb';
         left.innerHTML = listThumbHtml(a.image) + `<span class="preview-status">…</span>`;
         const mid = document.createElement('div');
+        mid.className = 'li-info';
         mid.innerHTML = `<span class="badge">${escapeHtml(a.category || 'Berita')}</span> <strong>${escapeHtml(a.title)}</strong>
           <div class="meta">${escapeHtml(a.date || '')}</div>`;
         row.appendChild(left);
@@ -463,9 +466,10 @@
         const row = document.createElement('div');
         row.className = 'list-item';
         const left = document.createElement('div');
-        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.className = 'li-thumb';
         left.innerHTML = listThumbHtml(g.image) + `<span class="preview-status">…</span>`;
         const mid = document.createElement('div');
+        mid.className = 'li-info';
         mid.innerHTML = `<span class="badge foto">foto</span> <strong>${escapeHtml(g.title)}</strong>
           <div class="meta">${escapeHtml(g.image || '')}</div>`;
         row.appendChild(left);
@@ -483,9 +487,10 @@
         row.className = 'list-item';
         const ytThumb = v.thumb || (v.youtubeId ? `https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg` : '');
         const left = document.createElement('div');
-        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.className = 'li-thumb';
         left.innerHTML = listThumbHtml(ytThumb) + `<span class="preview-status">…</span>`;
         const mid = document.createElement('div');
+        mid.className = 'li-info';
         mid.innerHTML = `<span class="badge video">video</span> <strong>${escapeHtml(v.title)}</strong>
           <div class="meta">YT: ${escapeHtml(v.youtubeId || '')}</div>
           ${v.youtubeId ? `<button type="button" class="btn btn-ghost" style="margin-top:6px;padding:.35rem .7rem;font-size:.8rem" data-yt="${escapeHtml(v.youtubeId)}">▶ Preview YouTube</button>` : ''}`;
