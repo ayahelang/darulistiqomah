@@ -314,6 +314,15 @@
     return wrap;
   }
 
+  function listThumbHtml(src, label) {
+    if (!src) {
+      return `<div class="thumb-prev" title="Tidak ada thumbnail" style="display:grid;place-items:center;font-size:.7rem;color:#888">—</div>`;
+    }
+    return `<img class="thumb-prev" src="${escapeHtml(src)}" alt="" loading="lazy"
+      onload="this.nextElementSibling&&(this.nextElementSibling.textContent='✓ Preview OK',this.nextElementSibling.className='preview-status ok')"
+      onerror="this.classList.add('err');this.nextElementSibling&&(this.nextElementSibling.textContent='✗ Gagal load',this.nextElementSibling.className='preview-status err')">`;
+  }
+
   function renderLists() {
     // Media
     const mBox = $('mediaList');
@@ -323,26 +332,53 @@
         const row = document.createElement('div');
         row.className = 'list-item';
         const badge = m.type === 'video' ? 'video' : 'foto';
-        row.innerHTML = `<div>
+        const thumbSrc = m.thumb || (m.source === 'youtube' && m.shortcode
+          ? `https://img.youtube.com/vi/${m.shortcode}/hqdefault.jpg` : '');
+        const left = document.createElement('div');
+        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.innerHTML = listThumbHtml(thumbSrc) + `<span class="preview-status">…</span>`;
+        const mid = document.createElement('div');
+        mid.innerHTML = `
           <span class="badge ${badge}">${escapeHtml(m.type || 'foto')}</span>
           <span class="badge">${escapeHtml(m.source || '')}</span>
           <strong>${escapeHtml(m.title || m.url)}</strong>
           <div class="meta">${escapeHtml(m.category || '')} · ${escapeHtml(m.date || '')}</div>
-        </div>`;
+          <div class="meta" style="word-break:break-all">${escapeHtml(m.url || '')}</div>
+          ${m.embedUrl ? `<button type="button" class="btn btn-ghost" style="margin-top:6px;padding:.35rem .7rem;font-size:.8rem" data-preview-embed="${escapeHtml(m.embedUrl)}">▶ Preview embed</button>` : ''}`;
+        row.appendChild(left);
+        row.appendChild(mid);
         row.appendChild(rowActions('media', i));
         mBox.appendChild(row);
       });
       if (!(data.media || []).length) mBox.innerHTML = '<p class="hint">Belum ada media.</p>';
+      mBox.querySelectorAll('[data-preview-embed]').forEach((btn) => {
+        btn.onclick = () => {
+          const emb = btn.getAttribute('data-preview-embed');
+          const wrap = document.createElement('div');
+          wrap.className = 'media-preview-box';
+          wrap.style.marginTop = '8px';
+          wrap.innerHTML = `<iframe src="${emb}" style="width:100%;height:320px;border:0;border-radius:10px" allowfullscreen loading="lazy"></iframe>`;
+          btn.insertAdjacentElement('afterend', wrap);
+          btn.disabled = true;
+          btn.textContent = 'Preview dibuka';
+        };
+      });
     }
 
     const cBox = $('carouselList');
     if (cBox) {
       cBox.innerHTML = '';
-      (data.carousel || []).forEach((c, i) => {
+      (data.carousel || []).forEach((cItem, i) => {
         const row = document.createElement('div');
         row.className = 'list-item';
-        row.innerHTML = `<div><span class="badge">#${i + 1}</span> <strong>${escapeHtml(c.title)}</strong>
-          <div class="meta">${escapeHtml(c.image || '')}</div></div>`;
+        const left = document.createElement('div');
+        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.innerHTML = listThumbHtml(cItem.image) + `<span class="preview-status">…</span>`;
+        const mid = document.createElement('div');
+        mid.innerHTML = `<span class="badge">#${i + 1}</span> <strong>${escapeHtml(cItem.title)}</strong>
+          <div class="meta">${escapeHtml(cItem.image || '')}</div>`;
+        row.appendChild(left);
+        row.appendChild(mid);
         row.appendChild(rowActions('carousel', i));
         cBox.appendChild(row);
       });
@@ -354,8 +390,14 @@
       (data.articles || []).forEach((a, i) => {
         const row = document.createElement('div');
         row.className = 'list-item';
-        row.innerHTML = `<div><span class="badge">${escapeHtml(a.category || 'Berita')}</span> <strong>${escapeHtml(a.title)}</strong>
-          <div class="meta">${escapeHtml(a.date || '')}</div></div>`;
+        const left = document.createElement('div');
+        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.innerHTML = listThumbHtml(a.image) + `<span class="preview-status">…</span>`;
+        const mid = document.createElement('div');
+        mid.innerHTML = `<span class="badge">${escapeHtml(a.category || 'Berita')}</span> <strong>${escapeHtml(a.title)}</strong>
+          <div class="meta">${escapeHtml(a.date || '')}</div>`;
+        row.appendChild(left);
+        row.appendChild(mid);
         row.appendChild(rowActions('articles', i));
         aBox.appendChild(row);
       });
@@ -367,26 +409,48 @@
       (data.gallery || []).forEach((g, i) => {
         const row = document.createElement('div');
         row.className = 'list-item';
-        row.innerHTML = `<div><span class="badge foto">foto</span> <strong>${escapeHtml(g.title)}</strong>
-          <div class="meta">${escapeHtml(g.image || '')}</div></div>`;
+        const left = document.createElement('div');
+        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.innerHTML = listThumbHtml(g.image) + `<span class="preview-status">…</span>`;
+        const mid = document.createElement('div');
+        mid.innerHTML = `<span class="badge foto">foto</span> <strong>${escapeHtml(g.title)}</strong>
+          <div class="meta">${escapeHtml(g.image || '')}</div>`;
+        row.appendChild(left);
+        row.appendChild(mid);
         row.appendChild(rowActions('gallery', i));
         gBox.appendChild(row);
       });
     }
 
-    // Videos list if container exists
-    let vBox = $('videoList');
-    if (!vBox) {
-      // optional - create under media if needed
-    } else {
+    const vBox = $('videoList');
+    if (vBox) {
       vBox.innerHTML = '';
       (data.videos || []).forEach((v, i) => {
         const row = document.createElement('div');
         row.className = 'list-item';
-        row.innerHTML = `<div><span class="badge video">video</span> <strong>${escapeHtml(v.title)}</strong>
-          <div class="meta">YT: ${escapeHtml(v.youtubeId || '')}</div></div>`;
+        const ytThumb = v.thumb || (v.youtubeId ? `https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg` : '');
+        const left = document.createElement('div');
+        left.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0';
+        left.innerHTML = listThumbHtml(ytThumb) + `<span class="preview-status">…</span>`;
+        const mid = document.createElement('div');
+        mid.innerHTML = `<span class="badge video">video</span> <strong>${escapeHtml(v.title)}</strong>
+          <div class="meta">YT: ${escapeHtml(v.youtubeId || '')}</div>
+          ${v.youtubeId ? `<button type="button" class="btn btn-ghost" style="margin-top:6px;padding:.35rem .7rem;font-size:.8rem" data-yt="${escapeHtml(v.youtubeId)}">▶ Preview YouTube</button>` : ''}`;
+        row.appendChild(left);
+        row.appendChild(mid);
         row.appendChild(rowActions('videos', i));
         vBox.appendChild(row);
+      });
+      vBox.querySelectorAll('[data-yt]').forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.getAttribute('data-yt');
+          const wrap = document.createElement('div');
+          wrap.className = 'media-preview-box ok';
+          wrap.style.marginTop = '8px';
+          wrap.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" style="width:100%;height:240px;border:0;border-radius:10px" allowfullscreen loading="lazy"></iframe>`;
+          btn.insertAdjacentElement('afterend', wrap);
+          btn.disabled = true;
+        };
       });
     }
   }
@@ -414,6 +478,19 @@
     status('File site.json diunduh. Upload ke folder data/ untuk produksi.');
   }
 
+  function renderDetectPreview(parsed) {
+    const prev = $('detectPreview');
+    if (!prev || !window.MediaUtils.buildPreviewHtml) return;
+    // merge optional thumb override
+    const thumbInput = $('mediaThumb');
+    const merged = Object.assign({}, parsed);
+    if (thumbInput && thumbInput.value.trim()) {
+      merged.thumb = thumbInput.value.trim();
+    }
+    const p = window.MediaUtils.buildPreviewHtml(merged);
+    prev.innerHTML = p.html + (p.note ? `<p class="hint" style="margin-top:6px">${escapeHtml(p.note)}</p>` : '');
+  }
+
   function detectMedia() {
     const url = $('mediaUrl').value;
     const parsed = window.MediaUtils.parseMediaUrl(url);
@@ -422,6 +499,8 @@
       box.classList.remove('show');
       status(parsed.error || 'Gagal deteksi');
       lastParsed = null;
+      const prev = $('detectPreview');
+      if (prev) prev.innerHTML = '';
       return;
     }
     lastParsed = parsed;
@@ -430,7 +509,9 @@
     $('mediaTitle').value = parsed.suggestedTitle || '';
     $('mediaCategory').value = parsed.suggestedCategory || '';
     $('mediaDesc').value = '';
-    status('Link terdeteksi. Lengkapi judul bila perlu, lalu klik Tambahkan.');
+    if ($('mediaThumb')) $('mediaThumb').value = parsed.thumb || '';
+    renderDetectPreview(parsed);
+    status('Link terdeteksi — cek preview di bawah. Jika gagal, isi URL Thumbnail manual.');
   }
 
   function addMedia() {
@@ -441,12 +522,14 @@
     const item = window.MediaUtils.makeMediaItem(lastParsed, {
       title: $('mediaTitle').value,
       description: $('mediaDesc').value,
-      category: $('mediaCategory').value
+      category: $('mediaCategory').value,
+      thumb: ($('mediaThumb') && $('mediaThumb').value.trim()) || lastParsed.thumb || ''
     });
     data.media = data.media || [];
     data.media.unshift(item);
     renderLists();
     $('mediaUrl').value = '';
+    if ($('mediaThumb')) $('mediaThumb').value = '';
     $('detectBox').classList.remove('show');
     lastParsed = null;
     status('Media ditambahkan. Klik Simpan ke Browser.');
@@ -503,6 +586,10 @@
   $('btnExport').onclick = exportJson;
   $('btnDetect').onclick = detectMedia;
   $('btnAddMedia').onclick = addMedia;
+  if ($('mediaThumb')) {
+    $('mediaThumb').addEventListener('change', () => { if (lastParsed) renderDetectPreview(lastParsed); });
+    $('mediaThumb').addEventListener('blur', () => { if (lastParsed) renderDetectPreview(lastParsed); });
+  }
   $('btnSyncSheets').onclick = syncToSheets;
   $('btnPullSheets').onclick = pullFromSheets;
   $('btnEditSave').onclick = saveEditor;

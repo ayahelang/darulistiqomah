@@ -160,6 +160,29 @@
     }
     input, textarea, select { accent-color: #0B6E4F; caret-color: #0B6E4F; }
 
+
+    .media-preview-box {
+      margin-top: 12px; border: 1px solid rgba(11,110,79,.15); border-radius: 12px;
+      overflow: hidden; background: #0f172a08; min-height: 80px; position: relative;
+    }
+    .media-preview-box.ok { border-color: #12A87A; }
+    .media-preview-box.err { border-color: #c0392b; background: #fdecea; }
+    .media-preview-box img { width: 100%; max-height: 280px; object-fit: contain; background: #111; display: block; }
+    .media-preview-box iframe { display: block; }
+    .media-preview-box.none { padding: 14px; color: #5B6575; font-size: .9rem; }
+    .media-preview-fail { padding: 12px; color: #c0392b; font-size: .88rem; }
+    .media-preview-note { padding: 8px 10px; font-size: .75rem; color: #5B6575; margin: 0; background: #fff; }
+    .list-item .thumb-prev {
+      width: 72px; height: 54px; border-radius: 8px; object-fit: cover;
+      background: #eee; flex-shrink: 0; border: 1px solid rgba(0,0,0,.08);
+    }
+    .list-item .thumb-prev.err { outline: 2px solid #c0392b; }
+    .list-item { display: flex; gap: 12px; align-items: flex-start; }
+    .list-item > div:first-of-type { flex: 1; min-width: 0; }
+    .preview-status { font-size: .75rem; margin-top: 4px; }
+    .preview-status.ok { color: #0B6E4F; font-weight: 700; }
+    .preview-status.err { color: #c0392b; font-weight: 700; }
+    #detectPreview { margin-top: 14px; }
   </style>
   <link rel="stylesheet" href="../css/lock.css">
 </head>
@@ -202,19 +225,19 @@
     </div>
 
     <div class="admin-card">
-      <h2>➕ Tambah Media dari Instagram / Facebook / YouTube</h2>
+      <h2>➕ Tambah Media dari IG / FB / YouTube / TikTok / X</h2>
       <p class="hint">
-        Paste link post/reel IG, post FB, video YouTube, atau URL gambar langsung.
-        Sistem mendeteksi otomatis <strong>foto</strong> atau <strong>video</strong>.
-        Judul, deskripsi, dan kategori boleh dikosongkan (default otomatis).
+        Paste link Instagram, Facebook, YouTube, TikTok, X/Twitter, atau URL gambar/thumbnail (hotlink).
+        Sistem mendeteksi otomatis <strong>foto</strong> atau <strong>video</strong>, lalu menampilkan <strong>preview</strong>.
       </p>
       <label>Link media</label>
-      <input id="mediaUrl" type="url" placeholder="https://www.instagram.com/reel/… atau /p/…">
+      <input id="mediaUrl" type="url" placeholder="https://www.instagram.com/reel/… · youtube.com · tiktok.com · x.com · URL .jpg">
       <div class="actions">
-        <button class="btn btn-primary" type="button" id="btnDetect" data-tip="Analisis link yang Anda tempel. Sistem mendeteksi otomatis apakah ini foto atau video (Instagram, Facebook, YouTube, atau URL gambar), lalu mengisi form judul/kategori default.">Deteksi Link</button>
+        <button class="btn btn-primary" type="button" id="btnDetect" data-tip="Analisis link dan tampilkan preview apakah media bisa dimuat.">Deteksi & Preview</button>
       </div>
       <div class="detect-box" id="detectBox">
         <p><strong>Hasil deteksi:</strong> <span id="detectResult">—</span></p>
+        <div id="detectPreview"></div>
         <div class="row">
           <div>
             <label>Judul (opsional)</label>
@@ -225,10 +248,12 @@
             <input id="mediaCategory" type="text" placeholder="Foto / Video / Kegiatan">
           </div>
         </div>
+        <label>URL Thumbnail (opsional — jika preview kosong, tempel hotlink gambar)</label>
+        <input id="mediaThumb" type="url" placeholder="https://…/image.jpg">
         <label>Deskripsi (opsional)</label>
         <textarea id="mediaDesc" placeholder="Caption singkat — boleh kosong"></textarea>
         <div class="actions">
-          <button class="btn btn-accent" type="button" id="btnAddMedia" data-tip="Tambahkan media hasil deteksi ke daftar. Foto masuk Galeri; video masuk section Video di website. Jangan lupa klik Simpan ke Browser setelahnya.">Tambahkan ke Galeri</button>
+          <button class="btn btn-accent" type="button" id="btnAddMedia" data-tip="Tambahkan media ke daftar setelah preview OK.">Tambahkan ke Galeri</button>
         </div>
       </div>
     </div>

@@ -110,13 +110,26 @@ button, input, textarea, select { font: inherit; }
 }
 .nav-toggle span { width: 18px; height: 2px; background: var(--primary-dark); border-radius: 2px; }
 
-/* Hero / Carousel */
-.hero { position: relative; isolation: isolate; }
-.carousel { position: relative; min-height: clamp(460px, 48vh, 440px); overflow: hidden; }
+/* Hero / Carousel — tinggi penuh, gap cream maks 5px */
+.hero {
+  position: relative;
+  isolation: isolate;
+  margin: 0;
+  padding: 0;
+}
+.carousel {
+  position: relative;
+  height: clamp(560px, 72vh, 820px);
+  min-height: 560px;
+  max-height: 90vh;
+  overflow: hidden;
+  margin: 0;
+}
 .slide {
   position: absolute; inset: 0; opacity: 0; pointer-events: none;
   transition: opacity .7s ease;
-  background-size: cover; background-position: center 10%;
+  background-size: cover; background-position: center center;
+  background-repeat: no-repeat;
 }
 .slide::before {
   content: ""; position: absolute; inset: 0;
@@ -153,6 +166,7 @@ button, input, textarea, select { font: inherit; }
 
 /* Sections */
 section { padding: clamp(2.5rem, 6vw, 4.5rem) 0; }
+section.hero { padding: 0; margin: 0; }
 .section-head { text-align: center; margin-bottom: clamp(1.5rem, 4vw, 2.5rem); }
 .section-head .label {
   color: var(--primary); font-weight: 800; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase;
@@ -164,7 +178,8 @@ section { padding: clamp(2.5rem, 6vw, 4.5rem) 0; }
 
 .stats {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
-  margin-top: 1.25rem; position: relative; z-index: 2;
+  margin-top: 5px; /* cream gap under slider ≤ 5px */
+  position: relative; z-index: 2;
 }
 .stat-card {
   background: #fff; border-radius: var(--radius); padding: 1.15rem 1rem; text-align: center;

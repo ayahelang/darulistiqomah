@@ -1,6 +1,6 @@
 /**
- * Utilitas deteksi & normalisasi link Instagram / Facebook / media langsung.
- * Dipakai admin panel & (opsional) frontend.
+ * Utilitas deteksi & normalisasi link media sosial + URL langsung.
+ * Instagram, Facebook, YouTube, TikTok, Twitter/X, gambar langsung.
  */
 (function (global) {
   function parseMediaUrl(raw) {
@@ -21,7 +21,7 @@
     if (host === 'instagram.com' || host.endsWith('.instagram.com')) {
       const m = path.match(/\/(reel|p|tv)\/([A-Za-z0-9_-]+)/);
       if (m) {
-        const kind = m[1]; // reel | p | tv
+        const kind = m[1];
         const shortcode = m[2];
         const isVideo = kind === 'reel' || kind === 'tv';
         return {
@@ -31,7 +31,7 @@
           shortcode,
           canonical: `https://www.instagram.com/${kind}/${shortcode}/`,
           embedUrl: `https://www.instagram.com/${kind}/${shortcode}/embed`,
-          thumb: '', // oEmbed tidak lagi supply thumbnail
+          thumb: '',
           suggestedCategory: isVideo ? 'Video' : 'Foto',
           suggestedTitle: isVideo ? 'Video Instagram' : 'Foto Instagram'
         };
@@ -45,21 +45,78 @@
         /\/(reel|videos|watch)\b/i.test(path) ||
         host === 'fb.watch' ||
         url.searchParams.has('v');
+      const embedUrl = isVideo
+        ? 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(url.href) + '&show_text=false'
+        : 'https://www.facebook.com/plugins/post.php?href=' + encodeURIComponent(url.href) + '&show_text=true';
       return {
         ok: true,
         source: 'facebook',
         type: isVideo ? 'video' : 'foto',
         shortcode: '',
         canonical: url.href.split('?')[0],
-        embedUrl: url.href,
+        embedUrl,
         thumb: '',
         suggestedCategory: isVideo ? 'Video' : 'Foto',
         suggestedTitle: isVideo ? 'Video Facebook' : 'Foto Facebook'
       };
     }
 
-    // Direct image
-    if (/\.(jpe?g|png|gif|webp|avif)(\?|$)/i.test(path) || /fbcdn|cdninstagram|scontent/i.test(host)) {
+    // TikTok
+    if (host === 'tiktok.com' || host.endsWith('.tiktok.com') || host === 'vm.tiktok.com') {
+      const m = path.match(/\/video\/(\d+)/) || path.match(/@[\w.-]+\/video\/(\d+)/);
+      let id = m ? m[1] : '';
+      // vm.tiktok.com short links — keep canonical as-is, embed may need full URL
+      if (!id && host === 'vm.tiktok.com') {
+        return {
+          ok: true,
+          source: 'tiktok',
+          type: 'video',
+          shortcode: '',
+          canonical: url.href,
+          embedUrl: 'https://www.tiktok.com/embed/v2/' + path.replace(/^\//, ''),
+          thumb: '',
+          suggestedCategory: 'Video',
+          suggestedTitle: 'Video TikTok'
+        };
+      }
+      if (id) {
+        return {
+          ok: true,
+          source: 'tiktok',
+          type: 'video',
+          shortcode: id,
+          canonical: url.href.split('?')[0],
+          embedUrl: 'https://www.tiktok.com/embed/v2/' + id,
+          thumb: '',
+          suggestedCategory: 'Video',
+          suggestedTitle: 'Video TikTok'
+        };
+      }
+      return { ok: false, error: 'Link TikTok harus berupa /video/…' };
+    }
+
+    // Twitter / X
+    if (host === 'twitter.com' || host === 'x.com' || host.endsWith('.twitter.com')) {
+      const m = path.match(/\/status\/(\d+)/);
+      if (m) {
+        const id = m[1];
+        return {
+          ok: true,
+          source: 'twitter',
+          type: 'foto', // often mixed; treat as embeddable post
+          shortcode: id,
+          canonical: url.href.split('?')[0],
+          embedUrl: 'https://twitframe.com/show?url=' + encodeURIComponent(url.href.split('?')[0]),
+          thumb: '',
+          suggestedCategory: 'Sosial',
+          suggestedTitle: 'Postingan X / Twitter'
+        };
+      }
+      return { ok: false, error: 'Link X/Twitter harus berupa /status/…' };
+    }
+
+    // Direct image / hotlink thumbnail
+    if (/\.(jpe?g|png|gif|webp|avif)(\?|$)/i.test(path) || /fbcdn|cdninstagram|scontent|twimg|tiktokcdn|ytimg/i.test(host)) {
       return {
         ok: true,
         source: 'direct',
@@ -73,7 +130,7 @@
       };
     }
 
-    // YouTube (bonus)
+    // YouTube
     if (host.includes('youtube.com') || host === 'youtu.be') {
       let id = url.searchParams.get('v') || '';
       if (host === 'youtu.be') id = path.replace(/^\//, '').split('/')[0];
@@ -94,7 +151,10 @@
       }
     }
 
-    return { ok: false, error: 'Sumber belum didukung. Gunakan link Instagram, Facebook, YouTube, atau URL gambar langsung.' };
+    return {
+      ok: false,
+      error: 'Sumber belum didukung. Gunakan Instagram, Facebook, YouTube, TikTok, X/Twitter, atau URL gambar langsung.'
+    };
   }
 
   function makeMediaItem(parsed, overrides) {
@@ -115,5 +175,63 @@
     };
   }
 
-  global.MediaUtils = { parseMediaUrl, makeMediaItem };
+  /**
+   * Bangun HTML preview untuk admin (aman untuk innerHTML setelah escape URL).
+   * Mengembalikan { html, mode: 'img'|'iframe'|'none', note }
+   */
+  function buildPreviewHtml(itemOrParsed) {
+    const p = itemOrParsed || {};
+    const thumb = p.thumb || '';
+    const embed = p.embedUrl || '';
+    const source = (p.source || '').toLowerCase();
+    const type = (p.type || '').toLowerCase();
+
+    if (thumb && (source === 'direct' || source === 'youtube' || /\.(jpe?g|png|gif|webp)(\?|$)/i.test(thumb))) {
+      return {
+        mode: 'img',
+        note: 'Thumbnail / gambar langsung',
+        html: `<div class="media-preview-box" data-mode="img">
+          <img src="${escapeAttr(thumb)}" alt="Preview" loading="lazy"
+               onload="this.parentElement.classList.add('ok')"
+               onerror="this.parentElement.classList.add('err');this.style.display='none';var n=this.nextElementSibling;if(n)n.hidden=false;">
+          <div class="media-preview-fail" hidden>⚠ Gambar gagal dimuat (hotlink diblokir atau URL salah)</div>
+        </div>`
+      };
+    }
+
+    if (embed) {
+      // YouTube / TikTok / IG / FB / Twitter frame
+      const h = source === 'tiktok' ? 480 : source === 'instagram' ? 480 : 280;
+      return {
+        mode: 'iframe',
+        note: 'Embed ' + (source || 'media'),
+        html: `<div class="media-preview-box" data-mode="iframe">
+          <iframe src="${escapeAttr(embed)}" title="Preview embed" loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                  onload="this.parentElement.classList.add('ok')"
+                  style="width:100%;height:${h}px;border:0;border-radius:10px;background:#111;"></iframe>
+          <p class="media-preview-note">Jika area hitam/ kosong, embed mungkin diblokir domain atau perlu login platform.</p>
+        </div>`
+      };
+    }
+
+    return {
+      mode: 'none',
+      note: 'Tidak ada thumbnail/embed yang bisa dipreview',
+      html: `<div class="media-preview-box none">
+        <p>Tidak ada preview otomatis. Simpan URL & cek di halaman utama.</p>
+      </div>`
+    };
+  }
+
+  function escapeAttr(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  global.MediaUtils = { parseMediaUrl, makeMediaItem, buildPreviewHtml };
 })(typeof window !== 'undefined' ? window : globalThis);
