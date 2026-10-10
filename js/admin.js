@@ -25,25 +25,51 @@
   function isAuthed() {
     try { return sessionStorage.getItem(AUTH_KEY) === '1'; } catch (_) { return false; }
   }
+
   function unlockAdmin() {
+    document.body.classList.remove('admin-locked');
     const login = document.getElementById('adminLogin');
     const app = document.getElementById('adminApp');
-    if (login) login.classList.add('hidden');
-    if (app) app.classList.remove('locked');
+    if (login) {
+      login.classList.add('hidden');
+      login.style.display = 'none';
+    }
+    if (app) {
+      app.classList.remove('locked');
+      app.style.display = '';
+    }
     status('Berhasil masuk panel admin.');
   }
+
+  function lockAdmin() {
+    document.body.classList.add('admin-locked');
+    const login = document.getElementById('adminLogin');
+    const app = document.getElementById('adminApp');
+    if (login) {
+      login.classList.remove('hidden');
+      login.style.display = '';
+    }
+    if (app) {
+      app.classList.add('locked');
+    }
+  }
+
   function grantAuth() {
     try { sessionStorage.setItem(AUTH_KEY, '1'); } catch (_) {}
     unlockAdmin();
   }
+
   function tryLogin() {
-    const pass = (document.getElementById('loginPass') || {}).value || '';
+    const input = document.getElementById('loginPass');
+    const pass = (input && input.value != null) ? String(input.value).trim() : '';
     const err = document.getElementById('loginErr');
     if (pass === ADMIN_PASS) {
+      if (err) err.textContent = '';
       grantAuth();
     } else {
-      if (err) err.textContent = 'Password salah. Coba lagi.';
+      if (err) err.textContent = 'Password salah. Coba lagi. (pastikan tanpa spasi di awal/akhir)';
       status('Password salah.');
+      if (input) { input.focus(); input.select(); }
     }
   }
 
@@ -75,27 +101,6 @@
     }
   });
 
-  // Selalu tampilkan login saat halaman dimuat (wajib password / keystroke)
-  // sessionStorage hanya menandai "sudah login di tab ini" setelah password benar
-  function lockAdmin() {
-    document.body.classList.add('admin-locked');
-    const login = document.getElementById('adminLogin');
-    const app = document.getElementById('adminApp');
-    if (login) login.classList.remove('hidden');
-    if (app) app.classList.add('locked');
-  }
-  function unlockAdminUI() {
-    document.body.classList.remove('admin-locked');
-    const login = document.getElementById('adminLogin');
-    const app = document.getElementById('adminApp');
-    if (login) login.classList.add('hidden');
-    if (app) app.classList.remove('locked');
-  }
-  // Override unlockAdmin used by grantAuth
-  unlockAdmin = function () {
-    unlockAdminUI();
-    status('Berhasil masuk panel admin.');
-  };
   function logoutAdmin() {
     try { sessionStorage.removeItem(AUTH_KEY); } catch (_) {}
     lockAdmin();
