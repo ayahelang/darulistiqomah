@@ -53,11 +53,18 @@
     code { background: #eef5f1; padding: .1rem .35rem; border-radius: 4px; font-size: .85em; }
   
     #adminLogin {
-      position: fixed; inset: 0; z-index: 9999;
+      position: fixed; inset: 0; z-index: 99999;
       background: linear-gradient(145deg, #084C37, #0B6E4F);
       display: grid; place-items: center; padding: 1.5rem;
+      visibility: visible; opacity: 1;
     }
-    #adminLogin.hidden { display: none; }
+    #adminLogin.hidden {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    body.admin-locked #adminApp { display: none !important; }
+    body.admin-locked #adminLogin { display: grid !important; }
     .login-card {
       background: #fff; border-radius: 18px; padding: 1.75rem 1.5rem;
       width: min(400px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,.25);
@@ -88,9 +95,57 @@
     .list-item .actions-row .btn { padding: .35rem .65rem; font-size: .8rem; }
 
   
+  
+    /* Large detailed tooltips */
+    [data-tip] {
+      position: relative;
+    }
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 50%; bottom: calc(100% + 10px);
+      transform: translateX(-50%) translateY(4px);
+      background: #0f2e24;
+      color: #fff;
+      font-size: .82rem;
+      font-weight: 500;
+      line-height: 1.45;
+      text-align: left;
+      padding: .75rem .9rem;
+      border-radius: 12px;
+      width: max(220px, min(320px, 70vw));
+      white-space: normal;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease, transform .15s ease;
+      z-index: 1000;
+      box-shadow: 0 12px 32px rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    [data-tip]::before {
+      content: '';
+      position: absolute;
+      left: 50%; bottom: calc(100% + 4px);
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+      border-top-color: #0f2e24;
+      opacity: 0;
+      transition: opacity .15s ease;
+      z-index: 1001;
+    }
+    [data-tip]:hover::after,
+    [data-tip]:focus-visible::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    [data-tip]:hover::before,
+    [data-tip]:focus-visible::before {
+      opacity: 1;
+    }
+
   </style>
 </head>
-<body>
+<body class="admin-locked">
   
   <div id="adminLogin">
     <div class="login-card">
@@ -98,7 +153,7 @@
       <p>Masukkan password admin, atau gunakan keystroke rahasia.</p>
       <div class="err" id="loginErr"></div>
       <input type="password" id="loginPass" placeholder="Password admin" autocomplete="current-password">
-      <button class="btn btn-primary" type="button" id="btnLogin" style="width:100%">Masuk</button>
+      <button class="btn btn-primary" type="button" id="btnLogin" data-tip="Masuk ke panel admin dengan password. Alternatif: tahan Ctrl+Alt lalu ketik 9999." style="width:100%">Masuk</button>
       <p style="margin-top:1rem;font-size:.8rem;text-align:center"><a href="../">← Kembali ke website</a></p>
     </div>
   </div>
@@ -111,13 +166,14 @@
       <h1>Panel Admin</h1>
       <p class="hint">SDIT Daarul Istiqomah — kelola profil, berita, dan media dari link Instagram/Facebook.</p>
       <div class="actions">
-        <a class="btn btn-ghost" href="../">← Kembali ke Website</a>
-        <button class="btn btn-primary" type="button" id="btnLoad">Muat Data</button>
-        <button class="btn btn-accent" type="button" id="btnSave">Simpan ke Browser</button>
-        <button class="btn btn-ghost" type="button" id="btnReset">Reset ke JSON Asli</button>
-        <button class="btn btn-ghost" type="button" id="btnExport">Export JSON</button>
-        <button class="btn btn-primary" type="button" id="btnSyncSheets">Sinkron ke Google Sheets</button>
-        <button class="btn btn-ghost" type="button" id="btnPullSheets">Ambil dari Sheets</button>
+        <a class="btn btn-ghost" href="../" data-tip="Kembali ke halaman website publik tanpa menyimpan otomatis. Simpan dulu jika ada perubahan.">← Kembali ke Website</a>
+        <button class="btn btn-primary" type="button" id="btnLoad" data-tip="Muat ulang data website. Prioritas: data yang tersimpan di browser (localStorage). Jika kosong, ambil dari file data/site.json.">Muat Data</button>
+        <button class="btn btn-accent" type="button" id="btnSave" data-tip="Simpan semua perubahan (profil, PPDB, carousel, artikel, galeri, media, video) ke penyimpanan browser. Perubahan langsung terlihat di halaman utama di perangkat ini. Belum otomatis ke server/hosting.">Simpan ke Browser</button>
+        <button class="btn btn-ghost" type="button" id="btnReset" data-tip="Hapus semua edit lokal di browser dan kembalikan ke isi asli data/site.json. Tindakan ini tidak bisa dibatalkan.">Reset ke JSON Asli</button>
+        <button class="btn btn-ghost" type="button" id="btnExport" data-tip="Unduh file site.json berisi seluruh data saat ini. Untuk produksi: upload file ini ke folder data/ di hosting agar perubahan tampil untuk semua pengunjung.">Export JSON</button>
+        <button class="btn btn-primary" type="button" id="btnSyncSheets" data-tip="Kirim daftar media (foto/video dari link IG/FB) ke Google Sheets. Memerlukan sheetsApiUrl dan apiToken di js/config.js. Berguna agar guru lain bisa melihat data yang sama.">Sinkron ke Google Sheets</button>
+        <button class="btn btn-ghost" type="button" id="btnLogout" data-tip="Keluar dari panel admin dan wajib isi password lagi saat masuk berikutnya.">Keluar</button>
+        <button class="btn btn-ghost" type="button" id="btnPullSheets" data-tip="Ambil daftar media dari Google Sheets dan timpa media di panel ini. Memerlukan konfigurasi Sheets aktif. Data kemudian disimpan juga ke browser.">Ambil dari Sheets</button>
       </div>
       <p class="hint" id="sheetsHint">Google Sheets: belum dikonfigurasi. Isi <code>js/config.js</code> — lihat <code>apps-script/SETUP.md</code>.</p>
     </div>
@@ -132,7 +188,7 @@
       <label>Link media</label>
       <input id="mediaUrl" type="url" placeholder="https://www.instagram.com/reel/… atau /p/…">
       <div class="actions">
-        <button class="btn btn-primary" type="button" id="btnDetect">Deteksi Link</button>
+        <button class="btn btn-primary" type="button" id="btnDetect" data-tip="Analisis link yang Anda tempel. Sistem mendeteksi otomatis apakah ini foto atau video (Instagram, Facebook, YouTube, atau URL gambar), lalu mengisi form judul/kategori default.">Deteksi Link</button>
       </div>
       <div class="detect-box" id="detectBox">
         <p><strong>Hasil deteksi:</strong> <span id="detectResult">—</span></p>
@@ -149,7 +205,7 @@
         <label>Deskripsi (opsional)</label>
         <textarea id="mediaDesc" placeholder="Caption singkat — boleh kosong"></textarea>
         <div class="actions">
-          <button class="btn btn-accent" type="button" id="btnAddMedia">Tambahkan ke Galeri</button>
+          <button class="btn btn-accent" type="button" id="btnAddMedia" data-tip="Tambahkan media hasil deteksi ke daftar. Foto masuk Galeri; video masuk section Video di website. Jangan lupa klik Simpan ke Browser setelahnya.">Tambahkan ke Galeri</button>
         </div>
       </div>
     </div>
@@ -190,7 +246,7 @@
       <h2>Carousel</h2>
       <div class="list" id="carouselList"></div>
       <div class="actions">
-        <button class="btn btn-primary" type="button" id="btnAddCarousel">+ Tambah Slide</button>
+        <button class="btn btn-primary" type="button" id="btnAddCarousel" data-tip="Tambah slide baru di carousel beranda. Anda akan mengisi judul, subtitle, gambar, dan tombol CTA lewat form Edit.">+ Tambah Slide</button>
       </div>
     </div>
 
@@ -198,7 +254,7 @@
       <h2>Artikel / Berita</h2>
       <div class="list" id="articleList"></div>
       <div class="actions">
-        <button class="btn btn-primary" type="button" id="btnAddArticle">+ Tambah Artikel</button>
+        <button class="btn btn-primary" type="button" id="btnAddArticle" data-tip="Tambah berita/artikel baru. Isi judul, kategori, tanggal, ringkasan, dan gambar lewat form yang muncul.">+ Tambah Artikel</button>
       </div>
     </div>
 
@@ -207,7 +263,7 @@
       <h2>Video (YouTube)</h2>
       <div class="list" id="videoList"></div>
       <div class="actions">
-        <button class="btn btn-primary" type="button" id="btnAddVideo">+ Tambah Video</button>
+        <button class="btn btn-primary" type="button" id="btnAddVideo" data-tip="Tambah video YouTube ke section Video. Isi judul, YouTube ID (kode setelah v=), dan URL thumbnail.">+ Tambah Video</button>
       </div>
     </div>
 
@@ -215,7 +271,7 @@
       <h2>Galeri Foto (URL langsung)</h2>
       <div class="list" id="galleryList"></div>
       <div class="actions">
-        <button class="btn btn-primary" type="button" id="btnAddGallery">+ Tambah Foto (URL gambar)</button>
+        <button class="btn btn-primary" type="button" id="btnAddGallery" data-tip="Tambah foto ke galeri dengan URL/path gambar langsung (bukan link post IG). Untuk link IG, gunakan form Tambah Media di atas.">+ Tambah Foto (URL gambar)</button>
       </div>
     </div>
 
@@ -263,8 +319,8 @@
       <h2 id="editModalTitle">Edit</h2>
       <div id="editFields"></div>
       <div class="actions" style="margin-top:1rem">
-        <button class="btn btn-accent" type="button" id="btnEditSave">Simpan</button>
-        <button class="btn btn-ghost" type="button" id="btnEditCancel">Batal</button>
+        <button class="btn btn-accent" type="button" id="btnEditSave" data-tip="Simpan perubahan item ini ke data di memori. Setelah itu klik tombol Simpan ke Browser agar data tidak hilang saat refresh.">Simpan</button>
+        <button class="btn btn-ghost" type="button" id="btnEditCancel" data-tip="Tutup form tanpa menyimpan perubahan pada item ini.">Batal</button>
       </div>
     </div>
   </div>

@@ -66,14 +66,47 @@
     }
   });
 
-  if (isAuthed()) {
-    unlockAdmin();
-  } else {
-    const btn = document.getElementById('btnLogin');
-    const inp = document.getElementById('loginPass');
-    if (btn) btn.onclick = tryLogin;
-    if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
+  // Selalu tampilkan login saat halaman dimuat (wajib password / keystroke)
+  // sessionStorage hanya menandai "sudah login di tab ini" setelah password benar
+  function lockAdmin() {
+    document.body.classList.add('admin-locked');
+    const login = document.getElementById('adminLogin');
+    const app = document.getElementById('adminApp');
+    if (login) login.classList.remove('hidden');
+    if (app) app.classList.add('locked');
   }
+  function unlockAdminUI() {
+    document.body.classList.remove('admin-locked');
+    const login = document.getElementById('adminLogin');
+    const app = document.getElementById('adminApp');
+    if (login) login.classList.add('hidden');
+    if (app) app.classList.remove('locked');
+  }
+  // Override unlockAdmin used by grantAuth
+  unlockAdmin = function () {
+    unlockAdminUI();
+    status('Berhasil masuk panel admin.');
+  };
+  function logoutAdmin() {
+    try { sessionStorage.removeItem(AUTH_KEY); } catch (_) {}
+    lockAdmin();
+    const err = document.getElementById('loginErr');
+    if (err) err.textContent = '';
+    const pass = document.getElementById('loginPass');
+    if (pass) pass.value = '';
+    status('Anda telah keluar. Masukkan password untuk mengakses panel.');
+  }
+
+  // Paksa login setiap kali buka halaman admin (hapus auto-login dari session lama)
+  try { sessionStorage.removeItem(AUTH_KEY); } catch (_) {}
+  lockAdmin();
+
+  const btnLogin = document.getElementById('btnLogin');
+  const inpLogin = document.getElementById('loginPass');
+  if (btnLogin) btnLogin.onclick = tryLogin;
+  if (inpLogin) inpLogin.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout) btnLogout.onclick = logoutAdmin;
 
   function sheetsConfigured() {
     const c = cfg();
@@ -246,11 +279,13 @@
     edit.type = 'button';
     edit.className = 'btn btn-primary';
     edit.textContent = 'Edit';
+    edit.setAttribute('data-tip', 'Buka form untuk mengubah data item ini (judul, gambar, tautan, dll). Setelah edit, klik Simpan di form, lalu Simpan ke Browser.');
     edit.onclick = () => openEditor(type, index);
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'btn btn-ghost';
     del.textContent = 'Hapus';
+    del.setAttribute('data-tip', 'Hapus item ini dari daftar. Perubahan belum permanen sampai Anda klik Simpan ke Browser atau Export JSON.');
     del.onclick = () => deleteItem(type, index);
     wrap.appendChild(edit);
     wrap.appendChild(del);
