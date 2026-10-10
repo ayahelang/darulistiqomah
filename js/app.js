@@ -187,14 +187,16 @@
     const paint = () => {
       box.innerHTML = '';
       _lists.articles.slice(0, shown.articles).forEach((a, idx) => {
-        box.appendChild(el('article', { class: 'card article-card', 'data-admin-edit': 'articles:' + idx }, [
+        const art = el('article', { class: 'card article-card', 'data-admin-edit': 'articles:' + idx }, [
           el('img', { src: a.image, alt: a.title || '', loading: 'lazy' }),
           el('div', { class: 'article-body' }, [
             el('div', { class: 'meta' }, [`${a.category || 'Berita'} · ${a.date || ''}`]),
             el('h3', {}, [a.title || '']),
             el('p', {}, [a.excerpt || ''])
           ])
-        ]));
+        ]);
+        box.appendChild(art);
+        attachEngagement(art, 'articles', a.id || ('articles-' + idx));
       });
       updateMoreBtn('articlesMoreWrap', 'articles');
     };
@@ -231,17 +233,20 @@
         if (g.image) children.push(el('img', { src: g.image, alt: g.title || '', loading: 'lazy' }));
         else children.push(el('div', { class: 'gallery-placeholder' }, [isIg ? 'Instagram' : 'Foto']));
         children.push(el('figcaption', {}, [g.title || 'Foto']));
-        box.appendChild(el('figure', {
+        const fig = el('figure', {
           class: 'gallery-item',
           'data-admin-edit': g._edit || '',
           title: 'Ctrl+Alt+Shift + double-click untuk edit',
           onclick: function (ev) {
             if (ev.ctrlKey && ev.altKey && ev.shiftKey) return;
+            if (ev.target.closest('.engage-bar, .engage-panel')) return;
             if (isIg && g.url) window.open(g.url, '_blank', 'noopener');
             else if (g.image) openLightbox(g.image, g.title);
             else if (g.url) window.open(g.url, '_blank', 'noopener');
           }
-        }, children));
+        }, children);
+        box.appendChild(fig);
+        attachEngagement(fig, 'gallery', g._edit || ('gallery-' + Math.random()));
       });
       updateMoreBtn('galleryMoreWrap', 'gallery');
     };
@@ -277,7 +282,7 @@
         if (v.thumb) kids.push(el('img', { src: v.thumb, alt: v.title || '', loading: 'lazy' }));
         else kids.push(el('div', { class: 'video-placeholder' }, [v.source === 'instagram' ? 'Instagram Reel' : (v.source || 'Video')]));
         kids.push(el('div', { class: 'play' }, [el('span', {}, ['▶'])]));
-        box.appendChild(el('article', {
+        const vcard = el('article', {
           class: 'video-card',
           'data-admin-edit': v._edit || '',
           title: 'Ctrl+Alt+Shift + double-click untuk edit'
@@ -292,7 +297,9 @@
             }
           }, kids),
           el('h3', {}, [v.title || 'Video'])
-        ]));
+        ]);
+        box.appendChild(vcard);
+        attachEngagement(vcard, 'videos', v._edit || v.youtubeId || ('video-' + Math.random()));
       });
       updateMoreBtn('videosMoreWrap', 'videos');
     };
@@ -361,8 +368,33 @@
     const root = document.getElementById('annRoot');
     if (!root) return;
     root.innerHTML = '';
-    const items = (list || []).map(annDefaults).filter(annShouldShow)
-      .sort((x, y) => (y.priority || 0) - (x.priority || 0));
+
+    // Preview dari panel admin (?previewAnn=1)
+    let previewItem = null;
+    try {
+      const params = new URLSearchParams(location.search);
+      if (params.get('previewAnn') === '1') {
+        const raw = sessionStorage.getItem('sdit_ann_preview');
+        if (raw) previewItem = annDefaults(JSON.parse(raw));
+        // bersihkan query agar refresh tidak memaksa lagi tanpa sengaja
+        try {
+          const u = new URL(location.href);
+          u.searchParams.delete('previewAnn');
+          history.replaceState({}, '', u.pathname + u.search + u.hash);
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    let items;
+    if (previewItem) {
+      previewItem.active = true;
+      previewItem.frequency = 'always';
+      previewItem._preview = true;
+      items = [previewItem];
+    } else {
+      items = (list || []).map(annDefaults).filter(annShouldShow)
+        .sort((x, y) => (y.priority || 0) - (x.priority || 0));
+    }
     if (!items.length) return;
 
     items.forEach((a) => {
@@ -406,7 +438,7 @@
           setTimeout(() => hideAnn(card, a), ms);
         }
       }
-      annMarkSeen(a);
+      if (!a._preview) annMarkSeen(a);
     });
   }
 
@@ -414,6 +446,124 @@
     if (!node) return;
     node.classList.add('ann-hide');
     setTimeout(() => node.remove(), 320);
+  }
+
+
+  function engagementFingerprint() {
+    try {
+      let fp = localStorage.getItem('sdit_fp');
+      if (!fp) {
+        fp = 'fp_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('sdit_fp', fp);
+      }
+      return fp;
+    } catch (_) { return 'anon'; }
+  }
+
+  async function engagementRequest(action, payload) {
+    const conf = window.SDIT_CONFIG || {};
+    if (!conf.sheetsApiUrl) throw new Error('Sheets belum dikonfigurasi');
+    const res = await fetch(conf.sheetsApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+    });
+    return res.json();
+  }
+
+  function attachEngagement(host, targetType, targetId) {
+    const conf = window.SDIT_CONFIG || {};
+    if (!(conf.useSheets && conf.sheetsApiUrl) || !host || !targetId) return;
+    if (host.querySelector('.engage-bar')) return;
+
+    const bar = el('div', { class: 'engage-bar' });
+    const likeBtn = el('button', { type: 'button', class: 'engage-like' }, ['♥ …']);
+    const toggleBtn = el('button', { type: 'button', class: 'engage-toggle' }, ['💬']);
+    const panel = el('div', { class: 'engage-panel', hidden: 'hidden' });
+    const list = el('div', { class: 'engage-comments' });
+    const form = el('div', { class: 'engage-form' });
+    const nameIn = el('input', { type: 'text', placeholder: 'Nama (opsional)', maxlength: '40', class: 'engage-name' });
+    const msgIn = el('input', { type: 'text', placeholder: 'Tulis komentar…', maxlength: '500', class: 'engage-msg' });
+    const sendBtn = el('button', { type: 'button', class: 'btn btn-primary engage-send' }, ['Kirim']);
+    form.appendChild(nameIn);
+    form.appendChild(msgIn);
+    form.appendChild(sendBtn);
+    panel.appendChild(list);
+    panel.appendChild(form);
+    bar.appendChild(likeBtn);
+    bar.appendChild(toggleBtn);
+    host.appendChild(bar);
+    host.appendChild(panel);
+
+    async function refresh() {
+      try {
+        const j = await engagementRequest('getEngagement', { targetType: targetType, targetId: String(targetId) });
+        if (!j.ok) return;
+        const likes = (j.stats && j.stats.likes) || 0;
+        likeBtn.textContent = '♥ ' + likes;
+        list.innerHTML = '';
+        const comments = (j.stats && j.stats.comments) || [];
+        if (!comments.length) {
+          list.appendChild(el('p', { class: 'engage-empty' }, ['Belum ada komentar.']));
+        } else {
+          comments.forEach((cm) => {
+            list.appendChild(el('div', { class: 'engage-item' }, [
+              el('strong', {}, [cm.author || 'Anonim']),
+              el('span', {}, [' ' + (cm.message || '')])
+            ]));
+          });
+        }
+        toggleBtn.textContent = '💬 ' + comments.length;
+      } catch (e) { /* silent */ }
+    }
+
+    likeBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      likeBtn.disabled = true;
+      try {
+        const j = await engagementRequest('like', {
+          targetType: targetType,
+          targetId: String(targetId),
+          fingerprint: engagementFingerprint()
+        });
+        if (j.ok && j.stats) likeBtn.textContent = '♥ ' + (j.stats.likes || 0);
+      } catch (_) {}
+      likeBtn.disabled = false;
+    });
+
+    toggleBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      panel.hidden = !panel.hidden;
+      if (!panel.hidden) await refresh();
+    });
+
+    sendBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const message = (msgIn.value || '').trim();
+      if (message.length < 2) return;
+      sendBtn.disabled = true;
+      try {
+        const j = await engagementRequest('comment', {
+          targetType: targetType,
+          targetId: String(targetId),
+          author: (nameIn.value || '').trim() || 'Anonim',
+          message: message,
+          fingerprint: engagementFingerprint()
+        });
+        if (j.ok) {
+          msgIn.value = '';
+          await refresh();
+        } else {
+          alert(j.error || 'Gagal mengirim');
+        }
+      } catch (err) {
+        alert('Gagal mengirim komentar');
+      }
+      sendBtn.disabled = false;
+    });
+
+    // load like count quietly
+    refresh();
   }
 
   function renderActivities(list) {

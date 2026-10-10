@@ -591,3 +591,36 @@ body.admin-edit-armed [data-admin-edit]:hover {
     left: 12px; right: 12px; max-width: none; bottom: 12px;
   }
 }
+
+
+/* ---------- Engagement (like & comment) ---------- */
+.engage-bar {
+  display: flex; gap: .5rem; align-items: center;
+  padding: .55rem .75rem; border-top: 1px solid rgba(11,110,79,.08);
+  background: #f8faf8;
+}
+.gallery-item .engage-bar {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,.94); z-index: 2;
+}
+.gallery-item { position: relative; }
+.engage-like, .engage-toggle {
+  border: 1px solid rgba(11,110,79,.2); background: #fff;
+  border-radius: 999px; padding: .25rem .7rem; font-size: .8rem;
+  cursor: pointer; color: var(--primary-dark); font-weight: 600;
+}
+.engage-like:hover, .engage-toggle:hover { background: rgba(11,110,79,.08); }
+.engage-panel {
+  padding: .65rem .75rem .85rem;
+  background: #fff;
+  border-top: 1px solid rgba(11,110,79,.08);
+  font-size: .85rem;
+}
+.engage-comments { max-height: 140px; overflow: auto; margin-bottom: .5rem; }
+.engage-item { padding: .25rem 0; border-bottom: 1px dashed rgba(0,0,0,.06); color: var(--muted); }
+.engage-item strong { color: var(--ink); }
+.engage-empty { color: var(--muted); font-size: .8rem; margin: 0; }
+.engage-form { display: flex; flex-wrap: wrap; gap: .35rem; }
+.engage-name { width: 110px; padding: .35rem .5rem; border-radius: 8px; border: 1px solid rgba(11,110,79,.2); font-size: .8rem; }
+.engage-msg { flex: 1; min-width: 120px; padding: .35rem .5rem; border-radius: 8px; border: 1px solid rgba(11,110,79,.2); font-size: .8rem; }
+.engage-send { padding: .35rem .75rem !important; font-size: .8rem !important; }

@@ -35,7 +35,7 @@ function handleRequest(e, method) {
     }
 
     var token = PropertiesService.getScriptProperties().getProperty('API_TOKEN') || '';
-    var publicActions = { list: 1, getSite: 1, ping: 1, publish: 1 };
+    var publicActions = { list: 1, getSite: 1, ping: 1, publish: 1, getEngagement: 1, like: 1, comment: 1 };
     if (!publicActions[action]) {
       var clientToken = (e.parameter && e.parameter.token) || body.token || '';
       if (token && clientToken !== token) {
@@ -61,6 +61,11 @@ function handleRequest(e, method) {
     if (action === 'update') return json_(updateMedia_(body.item || body));
     if (action === 'delete') return json_(deleteMedia_(body.id || (e.parameter && e.parameter.id)));
     if (action === 'publish') return json_({ ok: true, data: getSite_(), generatedAt: new Date().toISOString() });
+    if (action === 'getEngagement') {
+      return json_({ ok: true, stats: getEngagement_(body.targetType || (e.parameter && e.parameter.targetType), body.targetId || (e.parameter && e.parameter.targetId)) });
+    }
+    if (action === 'like') return json_(addLike_(body));
+    if (action === 'comment') return json_(addComment_(body));
 
     return json_({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
@@ -257,6 +262,83 @@ function json_(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+
+
+/* ========== ENGAGEMENT (like + comment) ========== */
+var SHEET_ENGAGE = 'engagement';
+
+function ensureEngageHeaders_(sheet) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['id', 'targetType', 'targetId', 'kind', 'author', 'message', 'fingerprint', 'created_at']);
+  }
+}
+
+function getEngagement_(targetType, targetId) {
+  if (!targetType || !targetId) return { likes: 0, comments: [] };
+  var sheet = getSheet_(SHEET_ENGAGE);
+  ensureEngageHeaders_(sheet);
+  var values = sheet.getDataRange().getValues();
+  var likes = 0;
+  var comments = [];
+  var likedFp = {};
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (String(row[1]) !== String(targetType) || String(row[2]) !== String(targetId)) continue;
+    var kind = String(row[3]);
+    if (kind === 'like') {
+      likes++;
+      if (row[6]) likedFp[String(row[6])] = true;
+    } else if (kind === 'comment') {
+      comments.push({
+        id: row[0],
+        author: row[4] || 'Anonim',
+        message: row[5] || '',
+        created_at: row[7] || ''
+      });
+    }
+  }
+  // newest first
+  comments = comments.reverse().slice(0, 50);
+  return { likes: likes, comments: comments };
+}
+
+function addLike_(body) {
+  var targetType = body.targetType;
+  var targetId = body.targetId;
+  var fp = body.fingerprint || '';
+  if (!targetType || !targetId) return { ok: false, error: 'target wajib' };
+  var sheet = getSheet_(SHEET_ENGAGE);
+  ensureEngageHeaders_(sheet);
+  // prevent duplicate like same fingerprint
+  if (fp) {
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][1]) === String(targetType) && String(values[i][2]) === String(targetId)
+          && String(values[i][3]) === 'like' && String(values[i][6]) === String(fp)) {
+        return { ok: true, duplicate: true, stats: getEngagement_(targetType, targetId) };
+      }
+    }
+  }
+  var id = 'lk' + new Date().getTime();
+  sheet.appendRow([id, targetType, targetId, 'like', '', '', fp, new Date().toISOString()]);
+  return { ok: true, stats: getEngagement_(targetType, targetId) };
+}
+
+function addComment_(body) {
+  var targetType = body.targetType;
+  var targetId = body.targetId;
+  var message = (body.message || '').toString().trim();
+  var author = (body.author || 'Anonim').toString().trim().slice(0, 40);
+  if (!targetType || !targetId) return { ok: false, error: 'target wajib' };
+  if (!message || message.length < 2) return { ok: false, error: 'komentar terlalu pendek' };
+  if (message.length > 500) return { ok: false, error: 'komentar max 500 karakter' };
+  var sheet = getSheet_(SHEET_ENGAGE);
+  ensureEngageHeaders_(sheet);
+  var id = 'cm' + new Date().getTime();
+  sheet.appendRow([id, targetType, targetId, 'comment', author, message, body.fingerprint || '', new Date().toISOString()]);
+  return { ok: true, stats: getEngagement_(targetType, targetId) };
 }
 
 function setupToken() {

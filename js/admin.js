@@ -491,6 +491,41 @@
     $('annEditor').hidden = true;
   }
 
+
+  function buildAnnFromForm() {
+    return {
+      id: (annEditIndex >= 0 && data.announcements && data.announcements[annEditIndex] && data.announcements[annEditIndex].id)
+        ? data.announcements[annEditIndex].id
+        : ('ann_preview_' + Date.now()),
+      title: ($('annTitle').value || '').trim() || 'Pengumuman',
+      body: ($('annBody').value || '').trim(),
+      mode: $('annMode').value || 'popup',
+      frequency: 'always',
+      startAt: '',
+      endAt: '',
+      durationSec: Math.max(3, parseInt($('annDuration').value, 10) || 12),
+      priority: 999,
+      ctaText: ($('annCtaText').value || '').trim(),
+      ctaLink: ($('annCtaLink').value || '').trim(),
+      image: ($('annImage').value || '').trim(),
+      active: true,
+      dismissible: $('annDismiss').value !== 'false',
+      _preview: true
+    };
+  }
+
+  function previewAnnOnPublic() {
+    const item = buildAnnFromForm();
+    try {
+      sessionStorage.setItem('sdit_ann_preview', JSON.stringify(item));
+    } catch (e) {
+      status('Gagal menyimpan preview (storage penuh?). Coba tanpa gambar besar.');
+      return;
+    }
+    window.open('../?previewAnn=1', '_blank', 'noopener');
+    status('Preview dibuka di tab baru (mengabaikan jadwal mulai/selesai).');
+  }
+
   function saveAnnEditor() {
     if (!data.announcements) data.announcements = [];
     const item = {
@@ -872,6 +907,8 @@
   if (btnAddAnn) btnAddAnn.onclick = () => openAnnEditor(-1);
   const btnAnnSave = $('btnAnnSave');
   if (btnAnnSave) btnAnnSave.onclick = saveAnnEditor;
+  const btnAnnPreview = $('btnAnnPreview');
+  if (btnAnnPreview) btnAnnPreview.onclick = previewAnnOnPublic;
   const btnAnnCancel = $('btnAnnCancel');
   if (btnAnnCancel) btnAnnCancel.onclick = closeAnnEditor;
   ['annTitle','annBody','annImage'].forEach((id) => {
