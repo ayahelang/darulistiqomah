@@ -265,8 +265,30 @@
     status('Perubahan disimpan di form. Klik "Simpan ke Browser" agar permanen di sesi ini.');
   }
 
-  function deleteItem(type, index) {
-    if (!confirm('Hapus item ini?')) return;
+
+  function themedConfirm(message) {
+    return new Promise((resolve) => {
+      let overlay = document.getElementById('themedConfirm');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'themedConfirm';
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(8,76,55,.82);display:grid;place-items:center;padding:1rem;backdrop-filter:blur(5px)';
+        overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:1.35rem 1.4rem;width:min(400px,100%);border:2px solid rgba(201,162,39,.45);box-shadow:0 24px 60px rgba(8,76,55,.35)"><p id="themedConfirmMsg" style="color:#084C37;font-weight:600;margin-bottom:1rem;line-height:1.5"></p><div style="display:flex;gap:.5rem;justify-content:flex-end"><button type="button" id="themedConfirmNo" class="btn btn-ghost">Batal</button><button type="button" id="themedConfirmYes" class="btn btn-accent">Ya, lanjutkan</button></div></div>';
+        document.body.appendChild(overlay);
+      }
+      overlay.style.display = 'grid';
+      document.getElementById('themedConfirmMsg').textContent = message;
+      const yes = document.getElementById('themedConfirmYes');
+      const no = document.getElementById('themedConfirmNo');
+      const done = (val) => { overlay.style.display = 'none'; resolve(val); };
+      yes.onclick = () => done(true);
+      no.onclick = () => done(false);
+      overlay.onclick = (e) => { if (e.target === overlay) done(false); };
+    });
+  }
+
+  async function deleteItem(type, index) {
+    if (!(await themedConfirm('Hapus item ini? Tindakan ini hanya di memori sampai Anda klik Simpan ke Browser.'))) return;
     data[type].splice(index, 1);
     renderLists();
     status('Item dihapus. Klik Simpan ke Browser.');
@@ -375,8 +397,8 @@
     status('Tersimpan di browser. Buka halaman utama untuk melihat perubahan.');
   }
 
-  function reset() {
-    if (!confirm('Reset semua edit lokal ke data/site.json?')) return;
+  async function reset() {
+    if (!(await themedConfirm('Reset semua edit lokal ke data/site.json? Perubahan di browser akan hilang.'))) return;
     localStorage.removeItem(STORAGE_KEY);
     loadFromFile();
     status('localStorage dihapus. Kembali ke data/site.json.');

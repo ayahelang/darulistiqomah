@@ -143,6 +143,23 @@
       opacity: 1;
     }
 
+  
+    /* Match site theme */
+    * { scrollbar-width: thin; scrollbar-color: #0B6E4F #e8f2ed; }
+    *::-webkit-scrollbar { width: 10px; height: 10px; }
+    *::-webkit-scrollbar-track { background: #e8f2ed; border-radius: 999px; }
+    *::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #0d8a62, #0B6E4F);
+      border-radius: 999px; border: 2px solid #e8f2ed;
+    }
+    ::selection { background: rgba(11,110,79,.28); color: #084C37; }
+    .edit-modal { background: rgba(8, 76, 55, 0.82) !important; backdrop-filter: blur(6px); }
+    .edit-modal-inner {
+      border: 2px solid rgba(201, 162, 39, 0.4);
+      box-shadow: 0 24px 60px rgba(8, 76, 55, 0.35);
+    }
+    input, textarea, select { accent-color: #0B6E4F; caret-color: #0B6E4F; }
+
   </style>
   <link rel="stylesheet" href="../css/lock.css">
 </head>
@@ -156,10 +173,10 @@
   <div id="adminLogin">
     <div class="login-card">
       <h1>🔒 Admin SDIT Daarul Istiqomah</h1>
-      <p>Masukkan password admin, atau gunakan keystroke rahasia.</p>
+      <p>Masukkan password admin untuk mengakses panel.</p>
       <div class="err" id="loginErr"></div>
       <input type="password" id="loginPass" placeholder="Password admin" autocomplete="current-password">
-      <button class="btn btn-primary" type="button" id="btnLogin" data-tip="Masuk ke panel admin dengan password. Alternatif: tahan Ctrl+Alt lalu ketik 9999." style="width:100%">Masuk</button>
+      <button class="btn btn-primary" type="button" id="btnLogin" data-tip="Masuk ke panel admin setelah password diisi dengan benar." style="width:100%">Masuk</button>
       <p style="margin-top:1rem;font-size:.8rem;text-align:center"><a href="../">← Kembali ke website</a></p>
     </div>
   </div>
