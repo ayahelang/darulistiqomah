@@ -5,41 +5,49 @@
   const STORAGE_KEY = 'sdit_di_site_data_v1';
 
   async function loadData() {
-    let data = null;
-    try {
-      const local = localStorage.getItem(STORAGE_KEY);
-      if (local) data = JSON.parse(local);
-    } catch (_) {}
-    if (!data) {
-      const res = await fetch(DATA_URL, { cache: 'no-store' });
-      if (!res.ok) throw new Error('Gagal memuat data/site.json');
-      data = await res.json();
-    }
-    try {
-      const c = window.SDIT_CONFIG || {};
-      if (c.useSheets && c.sheetsApiUrl) {
-        const cacheKey = 'sdit_di_media_cache_v1';
-        let fromCache = null;
+    const c = window.SDIT_CONFIG || {};
+    const DATA_URL = 'data/site.json';
+    const CACHE_KEY = 'sdit_di_site_cache_v2';
+
+    // 1) Primary: Google Sheets (getSite)
+    if (c.useSheets && c.sheetsApiUrl) {
+      try {
+        // short-lived cache to avoid hammering Apps Script
+        let cached = null;
         try {
-          const raw = localStorage.getItem(cacheKey);
+          const raw = localStorage.getItem(CACHE_KEY);
           if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Date.now() - parsed.ts < (c.mediaCacheTtl || 300000)) fromCache = parsed.media;
+            const p = JSON.parse(raw);
+            if (p && p.data && Date.now() - p.ts < (c.siteCacheTtl || 60000)) cached = p.data;
           }
         } catch (_) {}
-        if (fromCache) {
-          data.media = fromCache;
-        } else {
-          const r = await fetch(c.sheetsApiUrl + '?action=list');
-          const j = await r.json();
-          if (j.ok && Array.isArray(j.media)) {
-            data.media = j.media.filter((m) => m.active !== false && String(m.active).toUpperCase() !== 'FALSE');
-            localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), media: data.media }));
-          }
+
+        if (cached) {
+          console.info('[SDIT] Data dari cache Sheets (TTL)');
+          return cached;
         }
+
+        const r = await fetch(c.sheetsApiUrl + '?action=getSite', { cache: 'no-store' });
+        const j = await r.json();
+        if (j.ok && j.data) {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: j.data }));
+          } catch (_) {}
+          console.info('[SDIT] Data dari Google Sheets');
+          return j.data;
+        }
+        console.warn('[SDIT] Sheets getSite kosong/ gagal', j);
+      } catch (e) {
+        console.warn('[SDIT] Gagal fetch Sheets, fallback site.json', e);
       }
-    } catch (e) { console.warn('Sheets media skip', e); }
+    }
+
+    // 2) Fallback: data/site.json (hanya jika Sheets belum diisi / offline)
+    const res = await fetch(DATA_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Gagal memuat data');
+    const data = await res.json();
     if (!data.media) data.media = [];
+    console.info('[SDIT] Data dari data/site.json (fallback)');
     return data;
   }
 

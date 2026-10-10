@@ -142,10 +142,24 @@
     const el = $('sheetsHint');
     if (!el) return;
     if (sheetsConfigured()) {
-      el.innerHTML = 'Google Sheets: <strong>aktif</strong>. Media bisa disinkron ke Sheet.';
+      el.innerHTML = 'Google Sheets: <strong>aktif</strong> — semua data website dibaca & disimpan ke Sheet (sumber tunggal).';
     } else {
-      el.innerHTML = 'Google Sheets: belum dikonfigurasi. Isi <code>js/config.js</code> — lihat <code>apps-script/SETUP.md</code>.';
+      el.innerHTML = '⚠️ Google Sheets <strong>belum dikonfigurasi</strong>. Isi <code>sheetsApiUrl</code> + <code>apiToken</code> di <code>js/config.js</code> (lihat <code>apps-script/SETUP.md</code>). Tanpa ini data tidak tersimpan ke cloud.';
     }
+  }
+
+  async function loadFromSheets() {
+    const conf = cfg();
+    if (!conf.sheetsApiUrl) throw new Error('sheetsApiUrl kosong di config.js');
+    const res = await fetch(conf.sheetsApiUrl + '?action=getSite', { cache: 'no-store' });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'getSite gagal');
+    if (!j.data) throw new Error('Sheets belum berisi data site — klik Simpan sekali untuk mengisi');
+    data = j.data;
+    if (!data.media) data.media = [];
+    fillForm();
+    status('✓ Data dimuat dari Google Sheets');
+    return true;
   }
 
   async function loadFromFile() {
@@ -153,17 +167,28 @@
     data = await res.json();
     if (!data.media) data.media = [];
     fillForm();
-    status('Data dimuat dari data/site.json');
+    status('Data dimuat dari data/site.json (fallback lokal)');
   }
 
   function loadFromStorage() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    data = JSON.parse(raw);
-    if (!data.media) data.media = [];
-    fillForm();
-    status('Data dimuat dari localStorage (hasil edit admin).');
-    return true;
+    // localStorage no longer primary — return false always
+    return false;
+  }
+
+  async function loadPreferred() {
+    const conf = cfg();
+    if (conf.useSheets && conf.sheetsApiUrl) {
+      try {
+        await loadFromSheets();
+        return;
+      } catch (e) {
+        status('Sheets belum siap (' + e.message + '). Memuat site.json…');
+        await loadFromFile();
+        return;
+      }
+    }
+    status('Peringatan: useSheets/sheetsApiUrl belum diisi. Memuat site.json.');
+    await loadFromFile();
   }
 
   function fillForm() {
@@ -508,17 +533,38 @@
     }
   }
 
-  function save() {
+  async function save() {
     readForm();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    status('✓ Tersimpan di localStorage browser (kunci: sdit_di_site_data_v1). Perubahan terlihat di halaman utama perangkat ini. Untuk produksi: Export JSON → upload ke data/site.json.');
+    const conf = cfg();
+    if (!(conf.useSheets && conf.sheetsApiUrl && conf.apiToken)) {
+      status('✗ Belum dikonfigurasi: isi sheetsApiUrl + apiToken di js/config.js, lalu deploy ulang Apps Script.');
+      return;
+    }
+    status('Menyimpan ke Google Sheets…');
+    try {
+      const res = await fetch(conf.sheetsApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'saveSite', token: conf.apiToken, data: data })
+      });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || 'saveSite gagal');
+      // clear public cache so frontend refetches
+      try { localStorage.removeItem('sdit_di_site_cache_v2'); } catch (_) {}
+      const cnt = j.counts || {};
+      status('✓ Tersimpan ke Google Sheets · ' + (j.updatedAt || '') +
+        ' · media:' + (cnt.media || 0) +
+        ' carousel:' + (cnt.carousel || 0) +
+        ' artikel:' + (cnt.articles || 0));
+    } catch (e) {
+      status('✗ Gagal simpan ke Sheets: ' + e.message);
+    }
   }
 
   async function reset() {
-    if (!(await themedConfirm('Reset semua edit lokal ke data/site.json? Perubahan di browser akan hilang.'))) return;
-    localStorage.removeItem(STORAGE_KEY);
-    loadFromFile();
-    status('localStorage dihapus. Kembali ke data/site.json.');
+    if (!(await themedConfirm('Muat ulang data dari Google Sheets? Perubahan di form yang belum disimpan akan hilang.'))) return;
+    try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem('sdit_di_site_cache_v2'); } catch (_) {}
+    await loadPreferred();
   }
 
   function exportJson() {
@@ -607,34 +653,20 @@
   }
 
   async function syncToSheets() {
-    if (!sheetsConfigured()) { status('Aktifkan useSheets + sheetsApiUrl di js/config.js'); return; }
-    status('Menyinkronkan media ke Google Sheets…');
-    try {
-      const items = data.media || [];
-      let ok = 0;
-      for (const item of items) {
-        const r = await sheetsRequest('add', { item: item });
-        if (r.ok) ok++;
-      }
-      status(`Sinkron selesai: ${ok}/${items.length} item.`);
-    } catch (e) { status('Gagal sinkron: ' + e.message); }
+    // Alias: full save to Sheets
+    await save();
   }
 
   async function pullFromSheets() {
     if (!sheetsConfigured()) { status('Aktifkan useSheets + sheetsApiUrl di js/config.js'); return; }
-    status('Mengambil media dari Google Sheets…');
+    status('Mengambil seluruh data dari Google Sheets…');
     try {
-      const r = await sheetsRequest('list');
-      if (!r.ok) throw new Error(r.error || 'Gagal list');
-      data.media = (r.media || []).filter((m) => m.active !== false && String(m.active).toUpperCase() !== 'FALSE');
-      renderLists();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      status(`Diambil ${data.media.length} media dari Sheets.`);
+      await loadFromSheets();
     } catch (e) { status('Gagal ambil: ' + e.message); }
   }
 
   // Bind
-  $('btnLoad').onclick = async () => { if (!loadFromStorage()) await loadFromFile(); };
+  $('btnLoad').onclick = async () => { await loadPreferred(); };
   $('btnSave').onclick = save;
   $('btnReset').onclick = reset;
   $('btnExport').onclick = exportJson;
@@ -657,7 +689,7 @@
 
   updateSheetsHint();
   (async () => {
-    if (!loadFromStorage()) await loadFromFile();
+    await loadPreferred();
   })();
 
   // Deep-link from frontend quick-edit: admin/?edit=carousel:0

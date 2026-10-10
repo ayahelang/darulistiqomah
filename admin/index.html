@@ -286,13 +286,13 @@
       <p class="hint">SDIT Daarul Istiqomah — kelola profil, berita, dan media dari link Instagram/Facebook.</p>
       <div class="actions">
         <a class="btn btn-ghost" href="../" data-tip="Kembali ke halaman website publik tanpa menyimpan otomatis. Simpan dulu jika ada perubahan.">← Kembali ke Website</a>
-        <button class="btn btn-primary" type="button" id="btnLoad" data-tip="Muat ulang data website. Prioritas: data yang tersimpan di browser (localStorage). Jika kosong, ambil dari file data/site.json.">Muat Data</button>
-        <button class="btn btn-accent" type="button" id="btnSave" data-tip="Simpan semua perubahan (profil, PPDB, carousel, artikel, galeri, media, video) ke penyimpanan browser. Perubahan langsung terlihat di halaman utama di perangkat ini. Belum otomatis ke server/hosting.">Simpan ke Browser</button>
+        <button class="btn btn-primary" type="button" id="btnLoad" data-tip="Muat ulang data dari Google Sheets (sumber utama).">Muat Data</button>
+        <button class="btn btn-accent" type="button" id="btnSave" data-tip="Simpan SEMUA data website ke Google Sheets. Pengunjung & admin lain akan melihat data yang sama.">Simpan ke Google Sheets</button>
         <button class="btn btn-ghost" type="button" id="btnReset" data-tip="Hapus semua edit lokal di browser dan kembalikan ke isi asli data/site.json. Tindakan ini tidak bisa dibatalkan.">Reset ke JSON Asli</button>
         <button class="btn btn-ghost" type="button" id="btnExport" data-tip="Unduh file site.json berisi seluruh data saat ini. Untuk produksi: upload file ini ke folder data/ di hosting agar perubahan tampil untuk semua pengunjung.">Export JSON</button>
-        <button class="btn btn-primary" type="button" id="btnSyncSheets" data-tip="Kirim daftar media (foto/video dari link IG/FB) ke Google Sheets. Memerlukan sheetsApiUrl dan apiToken di js/config.js. Berguna agar guru lain bisa melihat data yang sama.">Sinkron ke Google Sheets</button>
+        <button class="btn btn-primary" type="button" id="btnSyncSheets" data-tip="Kirim daftar media (foto/video dari link IG/FB) ke Google Sheets. Memerlukan sheetsApiUrl dan apiToken di js/config.js. Berguna agar guru lain bisa melihat data yang sama.">Simpan ulang ke Sheets</button>
         <button class="btn btn-ghost" type="button" id="btnLogout" data-tip="Keluar dari panel admin dan wajib isi password lagi saat masuk berikutnya.">Keluar</button>
-        <button class="btn btn-ghost" type="button" id="btnPullSheets" data-tip="Ambil daftar media dari Google Sheets dan timpa media di panel ini. Memerlukan konfigurasi Sheets aktif. Data kemudian disimpan juga ke browser.">Ambil dari Sheets</button>
+        <button class="btn btn-ghost" type="button" id="btnPullSheets" data-tip="Ambil daftar media dari Google Sheets dan timpa media di panel ini. Memerlukan konfigurasi Sheets aktif. Data kemudian disimpan juga ke browser.">Muat dari Sheets</button>
       </div>
       <p class="hint" id="sheetsHint">Google Sheets: belum dikonfigurasi. Isi <code>js/config.js</code> — lihat <code>apps-script/SETUP.md</code>.</p>
     </div>
@@ -440,7 +440,7 @@
       <h2 id="editModalTitle">Edit</h2>
       <div id="editFields"></div>
       <div class="actions" style="margin-top:1rem">
-        <button class="btn btn-accent" type="button" id="btnEditSave" data-tip="Simpan perubahan item ini ke data di memori. Setelah itu klik tombol Simpan ke Browser agar data tidak hilang saat refresh.">Simpan</button>
+        <button class="btn btn-accent" type="button" id="btnEditSave" data-tip="Simpan perubahan item ini ke data di memori. Setelah itu klik tombol Simpan ke Google Sheets agar data tidak hilang saat refresh.">Simpan</button>
         <button class="btn btn-ghost" type="button" id="btnEditCancel" data-tip="Tutup form tanpa menyimpan perubahan pada item ini.">Batal</button>
       </div>
     </div>

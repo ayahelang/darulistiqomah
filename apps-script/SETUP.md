@@ -1,4 +1,12 @@
-# Setup Google Sheets + Apps Script — SDIT Daarul Istiqomah
+# Setup Google Sheets — SDIT Daarul Istiqomah
+
+> **Arsitektur (wajib dibaca)**  
+> Semua data website (profil, carousel, berita, galeri, video, media) **dibaca dan disimpan ke Google Sheets**.  
+> `data/site.json` hanya fallback jika Sheets belum dikonfigurasi.  
+> Tombol **Simpan ke Google Sheets** di panel admin menulis snapshot penuh ke sheet `site`.
+
+---
+
 
 Panduan lengkap agar admin bisa menambah foto/video dari link Instagram/Facebook, data tersimpan di Google Sheet, dan website membacanya dengan cache (tidak lambat).
 
@@ -8,9 +16,13 @@ Panduan lengkap agar admin bisa menambah foto/video dari link Instagram/Facebook
 
 1. Buka [Google Sheets](https://sheets.google.com) → **Blank spreadsheet**
 2. Rename judul: `SDIT Daarul Istiqomah CMS`
-3. Rename sheet pertama menjadi **`media`**
-4. Baris 1 (header), isi kolom A–M:
+3. Buat / rename sheet **`site`** dengan header baris 1:
+```
+key | json | updated_at
+```
+(kosongkan dulu — panel admin akan mengisi saat **Simpan ke Google Sheets** pertama kali)
 
+4. Buat sheet **`media`** (mirror otomatis) dengan header:
 ```
 id | url | type | source | shortcode | title | description | category | thumb | embedUrl | active | date | created_by
 ```
@@ -61,12 +73,10 @@ Edit file `js/config.js` di website:
 
 ```js
 window.SDIT_CONFIG = {
-  // Tempel URL Web App di sini:
   sheetsApiUrl: 'https://script.google.com/macros/s/XXXXXXXX/exec',
-  // Token yang sama dengan API_TOKEN di Apps Script:
   apiToken: 'sdit-di-rahasia-2026',
-  // true = website ambil media dari Sheets; false = hanya site.json / localStorage
-  useSheets: true
+  useSheets: true,   // WAJIB true — sumber & tujuan data = Google Sheets
+  siteCacheTtl: 60000
 };
 ```
 

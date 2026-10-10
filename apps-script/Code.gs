@@ -5,18 +5,17 @@
  *   Execute as: Me
  *   Who has access: Anyone
  *
- * Sheet yang dibutuhkan (buat di spreadsheet yang sama):
- *   1) media     — galeri foto & video
- *   2) config    — key/value (opsional)
- *   3) admins    — daftar email guru (opsional)
+ * Sheet:
+ *   1) site   — snapshot JSON penuh (SUMBER UTAMA)
+ *   2) media  — mirror daftar media
  *
- * Header baris 1 sheet "media":
- * id | url | type | source | shortcode | title | description | category | thumb | embedUrl | active | date | created_by
+ * Header site: key | json | updated_at
+ * Header media: id | url | type | source | shortcode | title | description | category | thumb | embedUrl | active | date | created_by
  */
 
+var SHEET_SITE = 'site';
 var SHEET_MEDIA = 'media';
-var SHEET_ADMINS = 'admins';
-var CACHE_SECONDS = 60; // cache GET agar website tidak lambat
+var CACHE_SECONDS = 30;
 
 function doGet(e) {
   return handleRequest(e, 'GET');
@@ -28,32 +27,148 @@ function doPost(e) {
 
 function handleRequest(e, method) {
   try {
-    var action = (e.parameter && e.parameter.action) || 'list';
+    var action = (e.parameter && e.parameter.action) || 'getSite';
     var body = {};
     if (method === 'POST' && e.postData && e.postData.contents) {
       body = JSON.parse(e.postData.contents);
       if (body.action) action = body.action;
     }
 
-    // Auth sederhana: token rahasia (set di Script Properties)
     var token = PropertiesService.getScriptProperties().getProperty('API_TOKEN') || '';
-    if (action !== 'list' && action !== 'ping') {
+    var publicActions = { list: 1, getSite: 1, ping: 1, publish: 1 };
+    if (!publicActions[action]) {
       var clientToken = (e.parameter && e.parameter.token) || body.token || '';
       if (token && clientToken !== token) {
-        return json_({ ok: false, error: 'Unauthorized' }, 401);
+        return json_({ ok: false, error: 'Unauthorized — token salah' });
       }
     }
 
-    if (action === 'ping') return json_({ ok: true, service: 'sdit-di', ts: new Date().toISOString() });
-    if (action === 'list') return json_({ ok: true, media: listMedia_() });
+    if (action === 'ping') {
+      return json_({ ok: true, service: 'sdit-di', ts: new Date().toISOString() });
+    }
+    if (action === 'getSite') {
+      return json_({ ok: true, data: getSite_(), source: 'google-sheets', ts: new Date().toISOString() });
+    }
+    if (action === 'saveSite') {
+      return json_(saveSite_(body.data || body.site || body));
+    }
+    if (action === 'list') {
+      var site = getSite_();
+      var media = (site && site.media) ? site.media : listMedia_();
+      return json_({ ok: true, media: media, source: 'google-sheets' });
+    }
     if (action === 'add') return json_(addMedia_(body.item || body));
     if (action === 'update') return json_(updateMedia_(body.item || body));
     if (action === 'delete') return json_(deleteMedia_(body.id || (e.parameter && e.parameter.id)));
-    if (action === 'publish') return json_(publishSnapshot_());
+    if (action === 'publish') return json_({ ok: true, data: getSite_(), generatedAt: new Date().toISOString() });
 
     return json_({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
-    return json_({ ok: false, error: String(err) });
+    return json_({ ok: false, error: String(err.message || err) });
+  }
+}
+
+function getSite_() {
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get('site_json');
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) {}
+  }
+
+  var sheet = getSheet_(SHEET_SITE);
+  ensureSiteHeaders_(sheet);
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === 'site' && values[i][1]) {
+      try {
+        var data = JSON.parse(String(values[i][1]));
+        cache.put('site_json', JSON.stringify(data), CACHE_SECONDS);
+        return data;
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+function saveSite_(data) {
+  if (!data || typeof data !== 'object') {
+    return { ok: false, error: 'data site wajib (object JSON)' };
+  }
+  if (!data.media) data.media = [];
+  if (!data.carousel) data.carousel = [];
+  if (!data.articles) data.articles = [];
+  if (!data.gallery) data.gallery = [];
+  if (!data.videos) data.videos = [];
+
+  var sheet = getSheet_(SHEET_SITE);
+  ensureSiteHeaders_(sheet);
+  var values = sheet.getDataRange().getValues();
+  var jsonStr = JSON.stringify(data);
+  var now = new Date().toISOString();
+  var found = false;
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === 'site') {
+      sheet.getRange(i + 1, 2).setValue(jsonStr);
+      sheet.getRange(i + 1, 3).setValue(now);
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    sheet.appendRow(['site', jsonStr, now]);
+  }
+
+  try { syncMediaSheet_(data.media || []); } catch (e) {}
+
+  CacheService.getScriptCache().remove('site_json');
+  CacheService.getScriptCache().remove('media_list');
+
+  return {
+    ok: true,
+    updatedAt: now,
+    counts: {
+      media: (data.media || []).length,
+      carousel: (data.carousel || []).length,
+      articles: (data.articles || []).length,
+      gallery: (data.gallery || []).length,
+      videos: (data.videos || []).length
+    }
+  };
+}
+
+function ensureSiteHeaders_(sheet) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['key', 'json', 'updated_at']);
+  }
+}
+
+function syncMediaSheet_(mediaList) {
+  var sheet = getSheet_(SHEET_MEDIA);
+  ensureHeaders_(sheet);
+  var last = sheet.getLastRow();
+  if (last > 1) sheet.getRange(2, 1, last, 13).clearContent();
+  if (!mediaList || !mediaList.length) return;
+  var rows = mediaList.map(function (item) {
+    return [
+      item.id || '',
+      item.url || '',
+      item.type || 'foto',
+      item.source || '',
+      item.shortcode || '',
+      item.title || '',
+      item.description || '',
+      item.category || '',
+      item.thumb || '',
+      item.embedUrl || '',
+      item.active !== false ? 'TRUE' : 'FALSE',
+      item.date || '',
+      item.created_by || ''
+    ];
+  });
+  if (rows.length) {
+    sheet.getRange(2, 1, 1 + rows.length, 13).setValues(rows);
   }
 }
 
@@ -79,81 +194,47 @@ function listMedia_() {
     obj.active = String(obj.active).toUpperCase() !== 'FALSE' && obj.active !== false && obj.active !== 0;
     rows.push(obj);
   }
-
   cache.put('media_list', JSON.stringify(rows), CACHE_SECONDS);
   return rows;
 }
 
 function addMedia_(item) {
   if (!item || !item.url) return { ok: false, error: 'url wajib' };
-  var sheet = getSheet_(SHEET_MEDIA);
-  ensureHeaders_(sheet);
-
-  var id = item.id || ('m' + new Date().getTime());
-  var row = [
-    id,
-    item.url || '',
-    item.type || 'foto',
-    item.source || '',
-    item.shortcode || '',
-    item.title || '',
-    item.description || '',
-    item.category || '',
-    item.thumb || '',
-    item.embedUrl || '',
-    item.active !== false ? 'TRUE' : 'FALSE',
-    item.date || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
-    item.created_by || ''
-  ];
-  sheet.appendRow(row);
-  CacheService.getScriptCache().remove('media_list');
-  return { ok: true, id: id };
+  var site = getSite_() || { media: [] };
+  if (!site.media) site.media = [];
+  item.id = item.id || ('m' + new Date().getTime());
+  site.media.unshift(item);
+  return saveSite_(site);
 }
 
 function updateMedia_(item) {
   if (!item || !item.id) return { ok: false, error: 'id wajib' };
-  var sheet = getSheet_(SHEET_MEDIA);
-  ensureHeaders_(sheet);
-  var values = sheet.getDataRange().getValues();
-  for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(item.id)) {
-      var row = i + 1;
-      if (item.url != null) sheet.getRange(row, 2).setValue(item.url);
-      if (item.type != null) sheet.getRange(row, 3).setValue(item.type);
-      if (item.source != null) sheet.getRange(row, 4).setValue(item.source);
-      if (item.shortcode != null) sheet.getRange(row, 5).setValue(item.shortcode);
-      if (item.title != null) sheet.getRange(row, 6).setValue(item.title);
-      if (item.description != null) sheet.getRange(row, 7).setValue(item.description);
-      if (item.category != null) sheet.getRange(row, 8).setValue(item.category);
-      if (item.thumb != null) sheet.getRange(row, 9).setValue(item.thumb);
-      if (item.embedUrl != null) sheet.getRange(row, 10).setValue(item.embedUrl);
-      if (item.active != null) sheet.getRange(row, 11).setValue(item.active ? 'TRUE' : 'FALSE');
-      if (item.date != null) sheet.getRange(row, 12).setValue(item.date);
-      CacheService.getScriptCache().remove('media_list');
-      return { ok: true, id: item.id };
+  var site = getSite_() || { media: [] };
+  var list = site.media || [];
+  var found = false;
+  for (var i = 0; i < list.length; i++) {
+    if (String(list[i].id) === String(item.id)) {
+      for (var k in item) {
+        if (item.hasOwnProperty(k)) list[i][k] = item[k];
+      }
+      found = true;
+      break;
     }
   }
-  return { ok: false, error: 'id tidak ditemukan' };
+  if (!found) return { ok: false, error: 'id tidak ditemukan' };
+  site.media = list;
+  return saveSite_(site);
 }
 
 function deleteMedia_(id) {
   if (!id) return { ok: false, error: 'id wajib' };
-  var sheet = getSheet_(SHEET_MEDIA);
-  var values = sheet.getDataRange().getValues();
-  for (var i = 1; i < values.length; i++) {
-    if (String(values[i][0]) === String(id)) {
-      sheet.deleteRow(i + 1);
-      CacheService.getScriptCache().remove('media_list');
-      return { ok: true };
-    }
-  }
-  return { ok: false, error: 'id tidak ditemukan' };
-}
-
-/** Snapshot JSON untuk di-copy ke data/media.json di website (opsional publish manual) */
-function publishSnapshot_() {
-  var media = listMedia_().filter(function (m) { return m.active; });
-  return { ok: true, generatedAt: new Date().toISOString(), media: media };
+  var site = getSite_() || { media: [] };
+  var before = (site.media || []).length;
+  site.media = (site.media || []).filter(function (m) {
+    return String(m.id) !== String(id);
+  });
+  if (site.media.length === before) return { ok: false, error: 'id tidak ditemukan' };
+  return saveSite_(site);
 }
 
 function getSheet_(name) {
@@ -178,11 +259,6 @@ function json_(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * Setup sekali jalan: isi Script Properties
- * File > Project properties > Script properties
- *   API_TOKEN = string rahasia (contoh: sdit-di-rahasia-2026)
- */
 function setupToken() {
   PropertiesService.getScriptProperties().setProperty('API_TOKEN', 'ganti-dengan-token-rahasia');
 }
