@@ -187,13 +187,30 @@
     const paint = () => {
       box.innerHTML = '';
       _lists.articles.slice(0, shown.articles).forEach((a, idx) => {
+        const excerpt = (a.excerpt || '').trim();
+        const long = excerpt.length > 110;
+        const p = el('p', { class: 'article-excerpt' }, [excerpt]);
+        const bodyKids = [
+          el('div', { class: 'meta' }, [`${a.category || 'Berita'} · ${a.date || ''}`]),
+          el('h3', {}, [a.title || '']),
+          p
+        ];
+        if (long) {
+          const btn = el('button', {
+            type: 'button',
+            class: 'article-readmore',
+            onclick: function (ev) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              const open = p.classList.toggle('is-expanded');
+              btn.textContent = open ? 'Sembunyikan' : 'Baca selengkapnya';
+            }
+          }, ['Baca selengkapnya']);
+          bodyKids.push(btn);
+        }
         const art = el('article', { class: 'card article-card', 'data-admin-edit': 'articles:' + idx }, [
           el('img', { src: a.image, alt: a.title || '', loading: 'lazy' }),
-          el('div', { class: 'article-body' }, [
-            el('div', { class: 'meta' }, [`${a.category || 'Berita'} · ${a.date || ''}`]),
-            el('h3', {}, [a.title || '']),
-            el('p', {}, [a.excerpt || ''])
-          ])
+          el('div', { class: 'article-body' }, bodyKids)
         ]);
         box.appendChild(art);
         attachEngagement(art, 'articles', a.id || ('articles-' + idx));
