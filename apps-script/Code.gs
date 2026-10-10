@@ -64,8 +64,22 @@ function handleRequest(e, method) {
     if (action === 'getEngagement') {
       return json_({ ok: true, stats: getEngagement_(body.targetType || (e.parameter && e.parameter.targetType), body.targetId || (e.parameter && e.parameter.targetId)) });
     }
-    if (action === 'like') return json_(addLike_(body));
-    if (action === 'comment') return json_(addComment_(body));
+    if (action === 'like') {
+      return json_(addLike_({
+        targetType: body.targetType || (e.parameter && e.parameter.targetType),
+        targetId: body.targetId || (e.parameter && e.parameter.targetId),
+        fingerprint: body.fingerprint || (e.parameter && e.parameter.fingerprint) || ''
+      }));
+    }
+    if (action === 'comment') {
+      return json_(addComment_({
+        targetType: body.targetType || (e.parameter && e.parameter.targetType),
+        targetId: body.targetId || (e.parameter && e.parameter.targetId),
+        author: body.author || (e.parameter && e.parameter.author) || 'Anonim',
+        message: body.message || (e.parameter && e.parameter.message) || '',
+        fingerprint: body.fingerprint || (e.parameter && e.parameter.fingerprint) || ''
+      }));
+    }
 
     return json_({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {

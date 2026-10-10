@@ -235,18 +235,20 @@
         children.push(el('figcaption', {}, [g.title || 'Foto']));
         const fig = el('figure', {
           class: 'gallery-item',
-          'data-admin-edit': g._edit || '',
-          title: 'Ctrl+Alt+Shift + double-click untuk edit',
           onclick: function (ev) {
             if (ev.ctrlKey && ev.altKey && ev.shiftKey) return;
-            if (ev.target.closest('.engage-bar, .engage-panel')) return;
             if (isIg && g.url) window.open(g.url, '_blank', 'noopener');
             else if (g.image) openLightbox(g.image, g.title);
             else if (g.url) window.open(g.url, '_blank', 'noopener');
           }
         }, children);
-        box.appendChild(fig);
-        attachEngagement(fig, 'gallery', g._edit || ('gallery-' + Math.random()));
+        const card = el('div', {
+          class: 'gallery-card',
+          'data-admin-edit': g._edit || '',
+          title: 'Ctrl+Alt+Shift + double-click untuk edit'
+        }, [fig]);
+        box.appendChild(card);
+        attachEngagement(card, 'gallery', g._edit || ('gallery-' + Math.random()));
       });
       updateMoreBtn('galleryMoreWrap', 'gallery');
     };
@@ -460,15 +462,28 @@
     } catch (_) { return 'anon'; }
   }
 
+  /**
+   * Apps Script Web App sering 302-redirect; body POST hilang.
+   * Semua aksi engagement pakai GET + query string agar andal.
+   */
   async function engagementRequest(action, payload) {
     const conf = window.SDIT_CONFIG || {};
     if (!conf.sheetsApiUrl) throw new Error('Sheets belum dikonfigurasi');
-    const res = await fetch(conf.sheetsApiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+    const p = payload || {};
+    const q = new URLSearchParams();
+    q.set('action', action);
+    Object.keys(p).forEach((k) => {
+      if (p[k] != null && p[k] !== '') q.set(k, String(p[k]));
     });
-    return res.json();
+    const url = conf.sheetsApiUrl + (conf.sheetsApiUrl.indexOf('?') >= 0 ? '&' : '?') + q.toString();
+    const res = await fetch(url, { method: 'GET', cache: 'no-store', redirect: 'follow' });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.warn('Engagement non-JSON', text.slice(0, 200));
+      throw new Error('Respons Sheets tidak valid');
+    }
   }
 
   function attachEngagement(host, targetType, targetId) {
@@ -476,15 +491,17 @@
     if (!(conf.useSheets && conf.sheetsApiUrl) || !host || !targetId) return;
     if (host.querySelector('.engage-bar')) return;
 
+    const wrap = el('div', { class: 'engage-wrap' });
     const bar = el('div', { class: 'engage-bar' });
-    const likeBtn = el('button', { type: 'button', class: 'engage-like' }, ['♥ …']);
-    const toggleBtn = el('button', { type: 'button', class: 'engage-toggle' }, ['💬']);
-    const panel = el('div', { class: 'engage-panel', hidden: 'hidden' });
+    const likeBtn = el('button', { type: 'button', class: 'engage-like' }, ['♥ 0']);
+    const toggleBtn = el('button', { type: 'button', class: 'engage-toggle' }, ['💬 0']);
+    const panel = el('div', { class: 'engage-panel' });
+    panel.style.display = 'none';
     const list = el('div', { class: 'engage-comments' });
     const form = el('div', { class: 'engage-form' });
     const nameIn = el('input', { type: 'text', placeholder: 'Nama (opsional)', maxlength: '40', class: 'engage-name' });
     const msgIn = el('input', { type: 'text', placeholder: 'Tulis komentar…', maxlength: '500', class: 'engage-msg' });
-    const sendBtn = el('button', { type: 'button', class: 'btn btn-primary engage-send' }, ['Kirim']);
+    const sendBtn = el('button', { type: 'button', class: 'engage-send' }, ['Kirim']);
     form.appendChild(nameIn);
     form.appendChild(msgIn);
     form.appendChild(sendBtn);
@@ -492,55 +509,88 @@
     panel.appendChild(form);
     bar.appendChild(likeBtn);
     bar.appendChild(toggleBtn);
-    host.appendChild(bar);
-    host.appendChild(panel);
+    wrap.appendChild(bar);
+    wrap.appendChild(panel);
+    host.appendChild(wrap);
+
+    let open = false;
+    let busy = false;
 
     async function refresh() {
       try {
-        const j = await engagementRequest('getEngagement', { targetType: targetType, targetId: String(targetId) });
-        if (!j.ok) return;
+        const j = await engagementRequest('getEngagement', {
+          targetType: targetType,
+          targetId: String(targetId)
+        });
+        if (!j || !j.ok) {
+          likeBtn.title = (j && j.error) || 'Gagal memuat';
+          return;
+        }
         const likes = (j.stats && j.stats.likes) || 0;
-        likeBtn.textContent = '♥ ' + likes;
-        list.innerHTML = '';
         const comments = (j.stats && j.stats.comments) || [];
+        likeBtn.textContent = '♥ ' + likes;
+        toggleBtn.textContent = '💬 ' + comments.length;
+        list.innerHTML = '';
         if (!comments.length) {
-          list.appendChild(el('p', { class: 'engage-empty' }, ['Belum ada komentar.']));
+          list.appendChild(el('p', { class: 'engage-empty' }, ['Belum ada komentar. Jadilah yang pertama!']));
         } else {
           comments.forEach((cm) => {
             list.appendChild(el('div', { class: 'engage-item' }, [
               el('strong', {}, [cm.author || 'Anonim']),
-              el('span', {}, [' ' + (cm.message || '')])
+              el('span', {}, [' — ' + (cm.message || '')])
             ]));
           });
         }
-        toggleBtn.textContent = '💬 ' + comments.length;
-      } catch (e) { /* silent */ }
+      } catch (e) {
+        console.warn('engage refresh', e);
+        likeBtn.title = 'Error: ' + (e.message || e);
+      }
     }
 
     likeBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      likeBtn.disabled = true;
+      if (busy) return;
+      busy = true;
+      likeBtn.classList.add('loading');
       try {
         const j = await engagementRequest('like', {
           targetType: targetType,
           targetId: String(targetId),
           fingerprint: engagementFingerprint()
         });
-        if (j.ok && j.stats) likeBtn.textContent = '♥ ' + (j.stats.likes || 0);
-      } catch (_) {}
-      likeBtn.disabled = false;
+        if (j && j.ok && j.stats) {
+          likeBtn.textContent = '♥ ' + (j.stats.likes || 0);
+          likeBtn.classList.add('liked');
+        } else {
+          alert((j && j.error) || 'Gagal like — pastikan Apps Script sudah di-deploy ulang.');
+        }
+      } catch (err) {
+        alert('Gagal like: ' + (err.message || err));
+      }
+      likeBtn.classList.remove('loading');
+      busy = false;
     });
 
     toggleBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
       e.stopPropagation();
-      panel.hidden = !panel.hidden;
-      if (!panel.hidden) await refresh();
+      open = !open;
+      panel.style.display = open ? 'block' : 'none';
+      wrap.classList.toggle('open', open);
+      if (open) await refresh();
     });
 
     sendBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
       e.stopPropagation();
       const message = (msgIn.value || '').trim();
-      if (message.length < 2) return;
+      if (message.length < 2) {
+        alert('Komentar minimal 2 karakter');
+        return;
+      }
+      if (busy) return;
+      busy = true;
       sendBtn.disabled = true;
       try {
         const j = await engagementRequest('comment', {
@@ -550,19 +600,22 @@
           message: message,
           fingerprint: engagementFingerprint()
         });
-        if (j.ok) {
+        if (j && j.ok) {
           msgIn.value = '';
           await refresh();
         } else {
-          alert(j.error || 'Gagal mengirim');
+          alert((j && j.error) || 'Gagal mengirim komentar');
         }
       } catch (err) {
-        alert('Gagal mengirim komentar');
+        alert('Gagal komentar: ' + (err.message || err));
       }
       sendBtn.disabled = false;
+      busy = false;
     });
 
-    // load like count quietly
+    // stop clicks inside from bubbling to gallery lightbox
+    wrap.addEventListener('click', (e) => e.stopPropagation());
+
     refresh();
   }
 
