@@ -54,10 +54,22 @@
     }
   ],
   "stats": [
-    { "label": "Akreditasi", "value": "A" },
-    { "label": "Kurikulum", "value": "Merdeka" },
-    { "label": "Program", "value": "Tahfidz +" },
-    { "label": "Lokasi", "value": "Bogor" }
+    {
+      "label": "Akreditasi",
+      "value": "A"
+    },
+    {
+      "label": "Kurikulum",
+      "value": "Merdeka"
+    },
+    {
+      "label": "Program",
+      "value": "Tahfidz +"
+    },
+    {
+      "label": "Lokasi",
+      "value": "Bogor"
+    }
   ],
   "programs": [
     {
@@ -97,7 +109,7 @@
       "title": "Kegiatan Mabit & Pembinaan Akhlak",
       "date": "2026-09-15",
       "excerpt": "Siswa mengikuti malam bina iman dan takwa dengan fokus adab, shalat berjamaah, dan refleksi diri.",
-      "image": "https://images.unsplash.com/photo-1577896851231-70ef042ee0b9?w=800&q=80",
+      "image": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80",
       "category": "Kegiatan"
     },
     {
@@ -118,12 +130,42 @@
     }
   ],
   "gallery": [
-    { "id": "g1", "title": "Kegiatan Belajar", "image": "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80", "type": "foto" },
-    { "id": "g2", "title": "Shalat Berjamaah", "image": "https://images.unsplash.com/photo-1565938638218-39f1b9f4a0e0?w=800&q=80", "type": "foto" },
-    { "id": "g3", "title": "Olahraga Pagi", "image": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80", "type": "foto" },
-    { "id": "g4", "title": "Karya Seni Siswa", "image": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=80", "type": "foto" },
-    { "id": "g5", "title": "Perpustakaan Mini", "image": "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80", "type": "foto" },
-    { "id": "g6", "title": "Kegiatan Pramuka", "image": "https://images.unsplash.com/photo-1529390079861-591de354faf5?w=800&q=80", "type": "foto" }
+    {
+      "id": "g1",
+      "title": "Kegiatan Belajar",
+      "image": "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80",
+      "type": "foto"
+    },
+    {
+      "id": "g2",
+      "title": "Shalat Berjamaah",
+      "image": "https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=800&q=80",
+      "type": "foto"
+    },
+    {
+      "id": "g3",
+      "title": "Olahraga Pagi",
+      "image": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
+      "type": "foto"
+    },
+    {
+      "id": "g4",
+      "title": "Karya Seni Siswa",
+      "image": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=80",
+      "type": "foto"
+    },
+    {
+      "id": "g5",
+      "title": "Perpustakaan Mini",
+      "image": "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80",
+      "type": "foto"
+    },
+    {
+      "id": "g6",
+      "title": "Kegiatan Pramuka",
+      "image": "https://images.unsplash.com/photo-1529390079861-591de354faf5?w=800&q=80",
+      "type": "foto"
+    }
   ],
   "videos": [
     {
@@ -140,10 +182,30 @@
     }
   ],
   "activities": [
-    { "id": "k1", "title": "Upacara & Apel Pagi", "day": "Senin", "desc": "Pembinaan disiplin dan nasionalisme." },
-    { "id": "k2", "title": "Tahfidz Harian", "day": "Senin–Jumat", "desc": "Setoran dan muroja'ah terjadwal." },
-    { "id": "k3", "title": "Jum'at Berkah", "day": "Jumat", "desc": "Infaq, kultum siswa, dan kebersihan bersama." },
-    { "id": "k4", "title": "Ekstrakurikuler", "day": "Sabtu", "desc": "Pramuka, seni, olahraga, dan klub sains." }
+    {
+      "id": "k1",
+      "title": "Upacara & Apel Pagi",
+      "day": "Senin",
+      "desc": "Pembinaan disiplin dan nasionalisme."
+    },
+    {
+      "id": "k2",
+      "title": "Tahfidz Harian",
+      "day": "Senin–Jumat",
+      "desc": "Setoran dan muroja'ah terjadwal."
+    },
+    {
+      "id": "k3",
+      "title": "Jum'at Berkah",
+      "day": "Jumat",
+      "desc": "Infaq, kultum siswa, dan kebersihan bersama."
+    },
+    {
+      "id": "k4",
+      "title": "Ekstrakurikuler",
+      "day": "Sabtu",
+      "desc": "Pramuka, seni, olahraga, dan klub sains."
+    }
   ],
   "ppdb": {
     "open": true,

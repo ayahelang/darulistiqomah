@@ -155,7 +155,7 @@
       title,
       date: new Date().toISOString().slice(0, 10),
       excerpt: prompt('Ringkasan:') || '',
-      image: prompt('URL gambar:') || 'https://images.unsplash.com/photo-1577896851231-70ef042ee0b9?w=800&q=80',
+      image: prompt('URL gambar:') || 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80',
       category: prompt('Kategori (Berita/Kegiatan/Prestasi):') || 'Berita'
     });
     renderLists();
