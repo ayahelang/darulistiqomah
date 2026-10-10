@@ -49,6 +49,13 @@ button, input, textarea, select { font: inherit; }
   font-weight: 800; font-size: .85rem; flex-shrink: 0;
   box-shadow: 0 6px 16px rgba(11,110,79,.25);
 }
+.brand-logo-img {
+  width: 44px; height: 44px; border-radius: 12px;
+  object-fit: contain; flex-shrink: 0;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(11,110,79,.2);
+  border: 1px solid rgba(11,110,79,.1);
+}
 .brand-text { line-height: 1.15; min-width: 0; }
 .brand-text strong { display: block; font-size: clamp(.9rem, 2.5vw, 1.05rem); color: var(--primary-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-text span { font-size: .72rem; color: var(--muted); }
