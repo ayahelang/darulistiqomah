@@ -8,6 +8,44 @@
   const status = (msg) => { const s = $('status'); if (s) s.textContent = msg; };
   const cfg = () => window.SDIT_CONFIG || {};
 
+  // --- Auth ---
+  const AUTH_KEY = 'sdit_di_admin_auth_v1';
+  const ADMIN_PASS = 'Bismillaah9999#';
+
+  function isAuthed() {
+    try {
+      return sessionStorage.getItem(AUTH_KEY) === '1';
+    } catch (_) { return false; }
+  }
+  function unlockAdmin() {
+    const login = document.getElementById('adminLogin');
+    const app = document.getElementById('adminApp');
+    if (login) login.classList.add('hidden');
+    if (app) app.classList.remove('locked');
+  }
+  function tryLogin() {
+    const pass = (document.getElementById('loginPass') || {}).value || '';
+    const err = document.getElementById('loginErr');
+    if (pass === ADMIN_PASS) {
+      try { sessionStorage.setItem(AUTH_KEY, '1'); } catch (_) {}
+      unlockAdmin();
+      status('Berhasil masuk panel admin.');
+    } else {
+      if (err) err.textContent = 'Password salah. Coba lagi.';
+      status('Password salah.');
+    }
+  }
+  if (isAuthed()) {
+    unlockAdmin();
+  } else {
+    const btn = document.getElementById('btnLogin');
+    const inp = document.getElementById('loginPass');
+    if (btn) btn.onclick = tryLogin;
+    if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
+  }
+
+
+
   function sheetsConfigured() {
     const c = cfg();
     return !!(c.useSheets && c.sheetsApiUrl);

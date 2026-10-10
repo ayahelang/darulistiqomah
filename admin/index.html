@@ -51,9 +51,43 @@
     .detect-box.show { display: block; }
     .detect-box strong { color: var(--primary-dark); }
     code { background: #eef5f1; padding: .1rem .35rem; border-radius: 4px; font-size: .85em; }
+  
+    #adminLogin {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(145deg, #084C37, #0B6E4F);
+      display: grid; place-items: center; padding: 1.5rem;
+    }
+    #adminLogin.hidden { display: none; }
+    .login-card {
+      background: #fff; border-radius: 18px; padding: 1.75rem 1.5rem;
+      width: min(400px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,.25);
+    }
+    .login-card h1 { font-size: 1.2rem; color: #084C37; margin-bottom: .35rem; }
+    .login-card p { font-size: .88rem; color: #5c6b66; margin-bottom: 1rem; }
+    .login-card input {
+      width: 100%; padding: .75rem .9rem; border-radius: 10px;
+      border: 1.5px solid rgba(11,110,79,.25); margin-bottom: .75rem;
+      font-size: 1rem;
+    }
+    .login-card .err { color: #b91c1c; font-size: .85rem; min-height: 1.2em; margin-bottom: .5rem; }
+    #adminApp.locked { display: none !important; }
+  
   </style>
 </head>
 <body>
+  
+  <div id="adminLogin">
+    <div class="login-card">
+      <h1>🔒 Admin SDIT Daarul Istiqomah</h1>
+      <p>Masukkan password untuk mengakses panel admin.</p>
+      <div class="err" id="loginErr"></div>
+      <input type="password" id="loginPass" placeholder="Password admin" autocomplete="current-password">
+      <button class="btn btn-primary" type="button" id="btnLogin" style="width:100%">Masuk</button>
+      <p style="margin-top:1rem;font-size:.8rem;text-align:center"><a href="../">← Kembali ke website</a></p>
+    </div>
+  </div>
+
+  <div id="adminApp" class="locked">
   <div class="status-bar" id="status">Memuat…</div>
 
   <div class="admin-wrap">
@@ -187,6 +221,8 @@
       </p>
     </div>
   </div>
+
+  </div><!-- /adminApp -->
 
   <footer class="site-footer" style="margin-top:2rem;">
     <div class="container footer-bottom" style="border:0;padding:1rem 0;">

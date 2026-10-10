@@ -33,7 +33,7 @@
       "ctaLink": "#ppdb",
       "image": "images/upacara.jpg",
       "active": true,
-      "imagePosition": "center 40%"
+      "imagePosition": "center 35%"
     },
     {
       "id": "c2",
@@ -43,7 +43,7 @@
       "ctaLink": "#program",
       "image": "images/sanlat.jpg",
       "active": true,
-      "imagePosition": "center 30%"
+      "imagePosition": "center 22%"
     },
     {
       "id": "c3",
@@ -53,7 +53,7 @@
       "ctaLink": "#galeri",
       "image": "images/belajar.jpg",
       "active": true,
-      "imagePosition": "center 45%"
+      "imagePosition": "center 40%"
     }
   ],
   "stats": [
@@ -173,15 +173,15 @@
   "videos": [
     {
       "id": "v1",
-      "title": "Profil Sekolah (Contoh Embed)",
-      "youtubeId": "dQw4w9WgXcQ",
+      "title": "Inspirasi Generasi Qurani",
+      "youtubeId": "fKsAN6miXco",
       "thumb": "images/upacara.jpg"
     },
     {
       "id": "v2",
       "title": "Kegiatan Tahfidz",
-      "youtubeId": "dQw4w9WgXcQ",
-      "thumb": "images/shalat.jpg"
+      "youtubeId": "ONswHTlUH-0",
+      "thumb": "images/mabit.jpg"
     }
   ],
   "activities": [
