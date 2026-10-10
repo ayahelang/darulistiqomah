@@ -49,7 +49,7 @@
       "subtitle": "Lingkungan aman, guru berdedikasi, fasilitas mendukung",
       "cta": "Jelajahi Galeri",
       "ctaLink": "#galeri",
-      "image": "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1600&q=80",
+      "image": "images/c3-belajar.jpg",
       "active": true
     }
   ],
@@ -109,7 +109,7 @@
       "title": "Kegiatan Mabit & Pembinaan Akhlak",
       "date": "2026-09-15",
       "excerpt": "Siswa mengikuti malam bina iman dan takwa dengan fokus adab, shalat berjamaah, dan refleksi diri.",
-      "image": "https://images.unsplash.com/photo-1542816417-0983c9c9ad53?w=800&q=80",
+      "image": "images/a1-mabit.jpg",
       "category": "Kegiatan"
     },
     {
@@ -133,19 +133,19 @@
     {
       "id": "g1",
       "title": "Kegiatan Belajar",
-      "image": "https://images.unsplash.com/photo-1588072432836-e10032774350?w=800&q=80",
+      "image": "images/g1-belajar.jpg",
       "type": "foto"
     },
     {
       "id": "g2",
       "title": "Shalat Berjamaah",
-      "image": "https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=800&q=80",
+      "image": "images/g2-shalat.jpg",
       "type": "foto"
     },
     {
       "id": "g3",
       "title": "Olahraga Pagi",
-      "image": "https://images.unsplash.com/photo-1606092195730-5d7b9af1efc5?w=800&q=80",
+      "image": "images/g3-olahraga.jpg",
       "type": "foto"
     },
     {
