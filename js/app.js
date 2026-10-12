@@ -835,7 +835,6 @@
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
               action: 'submitPpdb',
-              token: cfg.apiToken || '',
               data: data
             })
           });
@@ -893,6 +892,7 @@
           '. Panitia akan menghubungi via WhatsApp untuk jadwal observasi. Simpan nomor registrasi Anda.',
           'ok'
         );
+        try { if (typeof window.__ppdbRefreshNotif === 'function') window.__ppdbRefreshNotif(); } catch (_) {}
         form.reset();
         // Restore defaults
         const agama = form.querySelector('#agama');
@@ -910,6 +910,134 @@
         submitBtn.textContent = 'Kirim Pendaftaran';
       }
     });
+  }
+
+
+  /* ========== Lonceng notifikasi PPDB (admin) ========== */
+  function setupPpdbNotifBell() {
+    const cfg = window.SDIT_CONFIG || {};
+    if (!cfg.sheetsApiUrl) return;
+
+    // Jangan tampilkan di halaman admin
+    if (/\/admin\/?/i.test(location.pathname)) return;
+
+    let panelOpen = false;
+    let lastCount = 0;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ppdb-notif-bell is-empty';
+    btn.id = 'ppdbNotifBell';
+    btn.setAttribute('aria-label', 'Notifikasi pendaftaran PPDB');
+    btn.setAttribute('title', 'Notifikasi PPDB (admin)');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm6.7-6v-5a6.7 6.7 0 0 0-5.2-6.55V3.5a1.5 1.5 0 0 0-3 0v.95A6.7 6.7 0 0 0 5.3 11v5l-1.7 1.7V19h17.8v-1.3L18.7 16z"/></svg><span class="ppdb-notif-badge" id="ppdbNotifBadge">0</span>';
+
+    const panel = document.createElement('div');
+    panel.className = 'ppdb-notif-panel';
+    panel.id = 'ppdbNotifPanel';
+    panel.innerHTML = `
+      <h3>📋 Pendaftaran PPDB</h3>
+      <p id="ppdbNotifText">Memeriksa notifikasi…</p>
+      <div class="err" id="ppdbNotifErr"></div>
+      <input type="password" id="ppdbNotifPass" placeholder="Password admin" autocomplete="current-password">
+      <div class="actions">
+        <button type="button" class="btn btn-accent" id="ppdbNotifGo">Buka Panel Admin</button>
+        <button type="button" class="btn btn-ghost" id="ppdbNotifClose">Tutup</button>
+      </div>
+    `;
+
+    document.body.appendChild(btn);
+    document.body.appendChild(panel);
+
+    const badge = document.getElementById('ppdbNotifBadge');
+    const text = document.getElementById('ppdbNotifText');
+    const errEl = document.getElementById('ppdbNotifErr');
+    const passEl = document.getElementById('ppdbNotifPass');
+
+    function setCount(n, meta) {
+      lastCount = n || 0;
+      if (badge) badge.textContent = lastCount > 99 ? '99+' : String(lastCount);
+      btn.classList.toggle('is-empty', lastCount <= 0);
+      if (text) {
+        if (lastCount <= 0) {
+          text.textContent = 'Tidak ada pendaftaran baru. Klik tetap bisa masuk ke panel admin.';
+        } else {
+          const who = meta && meta.lastName ? meta.lastName : '';
+          text.textContent = lastCount + ' formulir PPDB baru belum ditinjau.' +
+            (who ? ' Terakhir: ' + who + '.' : '') +
+            ' Masukkan password admin untuk membuka daftar.';
+        }
+      }
+    }
+
+    async function refreshNotif() {
+      try {
+        const res = await fetch(cfg.sheetsApiUrl + '?action=getPpdbNotif', { cache: 'no-store' });
+        const j = await res.json();
+        if (j && j.ok) setCount(j.count || 0, j);
+      } catch (_) {}
+    }
+    window.__ppdbRefreshNotif = refreshNotif;
+
+    function openPanel() {
+      panelOpen = true;
+      panel.classList.add('open');
+      if (errEl) { errEl.classList.remove('show'); errEl.textContent = ''; }
+      if (passEl) { passEl.value = ''; setTimeout(() => passEl.focus(), 100); }
+    }
+    function closePanel() {
+      panelOpen = false;
+      panel.classList.remove('open');
+    }
+
+    btn.addEventListener('click', () => {
+      if (panelOpen) closePanel();
+      else openPanel();
+    });
+    document.getElementById('ppdbNotifClose').onclick = closePanel;
+    document.addEventListener('click', (e) => {
+      if (!panelOpen) return;
+      if (panel.contains(e.target) || btn.contains(e.target)) return;
+      closePanel();
+    });
+
+    document.getElementById('ppdbNotifGo').onclick = async () => {
+      const pass = (passEl && passEl.value) || '';
+      if (!pass) {
+        if (errEl) { errEl.textContent = 'Masukkan password admin.'; errEl.classList.add('show'); }
+        return;
+      }
+      if (errEl) { errEl.textContent = 'Memverifikasi…'; errEl.classList.add('show'); }
+      try {
+        const res = await fetch(cfg.sheetsApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'adminLogin', password: pass })
+        });
+        const j = await res.json();
+        if (!j || !j.ok || !j.token) {
+          if (errEl) { errEl.textContent = (j && j.error) || 'Password salah.'; errEl.classList.add('show'); }
+          return;
+        }
+        try {
+          sessionStorage.setItem('sdit_di_admin_auth_v1', '1');
+          sessionStorage.setItem('sdit_di_admin_token_v1', j.token);
+          sessionStorage.setItem('sdit_di_ppdb_focus', '1');
+        } catch (_) {}
+        location.href = 'admin/?focus=ppdb';
+      } catch (e) {
+        if (errEl) { errEl.textContent = 'Gagal menghubungi server.'; errEl.classList.add('show'); }
+      }
+    };
+    if (passEl) {
+      passEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('ppdbNotifGo').click();
+      });
+    }
+
+    refreshNotif();
+    // Poll ringan setiap 90 detik
+    setInterval(refreshNotif, 90000);
   }
 
   function setupSecretAdminEntry() {
@@ -936,7 +1064,6 @@
 
 
   function setupQuickAdminEdit() {
-    const ADMIN_PASS = 'Bismillaah9999#';
     // Visual cue when modifier held
     let armed = false;
     function setArmed(on) {
@@ -951,7 +1078,7 @@
     });
     window.addEventListener('blur', () => setArmed(false));
 
-    document.addEventListener('dblclick', (e) => {
+    document.addEventListener('dblclick', async (e) => {
       if (!(e.ctrlKey && e.altKey && e.shiftKey)) return;
       const target = e.target.closest('[data-admin-edit]');
       if (!target) return;
@@ -962,13 +1089,29 @@
       if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
       const pass = window.prompt('Password admin untuk mengedit item ini:\n(' + key + ')');
       if (pass === null) return;
-      if (pass !== ADMIN_PASS) {
-        window.alert('Password salah.');
-        return;
+      if (!pass) { window.alert('Password wajib.'); return; }
+      const conf = window.SDIT_CONFIG || {};
+      if (!conf.sheetsApiUrl) { window.alert('sheetsApiUrl belum dikonfigurasi.'); return; }
+      try {
+        const res = await fetch(conf.sheetsApiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'adminLogin', password: pass })
+        });
+        const j = await res.json();
+        if (!j || !j.ok || !j.token) {
+          window.alert((j && j.error) || 'Password salah.');
+          return;
+        }
+        try {
+          sessionStorage.setItem('sdit_di_admin_auth_v1', '1');
+          sessionStorage.setItem('sdit_di_admin_token_v1', j.token);
+        } catch (_) {}
+        const url = 'admin/?edit=' + encodeURIComponent(key);
+        window.open(url, '_blank');
+      } catch (err) {
+        window.alert('Gagal verifikasi: ' + (err.message || err));
       }
-      try { sessionStorage.setItem('sdit_di_admin_auth_v1', '1'); } catch (_) {}
-      const url = 'admin/?edit=' + encodeURIComponent(key);
-      window.open(url, '_blank');
     }, true);
   }
 
@@ -996,6 +1139,7 @@
       renderActivities(data.activities);
       renderAnnouncements(data.announcements);
       setupPpdbForm();
+      setupPpdbNotifBell();
       // Tag sections that are not item-level
       document.querySelectorAll('#ppdb, .ppdb-box').forEach((node) => {
         node.setAttribute('data-admin-edit', 'school:0');
@@ -1005,6 +1149,7 @@
       const h = document.getElementById('schoolName');
       if (h) h.textContent = 'SDIT Daarul Istiqomah';
       setupPpdbForm();
+      setupPpdbNotifBell();
     }
   }
 

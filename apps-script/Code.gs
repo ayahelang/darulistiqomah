@@ -36,7 +36,7 @@ function handleRequest(e, method) {
     }
 
     var token = PropertiesService.getScriptProperties().getProperty('API_TOKEN') || '';
-    var publicActions = { list: 1, getSite: 1, ping: 1, publish: 1, getEngagement: 1, like: 1, comment: 1, submitPpdb: 1 };
+    var publicActions = { list: 1, getSite: 1, ping: 1, publish: 1, getEngagement: 1, like: 1, comment: 1, submitPpdb: 1, getPpdbNotif: 1, adminLogin: 1 };
     if (!publicActions[action]) {
       var clientToken = (e.parameter && e.parameter.token) || body.token || '';
       if (token && clientToken !== token) {
@@ -46,6 +46,9 @@ function handleRequest(e, method) {
 
     if (action === 'ping') {
       return json_({ ok: true, service: 'sdit-di', ts: new Date().toISOString() });
+    }
+    if (action === 'adminLogin') {
+      return json_(adminLogin_(body.password || (e.parameter && e.parameter.password) || ''));
     }
     if (action === 'getSite') {
       return json_({ ok: true, data: getSite_(), source: 'google-sheets', ts: new Date().toISOString() });
@@ -93,6 +96,12 @@ function handleRequest(e, method) {
     }
     if (action === 'deletePpdb') {
       return json_(deletePpdb_(body.id || (e.parameter && e.parameter.id)));
+    }
+    if (action === 'getPpdbNotif') {
+      return json_(getPpdbNotif_());
+    }
+    if (action === 'markPpdbRead') {
+      return json_(markPpdbRead_());
     }
 
     return json_({ ok: false, error: 'Unknown action: ' + action });
@@ -442,6 +451,10 @@ function submitPpdb_(data) {
   });
   sheet.appendRow(row);
 
+  // Notifikasi admin (lonceng + email opsional)
+  try { bumpPpdbNotif_(id, nama); } catch (e) {}
+  try { maybeEmailPpdb_(id, data); } catch (e) {}
+
   return {
     ok: true,
     id: id,
@@ -508,6 +521,98 @@ function deletePpdb_(id) {
   return { ok: false, error: 'ID tidak ditemukan: ' + id };
 }
 
+
+/* ========== Notifikasi PPDB (lonceng + email) ========== */
+function bumpPpdbNotif_(id, nama) {
+  var props = PropertiesService.getScriptProperties();
+  var count = parseInt(props.getProperty('PPDB_UNREAD') || '0', 10) || 0;
+  count++;
+  props.setProperty('PPDB_UNREAD', String(count));
+  props.setProperty('PPDB_LAST_ID', String(id || ''));
+  props.setProperty('PPDB_LAST_NAME', String(nama || '').slice(0, 80));
+  props.setProperty('PPDB_LAST_AT', new Date().toISOString());
+}
+
+function getPpdbNotif_() {
+  var props = PropertiesService.getScriptProperties();
+  var count = parseInt(props.getProperty('PPDB_UNREAD') || '0', 10) || 0;
+  return {
+    ok: true,
+    count: count,
+    lastId: props.getProperty('PPDB_LAST_ID') || '',
+    lastName: props.getProperty('PPDB_LAST_NAME') || '',
+    lastAt: props.getProperty('PPDB_LAST_AT') || ''
+  };
+}
+
+function markPpdbRead_() {
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('PPDB_UNREAD', '0');
+  return { ok: true, count: 0, message: 'Notifikasi PPDB ditandai sudah dibaca' };
+}
+
+function maybeEmailPpdb_(id, data) {
+  var props = PropertiesService.getScriptProperties();
+  var to = props.getProperty('PPDB_NOTIFY_EMAIL') || '';
+  if (!to) return; // set di Script Properties: PPDB_NOTIFY_EMAIL
+  var subject = '[PPDB] Pendaftaran baru: ' + (data.nama_lengkap || id);
+  var body = [
+    'Pendaftaran PPDB baru masuk.',
+    '',
+    'No. Registrasi: ' + id,
+    'Nama: ' + (data.nama_lengkap || ''),
+    'NIK: ' + (data.nik || ''),
+    'TTL: ' + [data.tempat_lahir, data.tanggal_lahir].filter(Boolean).join(', '),
+    'HP Ortu: ' + (data.no_hp || ''),
+    'Ayah: ' + (data.ayah_nama || ''),
+    'Ibu: ' + (data.ibu_nama || ''),
+    '',
+    'Buka panel admin → Data Pendaftaran PPDB untuk meninjau.',
+    'Waktu: ' + (data.submitted_at || new Date().toISOString())
+  ].join('\n');
+  MailApp.sendEmail({ to: to, subject: subject, body: body });
+}
+
 function setupToken() {
-  PropertiesService.getScriptProperties().setProperty('API_TOKEN', 'ganti-dengan-token-rahasia');
+  // DEPRECATED — gunakan setupSecrets() sekali, lalu edit nilai di Script properties
+  setupSecrets();
+}
+
+/**
+ * Jalankan SEKALI dari editor Apps Script (Run → setupSecrets).
+ * Lalu buka Project Settings → Script properties dan ganti nilainya.
+ * Jangan commit nilai asli ke GitHub.
+ */
+function setupSecrets() {
+  var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('API_TOKEN')) {
+    props.setProperty('API_TOKEN', 'ganti-token-panjang-acak');
+  }
+  if (!props.getProperty('ADMIN_PASSWORD')) {
+    props.setProperty('ADMIN_PASSWORD', 'ganti-password-admin');
+  }
+  // Opsional: props.setProperty('PPDB_NOTIFY_EMAIL', 'email@sekolah.com');
+  Logger.log('Script properties siap. WAJIB ganti API_TOKEN & ADMIN_PASSWORD di Project Settings.');
+}
+
+function adminLogin_(password) {
+  var props = PropertiesService.getScriptProperties();
+  var expected = props.getProperty('ADMIN_PASSWORD') || '';
+  var apiToken = props.getProperty('API_TOKEN') || '';
+  if (!expected) {
+    return { ok: false, error: 'ADMIN_PASSWORD belum di-set di Script properties' };
+  }
+  if (!password || String(password) !== String(expected)) {
+    return { ok: false, error: 'Password salah' };
+  }
+  if (!apiToken) {
+    return { ok: false, error: 'API_TOKEN belum di-set di Script properties' };
+  }
+  // Token hanya diberikan setelah password benar — tidak ada di GitHub / config.js
+  return {
+    ok: true,
+    token: apiToken,
+    message: 'Login berhasil',
+    ts: new Date().toISOString()
+  };
 }

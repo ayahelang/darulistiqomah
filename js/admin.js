@@ -20,10 +20,29 @@
 
   // --- Auth ---
   const AUTH_KEY = 'sdit_di_admin_auth_v1';
-  const ADMIN_PASS = 'Bismillaah9999#';
+  const TOKEN_KEY = 'sdit_di_admin_token_v1';
 
   function isAuthed() {
-    try { return sessionStorage.getItem(AUTH_KEY) === '1'; } catch (_) { return false; }
+    try { return sessionStorage.getItem(AUTH_KEY) === '1' && !!sessionStorage.getItem(TOKEN_KEY); } catch (_) { return false; }
+  }
+
+  function getSessionToken() {
+    try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch (_) { return ''; }
+  }
+
+  function setSession(token) {
+    try {
+      sessionStorage.setItem(AUTH_KEY, '1');
+      if (token) sessionStorage.setItem(TOKEN_KEY, token);
+    } catch (_) {}
+  }
+
+  function clearSession() {
+    try {
+      sessionStorage.removeItem(AUTH_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem('sdit_di_ppdb_focus');
+    } catch (_) {}
   }
 
   function unlockAdmin() {
@@ -54,22 +73,47 @@
     }
   }
 
-  function grantAuth() {
-    try { sessionStorage.setItem(AUTH_KEY, '1'); } catch (_) {}
+  function grantAuth(token) {
+    setSession(token);
     unlockAdmin();
   }
 
-  function tryLogin() {
+  async function tryLogin() {
     const input = document.getElementById('loginPass');
     const pass = (input && input.value != null) ? String(input.value).trim() : '';
     const err = document.getElementById('loginErr');
-    if (pass === ADMIN_PASS) {
+    const conf = cfg();
+    if (!pass) {
+      if (err) err.textContent = 'Masukkan password.';
+      return;
+    }
+    if (!conf.sheetsApiUrl) {
+      if (err) err.textContent = 'sheetsApiUrl belum diisi di config.js';
+      return;
+    }
+    if (err) err.textContent = 'Memverifikasi…';
+    try {
+      const res = await fetch(conf.sheetsApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'adminLogin', password: pass })
+      });
+      const j = await res.json();
+      if (!j || !j.ok || !j.token) {
+        if (err) err.textContent = (j && j.error) || 'Password salah.';
+        status('Password salah atau server menolak.');
+        if (input) { input.focus(); input.select(); }
+        return;
+      }
       if (err) err.textContent = '';
-      grantAuth();
-    } else {
-      if (err) err.textContent = 'Password salah. Coba lagi. (pastikan tanpa spasi di awal/akhir)';
-      status('Password salah.');
-      if (input) { input.focus(); input.select(); }
+      grantAuth(j.token);
+      if (input) input.value = '';
+      status('Login berhasil. Selamat bekerja.');
+      try { focusPpdbSectionIfNeeded(); } catch (_) {}
+      try { loadPpdbList(); } catch (_) {}
+    } catch (e) {
+      if (err) err.textContent = 'Gagal menghubungi server: ' + (e.message || e);
+      status('Gagal login: ' + (e.message || e));
     }
   }
 
@@ -102,7 +146,7 @@
   });
 
   function logoutAdmin() {
-    try { sessionStorage.removeItem(AUTH_KEY); } catch (_) {}
+    clearSession();
     lockAdmin();
     const err = document.getElementById('loginErr');
     if (err) err.textContent = '';
@@ -111,10 +155,12 @@
     status('Anda telah keluar. Masukkan password untuk mengakses panel.');
   }
 
-  // Paksa login setiap buka admin, kecuali deep-link edit dari frontend (sudah prompt password)
-  const _deepEdit = new URLSearchParams(location.search).get('edit');
-  if (!_deepEdit) {
-    try { sessionStorage.removeItem(AUTH_KEY); } catch (_) {}
+  // Paksa login setiap buka admin, kecuali deep-link dari frontend (edit / focus=ppdb + password sudah diisi)
+  const _urlParams = new URLSearchParams(location.search);
+  const _deepEdit = _urlParams.get('edit');
+  const _focusPpdb = _urlParams.get('focus') === 'ppdb' || sessionStorage.getItem('sdit_di_ppdb_focus') === '1';
+  if (!_deepEdit && !_focusPpdb) {
+    clearSession();
   }
   lockAdmin();
 
@@ -124,7 +170,7 @@
   if (inpLogin) inpLogin.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
 
   // Auto-unlock if deep-link + already authenticated from frontend prompt
-  if (_deepEdit && isAuthed()) {
+  if ((_deepEdit || _focusPpdb) && isAuthed()) {
     unlockAdmin();
   } else {
     lockAdmin();
@@ -142,9 +188,9 @@
     const el = $('sheetsHint');
     if (!el) return;
     if (sheetsConfigured()) {
-      el.innerHTML = 'Google Sheets: <strong>aktif</strong> — semua data website dibaca & disimpan ke Sheet (sumber tunggal).';
+      el.innerHTML = 'Google Sheets: <strong>aktif</strong> — data website via Apps Script. Token & password admin ada di <strong>Script properties</strong> (bukan di GitHub).';
     } else {
-      el.innerHTML = '⚠️ Google Sheets <strong>belum dikonfigurasi</strong>. Isi <code>sheetsApiUrl</code> + <code>apiToken</code> di <code>js/config.js</code> (lihat <code>apps-script/SETUP.md</code>). Tanpa ini data tidak tersimpan ke cloud.';
+      el.innerHTML = '⚠️ Isi <code>sheetsApiUrl</code> di <code>js/config.js</code>. Rahasia (<code>API_TOKEN</code>, <code>ADMIN_PASSWORD</code>) di Apps Script → Script properties. Lihat <code>apps-script/SETUP.md</code>.';
     }
   }
 
@@ -719,8 +765,8 @@
   async function save() {
     readForm();
     const conf = cfg();
-    if (!(conf.useSheets && conf.sheetsApiUrl && conf.apiToken)) {
-      status('✗ Belum dikonfigurasi: isi sheetsApiUrl + apiToken di js/config.js, lalu deploy ulang Apps Script.');
+    if (!(conf.useSheets && conf.sheetsApiUrl)) {
+      status('✗ Belum dikonfigurasi: isi sheetsApiUrl di js/config.js.');
       return;
     }
     status('Menyimpan ke Google Sheets…');
@@ -728,7 +774,7 @@
       const res = await fetch(conf.sheetsApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'saveSite', token: conf.apiToken, data: data })
+        body: JSON.stringify({ action: 'saveSite', token: getSessionToken(), data: data })
       });
       const j = await res.json();
       if (!j.ok) throw new Error(j.error || 'saveSite gagal');
@@ -826,7 +872,7 @@
       const res = await fetch(c.sheetsApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ action: action, token: c.apiToken }, payload || {}))
+        body: JSON.stringify(Object.assign({ action: action, token: getSessionToken() }, payload || {}))
       });
       return res.json();
     }
@@ -933,7 +979,7 @@
   async function ppdbApi(action, payload) {
     const conf = cfg();
     if (!conf.sheetsApiUrl) throw new Error('sheetsApiUrl belum diisi di config.js');
-    const body = Object.assign({ action: action, token: conf.apiToken || '' }, payload || {});
+    const body = Object.assign({ action: action, token: getSessionToken() }, payload || {});
     const res = await fetch(conf.sheetsApiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -952,6 +998,11 @@
       ppdbRows = j.rows || [];
       renderPpdbTable();
       status('✓ Data PPDB dimuat (' + ppdbRows.length + ' pendaftar)');
+      // Tandai notifikasi sudah dibaca (lonceng hilang di website)
+      try {
+        await ppdbApi('markPpdbRead');
+        try { sessionStorage.removeItem('sdit_di_ppdb_focus'); } catch (_) {}
+      } catch (_) {}
     } catch (e) {
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="ppdb-empty">Gagal memuat: ' + escapeHtml(e.message) + '<br><span class="hint">Pastikan Apps Script sudah di-redeploy dengan endpoint listPpdb.</span></td></tr>';
       status('✗ Gagal muat PPDB: ' + e.message);
@@ -1372,6 +1423,26 @@
 
 
   // Deep-link from frontend quick-edit: admin/?edit=carousel:0
+
+  function focusPpdbSectionIfNeeded() {
+    const params = new URLSearchParams(location.search);
+    const need = params.get('focus') === 'ppdb' || sessionStorage.getItem('sdit_di_ppdb_focus') === '1';
+    if (!need) return;
+    const card = document.getElementById('ppdbDataCard');
+    if (card) {
+      setTimeout(() => {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        card.style.boxShadow = '0 0 0 3px rgba(201,162,39,.55), 0 8px 28px rgba(8,76,55,.12)';
+        setTimeout(() => { card.style.boxShadow = ''; }, 2600);
+      }, 500);
+    }
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('focus');
+      history.replaceState({}, '', u.pathname + u.search);
+    } catch (_) {}
+  }
+
   function handleDeepLinkEdit() {
     const params = new URLSearchParams(location.search);
     const edit = params.get('edit');
@@ -1442,5 +1513,14 @@
   }
 
   handleDeepLinkEdit();
+  if (isAuthed()) focusPpdbSectionIfNeeded();
+
+  // Re-focus after login
+  const _tryLoginOrig = tryLogin;
+  // wrap: after successful login focus ppdb
+  const _btnLogin = document.getElementById('btnLogin');
+  if (_btnLogin) {
+    _btnLogin.addEventListener('click', () => setTimeout(() => { if (isAuthed()) focusPpdbSectionIfNeeded(); }, 200));
+  }
 
 })();
