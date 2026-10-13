@@ -754,11 +754,26 @@
   }
 
   function updateShowIfNav(flags) {
+    let anyMore = false;
     document.querySelectorAll('[data-show-if]').forEach((a) => {
       const key = a.getAttribute('data-show-if');
       const on = !!flags[key];
       a.style.display = on ? '' : 'none';
+      if (on) a.removeAttribute('hidden');
+      else a.setAttribute('hidden', '');
+      if (on) anyMore = true;
     });
+    const more = document.getElementById('navMore');
+    if (more) {
+      if (anyMore) {
+        more.hidden = false;
+        more.removeAttribute('hidden');
+      } else {
+        more.hidden = true;
+        more.setAttribute('hidden', '');
+        more.classList.remove('open');
+      }
+    }
   }
 
   function hasText(v) {
@@ -1488,8 +1503,30 @@
     const links = document.getElementById('navLinks');
     toggle?.addEventListener('click', () => links?.classList.toggle('open'));
     links?.querySelectorAll('a').forEach((a) => {
-      a.addEventListener('click', () => links.classList.remove('open'));
+      a.addEventListener('click', () => {
+        links.classList.remove('open');
+        document.getElementById('navMore')?.classList.remove('open');
+        const btn = document.getElementById('navMoreBtn');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      });
     });
+
+    const more = document.getElementById('navMore');
+    const moreBtn = document.getElementById('navMoreBtn');
+    if (more && moreBtn) {
+      moreBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const open = more.classList.toggle('open');
+        moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('click', (e) => {
+        if (!more.contains(e.target)) {
+          more.classList.remove('open');
+          moreBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
   }
 
 

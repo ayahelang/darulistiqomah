@@ -53,17 +53,24 @@
       <nav class="nav-links" id="navLinks">
         <a href="#beranda">Beranda</a>
         <a href="#tentang">Tentang</a>
-        <a href="#visi" data-show-if="visionMission">Visi &amp; Misi</a>
         <a href="#program">Program</a>
-        <a href="#fasilitas" data-show-if="facilities">Fasilitas</a>
-        <a href="#guru" data-show-if="teachers">Guru</a>
-        <a href="#prestasi" data-show-if="achievements">Prestasi</a>
-        <a href="#kalender" data-show-if="calendar">Kalender</a>
         <a href="#berita">Berita</a>
         <a href="#galeri">Galeri</a>
         <a href="#kegiatan">Kegiatan</a>
         <a href="#ppdb">PPDB</a>
-        <a href="#biaya" data-show-if="fees">Biaya</a>
+        <div class="nav-dropdown" id="navMore" hidden>
+          <button type="button" class="nav-dropdown-toggle" id="navMoreBtn" aria-expanded="false" aria-haspopup="true">
+            Info lainnya <span class="nav-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="nav-dropdown-menu" id="navMoreMenu" role="menu">
+            <a href="#visi" data-show-if="visionMission" role="menuitem">Visi &amp; Misi</a>
+            <a href="#fasilitas" data-show-if="facilities" role="menuitem">Fasilitas</a>
+            <a href="#guru" data-show-if="teachers" role="menuitem">Guru</a>
+            <a href="#prestasi" data-show-if="achievements" role="menuitem">Prestasi</a>
+            <a href="#kalender" data-show-if="calendar" role="menuitem">Kalender</a>
+            <a href="#biaya" data-show-if="fees" role="menuitem">Biaya</a>
+          </div>
+        </div>
         <a href="#kontak">Kontak</a>
         <a class="btn btn-primary nav-cta" href="#ppdb">Daftar</a>
       </nav>
