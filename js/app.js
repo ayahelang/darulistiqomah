@@ -1500,6 +1500,7 @@
         try {
           sessionStorage.setItem('sdit_di_admin_auth_v1', '1');
           sessionStorage.setItem('sdit_di_admin_token_v1', j.token);
+          sessionStorage.setItem('sdit_di_admin_token_at', String(Date.now()));
           sessionStorage.setItem('sdit_di_ppdb_focus', '1');
         } catch (_) {}
         location.href = 'admin/?focus=ppdb';
@@ -1855,7 +1856,13 @@
           body: JSON.stringify({ action: 'saveSite', token: token, data: site })
         });
         const j = await res.json();
-        if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal simpan');
+        if (!j || !j.ok) {
+          const errMsg = (j && j.error) || 'Gagal simpan';
+          if (/unauthorized|token/i.test(errMsg)) feClearAdminSession();
+          throw new Error(errMsg);
+        }
+        // perpanjang sesi setelah aksi sah
+        try { sessionStorage.setItem('sdit_di_admin_token_at', String(Date.now())); } catch (_) {}
         window.__sditLiveSite = site;
         try { localStorage.removeItem('sdit_di_site_cache_v2'); } catch (_) {}
         feRerenderType(type, site);
@@ -1869,12 +1876,45 @@
     };
   }
 
-  async function feEnsureAdminToken() {
+  const FE_ADMIN_SESSION_MS = 20 * 60 * 1000; // 20 menit — lalu minta password lagi
+
+  function feClearAdminSession() {
+    try {
+      sessionStorage.removeItem('sdit_di_admin_auth_v1');
+      sessionStorage.removeItem('sdit_di_admin_token_v1');
+      sessionStorage.removeItem('sdit_di_admin_token_at');
+    } catch (_) {}
+  }
+
+  function feReadValidSessionToken() {
     try {
       const tok = sessionStorage.getItem('sdit_di_admin_token_v1');
       const auth = sessionStorage.getItem('sdit_di_admin_auth_v1');
-      if (tok && auth === '1') return tok;
+      const at = parseInt(sessionStorage.getItem('sdit_di_admin_token_at') || '0', 10);
+      if (!tok || auth !== '1') return null;
+      // Tanpa timestamp (sesi lama) → anggap tidak valid, minta password
+      if (!at || (Date.now() - at) > FE_ADMIN_SESSION_MS) {
+        feClearAdminSession();
+        return null;
+      }
+      return tok;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function feStoreAdminSession(token) {
+    try {
+      sessionStorage.setItem('sdit_di_admin_auth_v1', '1');
+      sessionStorage.setItem('sdit_di_admin_token_v1', token);
+      sessionStorage.setItem('sdit_di_admin_token_at', String(Date.now()));
     } catch (_) {}
+  }
+
+  async function feEnsureAdminToken() {
+    const existing = feReadValidSessionToken();
+    if (existing) return existing;
+
     const pass = window.prompt('Password admin untuk mengedit:');
     if (pass === null) return null;
     if (!pass) { window.alert('Password wajib.'); return null; }
@@ -1887,13 +1927,11 @@
     });
     const j = await res.json();
     if (!j || !j.ok || !j.token) {
+      feClearAdminSession();
       window.alert((j && j.error) || 'Password salah.');
       return null;
     }
-    try {
-      sessionStorage.setItem('sdit_di_admin_auth_v1', '1');
-      sessionStorage.setItem('sdit_di_admin_token_v1', j.token);
-    } catch (_) {}
+    feStoreAdminSession(j.token);
     return j.token;
   }
 
