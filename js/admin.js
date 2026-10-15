@@ -446,6 +446,20 @@
       { key: 'amount', label: 'Nominal', type: 'text' },
       { key: 'period', label: 'Periode', type: 'text' },
       { key: 'note', label: 'Keterangan', type: 'textarea' }
+    ],
+    programs: [
+      { key: 'title', label: 'Judul program', type: 'text' },
+      { key: 'icon', label: 'Emoji ikon', type: 'text' },
+      { key: 'desc', label: 'Deskripsi', type: 'textarea' }
+    ],
+    activities: [
+      { key: 'day', label: 'Hari / label waktu', type: 'text' },
+      { key: 'title', label: 'Judul kegiatan', type: 'text' },
+      { key: 'desc', label: 'Deskripsi', type: 'textarea' }
+    ],
+    stats: [
+      { key: 'value', label: 'Nilai (angka/teks)', type: 'text' },
+      { key: 'label', label: 'Label', type: 'text' }
     ]
   };
 
@@ -521,7 +535,8 @@
       facilities: 'name', teachers: 'name', leadership: 'name',
       achievements: 'title', calendar: 'title', faq: 'q',
       'ppdb.steps': 'title', 'ppdb.schedule': 'label', 'fees.items': 'name',
-      carousel: 'title', articles: 'title', gallery: 'title', videos: 'title', media: 'title'
+      carousel: 'title', articles: 'title', gallery: 'title', videos: 'title', media: 'title',
+      programs: 'title', activities: 'title', stats: 'label'
     }[type];
     if (requiredKey && !(item[requiredKey] || '').trim()) {
       status('✗ Isi field wajib dulu: ' + requiredKey);
@@ -962,6 +977,16 @@
       metaFn: (x) => [x.amount, x.period, x.note].filter(Boolean).join(' · '),
       iconFn: () => '💰'
     });
+    simpleList('programsList', 'programs', {
+      titleFn: (x) => x.title || 'Program',
+      metaFn: (x) => x.desc || '',
+      iconFn: (x) => x.icon || '⭐'
+    });
+    simpleList('activitiesList', 'activities', {
+      titleFn: (x) => (x.title || 'Kegiatan') + (x.day ? ' — ' + x.day : ''),
+      metaFn: (x) => x.desc || '',
+      iconFn: () => '📅'
+    });
   }
 
   function renderLists() {
@@ -1256,6 +1281,8 @@
   const _bindAdd = (id, type) => { const b = $(id); if (b) b.onclick = () => openEditor(type, -1); };
   _bindAdd('btnAddLeadership', 'leadership');
   _bindAdd('btnAddFacility', 'facilities');
+  _bindAdd('btnAddProgram', 'programs');
+  _bindAdd('btnAddActivity', 'activities');
   _bindAdd('btnAddTeacher', 'teachers');
   _bindAdd('btnAddAchievement', 'achievements');
   _bindAdd('btnAddCalendar', 'calendar');
@@ -1846,27 +1873,42 @@
     const params = new URLSearchParams(location.search);
     const edit = params.get('edit');
     if (!edit) return;
-    const [type, idxStr] = edit.split(':');
-    const index = parseInt(idxStr, 10);
-    if (!type || Number.isNaN(index)) return;
-    // Wait until unlocked & data loaded
+    const colon = edit.lastIndexOf(':');
+    const type = colon >= 0 ? edit.slice(0, colon) : edit;
+    const index = parseInt(colon >= 0 ? edit.slice(colon + 1) : '-1', 10);
+    if (!type || Number.isNaN(index) || index < 0) return;
+
+    const tabFor = {
+      programs: 'profil', activities: 'profil', stats: 'profil',
+      leadership: 'profil', carousel: 'carousel', articles: 'berita',
+      gallery: 'galeri', videos: 'video', media: 'media',
+      announcements: 'pengumuman', facilities: 'akademik', teachers: 'akademik',
+      achievements: 'akademik', calendar: 'akademik', faq: 'ppdb',
+      'ppdb.steps': 'ppdb', 'ppdb.schedule': 'ppdb', 'fees.items': 'ppdb'
+    };
+
     const tryOpen = () => {
-      if (!isAuthed()) return;
-      if (!data || !data[type]) return;
+      if (!isAuthed() || !data) return false;
+      // pastikan array ada
+      try { getListRef(type); } catch (_) { return false; }
+      const tab = tabFor[type];
+      if (tab) {
+        const btn = document.querySelector('.admin-tab[data-tab="' + tab + '"]');
+        if (btn) btn.click();
+      }
       openEditor(type, index);
-      status('Membuka editor untuk ' + type + ' #' + (index + 1));
-      // clean URL
+      status('Membuka editor: ' + type + ' #' + (index + 1));
       try {
         const u = new URL(location.href);
         u.searchParams.delete('edit');
         history.replaceState({}, '', u.pathname + u.search);
       } catch (_) {}
+      return true;
     };
-    // Poll briefly until auth + data ready
     let n = 0;
     const t = setInterval(() => {
       n++;
-      if (isAuthed() && data) { clearInterval(t); tryOpen(); }
+      if (isAuthed() && data && tryOpen()) clearInterval(t);
       if (n > 40) clearInterval(t);
     }, 250);
   }

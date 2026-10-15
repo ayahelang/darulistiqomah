@@ -208,6 +208,7 @@
     active.forEach((item, idx) => {
       const slide = el('div', {
         class: 'slide' + (idx === 0 ? ' active' : ''),
+        'data-admin-edit': 'carousel:' + idx,
         style: `background-image:url('${item.image}');background-position:${item.imagePosition||'center 40%'}`
       }, [
         el('div', { class: 'slide-content' }, [
@@ -258,8 +259,8 @@
     const box = document.getElementById('programs');
     if (!box || !programs) return;
     box.innerHTML = '';
-    programs.forEach((p) => {
-      box.appendChild(el('article', { class: 'card program-card' }, [
+    programs.forEach((p, idx) => {
+      box.appendChild(el('article', { class: 'card program-card', 'data-admin-edit': 'programs:' + idx }, [
         el('div', { class: 'icon' }, [p.icon || '⭐']),
         el('h3', {}, [p.title]),
         el('p', {}, [p.desc])
