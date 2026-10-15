@@ -829,17 +829,17 @@
     const grid = document.getElementById('leadershipGrid');
     if (!grid) return list.length > 0;
     grid.innerHTML = '';
-    list.forEach((p) => {
+    list.forEach((p, idx) => {
       const av = el('div', { class: 'avatar' });
       if (hasText(p.photo)) {
         av.appendChild(el('img', { src: p.photo, alt: p.name || '' }));
       } else {
         av.textContent = (p.name || '?').charAt(0).toUpperCase();
       }
-      grid.appendChild(el('article', { class: 'card person-card' }, [
+      grid.appendChild(el('article', { class: 'card person-card', 'data-admin-edit': 'leadership:' + idx }, [
         av,
-        el('div', { class: 'role' }, [p.role || '']),
         el('h3', {}, [p.name || '']),
+        hasText(p.role) ? el('p', { class: 'role' }, [p.role]) : null,
         hasText(p.bio) ? el('p', { class: 'bio' }, [p.bio]) : null
       ].filter(Boolean)));
     });
@@ -856,14 +856,21 @@
     }
     grid.innerHTML = '';
     list.forEach((f, idx) => {
-      const bodyKids = [];
-      if (hasText(f.icon)) bodyKids.push(el('div', { class: 'icon' }, [f.icon]));
-      bodyKids.push(el('h3', {}, [f.name || '']));
-      if (hasText(f.desc)) bodyKids.push(el('p', {}, [f.desc]));
       const kids = [];
       if (hasText(f.image)) {
-        kids.push(el('img', { src: f.image, alt: f.name || '', loading: 'lazy' }));
+        const media = el('div', { class: 'facility-media' });
+        media.appendChild(el('img', { src: f.image, alt: f.name || '', loading: 'lazy' }));
+        if (hasText(f.icon)) {
+          media.appendChild(el('span', { class: 'facility-icon-badge', 'aria-hidden': 'true' }, [f.icon]));
+        }
+        kids.push(media);
+      } else if (hasText(f.icon)) {
+        kids.push(el('div', { class: 'facility-icon-only' }, [f.icon]));
       }
+      const bodyKids = [
+        el('h3', {}, [f.name || ''])
+      ];
+      if (hasText(f.desc)) bodyKids.push(el('p', {}, [f.desc]));
       kids.push(el('div', { class: 'facility-body' }, bodyKids));
       grid.appendChild(el('article', {
         class: 'card facility-card',
@@ -887,8 +894,8 @@
       const role = [t.role, t.subject].filter(hasText).join(' · ');
       grid.appendChild(el('article', { class: 'card person-card', 'data-admin-edit': 'teachers:' + idx }, [
         av,
-        role ? el('div', { class: 'role' }, [role]) : null,
-        el('h3', {}, [t.name || ''])
+        el('h3', {}, [t.name || '']),
+        role ? el('p', { class: 'role' }, [role]) : null
       ].filter(Boolean)));
     });
     return list.length > 0;
