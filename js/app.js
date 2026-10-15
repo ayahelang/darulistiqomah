@@ -726,14 +726,20 @@
 
   function renderActivities(list) {
     const box = document.getElementById('activities');
-    if (!box || !list) return;
+    const sec = document.getElementById('kegiatan');
+    const rows = (list || []).filter((a) => a && (a.title || a.day));
+    if (!box) return;
     box.innerHTML = '';
-    list.forEach((a) => {
-      box.appendChild(el('div', { class: 'activity-item' }, [
-        el('div', { class: 'day' }, [a.day]),
+    if (sec) {
+      if (!rows.length) { sec.hidden = true; return; }
+      sec.hidden = false; sec.removeAttribute('hidden');
+    }
+    rows.forEach((a, idx) => {
+      box.appendChild(el('div', { class: 'activity-item', 'data-admin-edit': 'activities:' + idx }, [
+        el('div', { class: 'day' }, [a.day || '']),
         el('div', {}, [
-          el('h3', {}, [a.title]),
-          el('p', {}, [a.desc])
+          el('h3', {}, [a.title || '']),
+          el('p', {}, [a.desc || ''])
         ])
       ]));
     });
@@ -840,20 +846,26 @@
     return list.length > 0;
   }
 
-  function renderFacilities(list) {
-    list = (list || []).filter((x) => hasText(x.name));
+    function renderFacilities(list) {
+    list = (list || []).filter((x) => hasText(x && x.name));
     setSectionVisible('fasilitas', list.length > 0);
     const grid = document.getElementById('facilitiesGrid');
-    if (!grid) return list.length > 0;
+    if (!grid) {
+      console.warn('[SDIT] #facilitiesGrid tidak ditemukan');
+      return list.length > 0;
+    }
     grid.innerHTML = '';
     list.forEach((f) => {
       const kids = [];
-      if (hasText(f.image)) kids.push(el('img', { src: f.image, alt: f.name || '' }));
+      if (hasText(f.image)) {
+        kids.push(el('img', { src: f.image, alt: f.name || '', loading: 'lazy' }));
+      }
       if (hasText(f.icon)) kids.push(el('div', { class: 'icon' }, [f.icon]));
       kids.push(el('h3', {}, [f.name || '']));
       if (hasText(f.desc)) kids.push(el('p', {}, [f.desc]));
       grid.appendChild(el('article', { class: 'card facility-card' }, kids));
     });
+    console.info('[SDIT] Fasilitas ditampilkan:', list.length);
     return list.length > 0;
   }
 
@@ -1079,6 +1091,14 @@
   }
 
   function renderAllOptional(data) {
+    data = data || {};
+    console.info('[SDIT] Optional sections:', {
+      facilities: (data.facilities || []).length,
+      teachers: (data.teachers || []).length,
+      achievements: (data.achievements || []).length,
+      leadership: (data.leadership || []).length,
+      calendar: (data.calendar || []).length
+    });
     const flags = {
       visionMission: renderVisionMission(data.visionMission),
       leadership: renderLeadership(data.leadership),
@@ -1618,6 +1638,7 @@
       renderVideos(data.videos, data.media);
       renderActivities(data.activities);
       renderAnnouncements(data.announcements);
+      renderAllOptional(data);
       setupPpdbForm();
       setupPpdbNotifBell();
       // Tag sections that are not item-level
