@@ -855,15 +855,20 @@
       return list.length > 0;
     }
     grid.innerHTML = '';
-    list.forEach((f) => {
+    list.forEach((f, idx) => {
+      const bodyKids = [];
+      if (hasText(f.icon)) bodyKids.push(el('div', { class: 'icon' }, [f.icon]));
+      bodyKids.push(el('h3', {}, [f.name || '']));
+      if (hasText(f.desc)) bodyKids.push(el('p', {}, [f.desc]));
       const kids = [];
       if (hasText(f.image)) {
         kids.push(el('img', { src: f.image, alt: f.name || '', loading: 'lazy' }));
       }
-      if (hasText(f.icon)) kids.push(el('div', { class: 'icon' }, [f.icon]));
-      kids.push(el('h3', {}, [f.name || '']));
-      if (hasText(f.desc)) kids.push(el('p', {}, [f.desc]));
-      grid.appendChild(el('article', { class: 'card facility-card' }, kids));
+      kids.push(el('div', { class: 'facility-body' }, bodyKids));
+      grid.appendChild(el('article', {
+        class: 'card facility-card',
+        'data-admin-edit': 'facilities:' + idx
+      }, kids));
     });
     console.info('[SDIT] Fasilitas ditampilkan:', list.length);
     return list.length > 0;
@@ -875,12 +880,12 @@
     const grid = document.getElementById('teachersGrid');
     if (!grid) return list.length > 0;
     grid.innerHTML = '';
-    list.forEach((t) => {
+    list.forEach((t, idx) => {
       const av = el('div', { class: 'avatar' });
       if (hasText(t.photo)) av.appendChild(el('img', { src: t.photo, alt: t.name || '' }));
       else av.textContent = (t.name || '?').charAt(0).toUpperCase();
       const role = [t.role, t.subject].filter(hasText).join(' · ');
-      grid.appendChild(el('article', { class: 'card person-card' }, [
+      grid.appendChild(el('article', { class: 'card person-card', 'data-admin-edit': 'teachers:' + idx }, [
         av,
         role ? el('div', { class: 'role' }, [role]) : null,
         el('h3', {}, [t.name || ''])
@@ -895,14 +900,14 @@
     const grid = document.getElementById('achievementsGrid');
     if (!grid) return list.length > 0;
     grid.innerHTML = '';
-    list.forEach((a) => {
+    list.forEach((a, idx) => {
       const kids = [];
       if (hasText(a.year) || hasText(a.level)) {
         kids.push(el('span', { class: 'year-badge' }, [[a.year, a.level].filter(hasText).join(' · ')]));
       }
       kids.push(el('h3', {}, [a.title || '']));
       if (hasText(a.desc)) kids.push(el('p', {}, [a.desc]));
-      grid.appendChild(el('article', { class: 'card achieve-card' }, kids));
+      grid.appendChild(el('article', { class: 'card achieve-card', 'data-admin-edit': 'achievements:' + idx }, kids));
     });
     return list.length > 0;
   }
@@ -913,16 +918,16 @@
     const box = document.getElementById('calendarList');
     if (!box) return list.length > 0;
     box.innerHTML = '';
-    list.forEach((c) => {
+    list.forEach((c, idx) => {
       const dateStr = [c.date, c.endDate].filter(hasText).join(' – ');
-      box.appendChild(el('div', { class: 'calendar-item' }, [
+      box.appendChild(el('div', { class: 'calendar-item', 'data-admin-edit': 'calendar:' + idx }, [
         el('div', {}, [
           el('div', { class: 'date' }, [dateStr || '—']),
           hasText(c.type) ? el('div', { class: 'type' }, [c.type]) : null
         ].filter(Boolean)),
         el('div', {}, [
           el('strong', {}, [c.title || '']),
-          hasText(c.desc) ? el('p', { style: 'margin:.35rem 0 0;color:var(--muted);font-size:.9rem' }, [c.desc]) : null
+          hasText(c.desc) ? el('p', {}, [c.desc]) : null
         ].filter(Boolean))
       ]));
     });
