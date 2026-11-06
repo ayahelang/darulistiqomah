@@ -387,10 +387,19 @@
 
     const paint = () => {
       box.innerHTML = '';
+      // #gallery di HTML punya class gallery-grid; untuk grup bersarang
+      // class itu membuat tiap grup jadi "sel" kecil. Ganti jadi stack penuh.
+      box.className = 'gallery-stack';
 
       // 1) Flat gallery items (existing)
       if (_lists.gallery.length) {
         const flatWrap = el('div', { class: 'gallery-group' }, []);
+        if (activeGroups.length) {
+          flatWrap.appendChild(el('h3', { class: 'gallery-group-title' }, [
+            'Galeri',
+            el('span', { class: 'gg-count' }, [String(_lists.gallery.length) + ' foto'])
+          ]));
+        }
         const flatGrid = el('div', { class: 'gallery-grid' }, []);
         _lists.gallery.slice(0, shown.gallery).forEach((g) => {
           const card = makeGalleryCard(g);

@@ -1135,37 +1135,56 @@
     if (!box) {
       box = document.createElement('div');
       box.id = 'groupFilesModal';
-      box.className = 'modal';
+      box.className = 'edit-modal';
+      box.hidden = true;
       box.innerHTML = `
-        <div class="modal-card" style="max-width:720px;max-height:85vh;overflow:auto">
-          <div class="modal-head">
-            <strong id="gfTitle">Edit judul & deskripsi foto</strong>
+        <div class="edit-modal-inner" style="max-width:min(920px,96vw);width:96vw;max-height:90vh;display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.75rem;flex-shrink:0">
+            <h2 id="gfTitle" style="margin:0;font-size:1.1rem;color:#084C37">Edit judul &amp; deskripsi foto</h2>
             <button type="button" class="btn btn-ghost" id="gfClose">Tutup</button>
           </div>
-          <div id="gfBody" style="padding:12px 16px"></div>
-          <div class="modal-foot" style="padding:12px 16px;display:flex;gap:8px;justify-content:flex-end">
+          <p id="gfHint" class="hint" style="margin:0 0 .75rem;flex-shrink:0"></p>
+          <div id="gfBody" style="overflow:auto;flex:1;padding-right:4px"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;flex-shrink:0;border-top:1px solid #e5e7eb;margin-top:12px">
+            <button type="button" class="btn btn-ghost" id="gfCancel">Batal</button>
             <button type="button" class="btn btn-primary" id="gfSave">Terapkan</button>
           </div>
         </div>`;
       document.body.appendChild(box);
-      document.getElementById('gfClose').onclick = () => { box.hidden = true; };
+      const close = function () { box.hidden = true; };
+      document.getElementById('gfClose').onclick = close;
+      document.getElementById('gfCancel').onclick = close;
+      box.addEventListener('click', function (e) { if (e.target === box) close(); });
     }
     box.hidden = false;
     document.getElementById('gfTitle').textContent = 'Edit foto — ' + (gg.name || gg.folder || 'Grup');
+    document.getElementById('gfHint').textContent =
+      (files.length) + ' foto · folder: ' + (gg.folder || '-') +
+      ' · ubah judul/deskripsi lalu Terapkan, kemudian Simpan ke Google Sheets.';
     const body = document.getElementById('gfBody');
     body.innerHTML = '';
+    const folder = (gg.folder || '').replace(/\/+$/, '');
     files.forEach(function (f, i) {
       const row = document.createElement('div');
-      row.style.cssText = 'border-bottom:1px solid #eee;padding:10px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px';
-      row.innerHTML = `
-        <div style="grid-column:1/-1;font-size:.8rem;color:#666"><code>${escapeHtml(f.file || '')}</code></div>
-        <div><label style="font-size:.75rem">Judul</label>
-          <input type="text" data-gf-i="${i}" data-gf-k="title" value="${escapeHtml(f.title || '')}"></div>
-        <div><label style="font-size:.75rem">Deskripsi</label>
-          <input type="text" data-gf-i="${i}" data-gf-k="desc" value="${escapeHtml(f.desc || '')}"></div>`;
+      row.className = 'gg-file-row';
+      row.style.cssText = 'border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:start;background:#fff';
+      const imgPath = folder ? (folder + '/' + (f.file || '')) : (f.file || '');
+      row.innerHTML =
+        '<div style="width:88px;height:88px;border-radius:8px;overflow:hidden;background:#f3f4f6;flex-shrink:0">' +
+          (imgPath
+            ? '<img src="' + escapeHtml(imgPath) + '" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display=\'none\'">'
+            : '') +
+        '</div>' +
+        '<div style="display:grid;gap:6px">' +
+          '<div style="font-size:.78rem;color:#6b7280"><code>' + escapeHtml(f.file || '') + '</code></div>' +
+          '<label style="font-size:.75rem;font-weight:600">Judul' +
+            '<input type="text" data-gf-i="' + i + '" data-gf-k="title" value="' + escapeHtml(f.title || '') + '" style="width:100%;margin-top:2px"></label>' +
+          '<label style="font-size:.75rem;font-weight:600">Deskripsi' +
+            '<input type="text" data-gf-i="' + i + '" data-gf-k="desc" value="' + escapeHtml(f.desc || '') + '" style="width:100%;margin-top:2px"></label>' +
+        '</div>';
       body.appendChild(row);
     });
-    document.getElementById('gfSave').onclick = () => {
+    document.getElementById('gfSave').onclick = function () {
       body.querySelectorAll('[data-gf-i]').forEach(function (inp) {
         const i = parseInt(inp.getAttribute('data-gf-i'), 10);
         const k = inp.getAttribute('data-gf-k');
@@ -1173,9 +1192,11 @@
       });
       gg.files = files;
       window.__siteDirty = true;
+      const db = document.getElementById('dirtyBanner');
+      if (db) { db.hidden = false; db.style.display = 'block'; }
       box.hidden = true;
       renderLists();
-      status('Judul/desc diperbarui (belum disimpan ke Sheets).');
+      status('Judul/desc diperbarui (belum disimpan ke Sheets). Klik Simpan ke Google Sheets.');
     };
   }
 
@@ -1286,7 +1307,12 @@
       if (!Array.isArray(data.galleryGroups)) data.galleryGroups = [];
       (data.galleryGroups || []).forEach((gg, i) => {
         const row = document.createElement('div');
-        row.className = 'list-item';
+        row.className = 'list-item gg-admin-card';
+        row.style.cssText = 'flex-direction:column;align-items:stretch;gap:10px';
+
+        const top = document.createElement('div');
+        top.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start';
+
         const mid = document.createElement('div');
         mid.className = 'li-info';
         const fileCount = Array.isArray(gg.files) ? gg.files.length : 0;
@@ -1295,10 +1321,12 @@
           : '<span class="badge foto">aktif</span>';
         mid.innerHTML = `${activeBadge} <strong>${escapeHtml(gg.name || '(tanpa nama)')}</strong>
           <div class="meta">Folder: <code>${escapeHtml(gg.folder || '')}</code> · ${fileCount} file · order ${escapeHtml(String(gg.order != null ? gg.order : ''))}</div>`;
-        row.appendChild(mid);
+        top.appendChild(mid);
 
         const acts = document.createElement('div');
         acts.className = 'li-actions';
+        acts.style.cssText = 'flex-wrap:wrap';
+
         const btnScan = document.createElement('button');
         btnScan.type = 'button';
         btnScan.className = 'btn btn-accent';
@@ -1310,15 +1338,15 @@
         const btnEdit = document.createElement('button');
         btnEdit.type = 'button';
         btnEdit.className = 'btn btn-ghost';
-        btnEdit.textContent = 'Edit';
+        btnEdit.textContent = 'Edit Grup';
         btnEdit.onclick = () => openEditor('galleryGroups', i);
         acts.appendChild(btnEdit);
 
         const btnFiles = document.createElement('button');
         btnFiles.type = 'button';
-        btnFiles.className = 'btn btn-ghost';
-        btnFiles.textContent = 'Edit Judul/Desc';
-        btnFiles.title = 'Edit title & deskripsi tiap foto dalam grup';
+        btnFiles.className = 'btn btn-primary';
+        btnFiles.textContent = 'Lihat / Edit Foto';
+        btnFiles.title = 'Preview + edit judul & deskripsi tiap foto';
         btnFiles.onclick = () => openGroupFilesEditor(i);
         acts.appendChild(btnFiles);
 
@@ -1334,7 +1362,51 @@
           status('Grup dihapus (belum disimpan ke Sheets).');
         };
         acts.appendChild(btnDel);
-        row.appendChild(acts);
+        top.appendChild(acts);
+        row.appendChild(top);
+
+        // Preview thumbnails
+        const files = Array.isArray(gg.files) ? gg.files : [];
+        const folder = (gg.folder || '').replace(/\/+$/, '');
+        if (files.length) {
+          const prev = document.createElement('div');
+          prev.className = 'gg-admin-preview';
+          prev.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px';
+          const maxShow = Math.min(files.length, 12);
+          for (let fi = 0; fi < maxShow; fi++) {
+            const f = files[fi];
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            cell.title = (f.title || f.file || '') + ' — klik untuk edit semua foto';
+            cell.style.cssText = 'border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;padding:0;background:#f9fafb;cursor:pointer;text-align:left';
+            const src = folder ? (folder + '/' + (f.file || '')) : (f.file || '');
+            cell.innerHTML =
+              '<div style="aspect-ratio:1;background:#e5e7eb">' +
+                (src ? '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.background=\'#d1d5db\'">' : '') +
+              '</div>' +
+              '<div style="padding:4px 6px;font-size:.68rem;line-height:1.25;max-height:2.6em;overflow:hidden">' +
+                escapeHtml(f.title || f.file || '') +
+              '</div>';
+            cell.onclick = () => openGroupFilesEditor(i);
+            prev.appendChild(cell);
+          }
+          if (files.length > maxShow) {
+            const more = document.createElement('button');
+            more.type = 'button';
+            more.className = 'btn btn-ghost';
+            more.style.cssText = 'min-height:88px';
+            more.textContent = '+' + (files.length - maxShow) + ' lagi';
+            more.onclick = () => openGroupFilesEditor(i);
+            prev.appendChild(more);
+          }
+          row.appendChild(prev);
+        } else {
+          const empty = document.createElement('div');
+          empty.className = 'hint';
+          empty.textContent = 'Belum ada foto. Klik Scan Folder setelah path folder diisi.';
+          row.appendChild(empty);
+        }
+
         ggBox.appendChild(row);
       });
     }
