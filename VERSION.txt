@@ -1,0 +1,1 @@
+SDIT_TRIAL=1
