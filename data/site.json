@@ -280,5 +280,166 @@
     "email": "",
     "whatsapp": "",
     "note": ""
-  }
+  },
+  "galleryGroups": [
+    {
+      "id": "gg_mabit",
+      "name": "Kegiatan Mabit",
+      "folder": "images/foto/mabit",
+      "active": true,
+      "order": 1,
+      "files": [
+        {
+          "file": "mabit_202601.webp",
+          "title": "Mabit 202601",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202603.webp",
+          "title": "Mabit 202603",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202604.webp",
+          "title": "Mabit 202604",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202605.webp",
+          "title": "Mabit 202605",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202606.webp",
+          "title": "Mabit 202606",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202607.webp",
+          "title": "Mabit 202607",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202608.webp",
+          "title": "Mabit 202608",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202609.webp",
+          "title": "Mabit 202609",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202610.webp",
+          "title": "Mabit 202610",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202611.webp",
+          "title": "Mabit 202611",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202612.webp",
+          "title": "Mabit 202612",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202613.webp",
+          "title": "Mabit 202613",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202614.webp",
+          "title": "Mabit 202614",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202615.webp",
+          "title": "Mabit 202615",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202616.webp",
+          "title": "Mabit 202616",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202617.webp",
+          "title": "Mabit 202617",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202618.webp",
+          "title": "Mabit 202618",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202619.webp",
+          "title": "Mabit 202619",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202620.webp",
+          "title": "Mabit 202620",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202621.webp",
+          "title": "Mabit 202621",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202622.webp",
+          "title": "Mabit 202622",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202623.webp",
+          "title": "Mabit 202623",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202624.webp",
+          "title": "Mabit 202624",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202625.webp",
+          "title": "Mabit 202625",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202626.webp",
+          "title": "Mabit 202626",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202627.webp",
+          "title": "Mabit 202627",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202628.webp",
+          "title": "Mabit 202628",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202629.webp",
+          "title": "Mabit 202629",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202630.webp",
+          "title": "Mabit 202630",
+          "desc": ""
+        },
+        {
+          "file": "mabit_202631.webp",
+          "title": "Mabit 202631",
+          "desc": ""
+        }
+      ]
+    }
+  ]
 }

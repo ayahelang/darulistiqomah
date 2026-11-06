@@ -637,6 +637,22 @@
         <button class="btn btn-primary" type="button" id="btnAddGallery" data-tip="Tambah foto ke galeri dengan URL/path gambar langsung (bukan link post IG). Untuk link IG, gunakan form Tambah Media di atas.">+ Tambah Foto (URL gambar)</button>
       </div>
     </div>
+
+<div class="admin-card">
+  <h2>Grup Galeri dari Folder</h2>
+  <p class="hint">
+    Klik <strong>+ Buat Grup</strong>, isi: <strong>Nama grup</strong>, <strong>Path folder</strong>
+    (contoh: <code>images/foto/mabit</code>), opsional <strong>Judul default</strong> &amp; <strong>Deskripsi default</strong>, lalu simpan.
+    Sistem langsung memindai folder (jpg/jpeg/png/webp/gif), membuat daftar foto, mengisi judul &amp; deskripsi, lalu siap disimpan ke Google Sheets.
+    <br>• Judul diisi → semua foto pakai judul itu. Kosong → judul dari nama file.
+    <br>• Deskripsi diisi → tiap foto: deskripsi + nama file. Kosong → tanpa deskripsi (tidak ditampilkan).
+    <br>Edit judul/desc per foto: tombol <strong>Edit Judul/Desc</strong> atau dari frontend (Ctrl+Alt+Shift + double-click).
+  </p>
+  <div class="list" id="galleryGroupList"></div>
+  <div class="actions" style="flex-wrap:wrap;gap:.5rem">
+    <button class="btn btn-primary" type="button" id="btnAddGalleryGroup">+ Buat Grup</button>
+  </div>
+</div>
 </div><!-- /tab-galeri -->
 
 
