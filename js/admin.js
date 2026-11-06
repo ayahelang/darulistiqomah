@@ -204,6 +204,7 @@
     data = j.data;
     if (!data.media) data.media = [];
     if (!Array.isArray(data.galleryGroups)) data.galleryGroups = [];
+    if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
     if (!data.announcements) data.announcements = [];
     ensureSiteArrays(data);
     fillForm();
@@ -402,6 +403,13 @@
       { key: 'youtubeId', label: 'YouTube ID', type: 'text' },
       { key: 'thumb', label: 'URL Thumbnail', type: 'text' }
     ],
+    videoGroups: [
+      { key: 'name', label: 'Nama grup video (wajib)', type: 'text' },
+      { key: 'playlistUrl', label: 'URL playlist YouTube (opsional)', type: 'text' },
+      { key: 'date', label: 'Tanggal (YYYY-MM-DD)', type: 'text' },
+      { key: 'order', label: 'Urutan (angka, kecil = atas)', type: 'text' },
+      { key: 'active', label: 'Aktif (true/false)', type: 'text' }
+    ],
     announcements: [
       { key: 'title', label: 'Judul', type: 'text' },
       { key: 'body', label: 'Isi', type: 'textarea' },
@@ -546,7 +554,7 @@
       facilities: 'name', teachers: 'name', leadership: 'name',
       achievements: 'title', calendar: 'title', faq: 'q',
       'ppdb.steps': 'title', 'ppdb.schedule': 'label', 'fees.items': 'name',
-      carousel: 'title', articles: 'title', gallery: 'title', galleryGroups: 'name', videos: 'title', media: 'title',
+      carousel: 'title', articles: 'title', gallery: 'title', galleryGroups: 'name', videoGroups: 'name', videos: 'title', media: 'title',
       programs: 'title', activities: 'title', stats: 'label'
     }[type];
     if (requiredKey && !(item[requiredKey] || '').trim()) {
@@ -1617,6 +1625,7 @@
   const bv = $('btnAddVideo'); if (bv) bv.onclick = () => openEditor('videos', -1);
   const bgg = $('btnAddGalleryGroup');
   if (bgg) bgg.onclick = () => openEditor('galleryGroups', -1);
+  try { renderVideoGroupsAdmin(); } catch (_e) {}
 
   updateSheetsHint();
   (async () => {
@@ -2383,6 +2392,176 @@
     btn.addEventListener('click', function () {
       if (btn.getAttribute('data-tab') === 'setup') {
         setTimeout(refreshEditorList, 50);
+      }
+    });
+  });
+
+  // ——— Video groups ———
+  function extractYtIdFromLine(line) {
+    const s = String(line || '').trim();
+    if (!s) return '';
+    try {
+      if (window.MediaUtils && typeof MediaUtils.parseSocialUrl === 'function') {
+        const p = MediaUtils.parseSocialUrl(s);
+        if (p && p.ok && p.source === 'youtube' && p.shortcode) return p.shortcode;
+      }
+    } catch (_) {}
+    const m = s.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
+    if (m) return m[1];
+    if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
+    return '';
+  }
+
+  function renderVideoGroupsAdmin() {
+    if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
+    const box = $('videoGroupsList');
+    if (!box) return;
+    box.innerHTML = '';
+    data.videoGroups.forEach(function (grp, gi) {
+      const n = (grp.items || []).length;
+      const row = document.createElement('div');
+      row.className = 'list-row';
+      row.innerHTML =
+        '<div class="list-main"><strong>' + (grp.name || 'Grup video') + '</strong>' +
+        '<div class="meta">' + n + ' video' +
+        (grp.playlistUrl ? (' · playlist') : '') + '</div></div>';
+      const actions = document.createElement('div');
+      actions.className = 'actions-row';
+      const edit = document.createElement('button');
+      edit.type = 'button'; edit.className = 'btn btn-ghost'; edit.textContent = 'Edit';
+      edit.onclick = function () { openEditor('videoGroups', gi); };
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'btn btn-ghost'; del.style.color = '#b91c1c'; del.textContent = 'Hapus';
+      del.onclick = function () {
+        if (!confirm('Hapus grup "' + (grp.name || '') + '"?')) return;
+        data.videoGroups.splice(gi, 1);
+        window.__siteDirty = true;
+        const db = document.getElementById('dirtyBanner');
+        if (db) { db.hidden = false; db.style.display = 'block'; }
+        renderLists();
+        status('Grup video dihapus (lokal). Simpan ke Google Sheets.');
+      };
+      actions.appendChild(edit);
+      actions.appendChild(del);
+      row.appendChild(actions);
+      const thumbs = document.createElement('div');
+      thumbs.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:.5rem;width:100%';
+      (grp.items || []).slice(0, 8).forEach(function (it) {
+        const id = it.youtubeId || '';
+        const src = it.thumb || (id ? ('https://img.youtube.com/vi/' + id + '/hqdefault.jpg') : '');
+        if (!src) return;
+        const im = document.createElement('img');
+        im.src = src; im.alt = it.title || '';
+        im.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid rgba(11,110,79,.12)';
+        thumbs.appendChild(im);
+      });
+      row.appendChild(thumbs);
+      box.appendChild(row);
+    });
+  }
+
+  async function apiFetchYtPlaylist(playlistUrl) {
+    const conf = window.SDIT_CONFIG || {};
+    const token = (typeof getToken === 'function' ? getToken() : '') || sessionStorage.getItem('sdit_di_admin_token_v1') || '';
+    const r = await fetch(conf.sheetsApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'fetchYtPlaylist', token: token, url: playlistUrl, playlistUrl: playlistUrl })
+    });
+    return r.json();
+  }
+
+  const btnVgFetch = $('btnVgFetchPlaylist');
+  if (btnVgFetch) {
+    btnVgFetch.onclick = async function () {
+      const url = (($('vgPlaylist') && $('vgPlaylist').value) || '').trim();
+      const st = $('vgStatus');
+      if (!url) { if (st) st.textContent = 'Isi URL playlist dulu.'; return; }
+      if (st) st.textContent = 'Mengambil daftar video dari playlist…';
+      try {
+        const j = await apiFetchYtPlaylist(url);
+        if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal deteksi playlist');
+        const items = j.items || [];
+        if (!items.length) throw new Error('Playlist kosong / tidak terbaca');
+        if ($('vgLinks')) {
+          $('vgLinks').value = items.map(function (it) {
+            return 'https://www.youtube.com/watch?v=' + it.youtubeId;
+          }).join('\n');
+        }
+        window.__vgFetchedItems = items;
+        if (st) st.textContent = '✓ ' + items.length + ' video terdeteksi. Klik Tambah Grup untuk menyimpan.';
+      } catch (err) {
+        if (st) st.textContent = '✗ ' + (err.message || err);
+      }
+    };
+  }
+
+  const btnAddVg = $('btnAddVideoGroup');
+  if (btnAddVg) {
+    btnAddVg.onclick = async function () {
+      const name = (($('vgName') && $('vgName').value) || '').trim();
+      const playlist = (($('vgPlaylist') && $('vgPlaylist').value) || '').trim();
+      const raw = (($('vgLinks') && $('vgLinks').value) || '').trim();
+      const st = $('vgStatus');
+      if (!name) { if (st) st.textContent = 'Nama grup wajib.'; return; }
+      let items = [];
+      if (window.__vgFetchedItems && window.__vgFetchedItems.length) {
+        items = window.__vgFetchedItems.slice();
+      }
+      if (raw) {
+        const lines = raw.split(/[\n\r]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+        const fromLines = [];
+        lines.forEach(function (line) {
+          const id = extractYtIdFromLine(line);
+          if (!id) return;
+          const meta = (window.__vgFetchedItems || []).find(function (x) { return x.youtubeId === id; });
+          fromLines.push({
+            youtubeId: id,
+            title: (meta && meta.title) || ('Video ' + id),
+            desc: (meta && meta.desc) || '',
+            thumb: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg'
+          });
+        });
+        if (fromLines.length) items = fromLines;
+      }
+      if (!items.length && playlist) {
+        if (st) st.textContent = 'Klik "Deteksi dari playlist" dulu, atau isi daftar link.';
+        return;
+      }
+      if (!items.length) {
+        if (st) st.textContent = 'Isi daftar link video atau deteksi playlist.';
+        return;
+      }
+      if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
+      data.videoGroups.unshift({
+        id: 'vg' + Date.now(),
+        name: name,
+        playlistUrl: playlist,
+        date: new Date().toISOString().slice(0, 10),
+        order: 0,
+        active: true,
+        items: items
+      });
+      window.__vgFetchedItems = null;
+      window.__siteDirty = true;
+      const db = document.getElementById('dirtyBanner');
+      if (db) { db.hidden = false; db.style.display = 'block'; }
+      if ($('vgName')) $('vgName').value = '';
+      if ($('vgPlaylist')) $('vgPlaylist').value = '';
+      if ($('vgLinks')) $('vgLinks').value = '';
+      try { renderVideoGroupsAdmin(); } catch (_) {}
+      try { renderLists(); } catch (_) {}
+      if (st) st.textContent = '✓ Grup "' + name + '" dengan ' + items.length + ' video. Simpan ke Google Sheets.';
+      status('Grup video ditambahkan. Simpan ke Google Sheets.');
+    };
+  }
+
+  document.querySelectorAll('.admin-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.getAttribute('data-tab') === 'video') {
+        setTimeout(function () {
+          try { renderVideoGroupsAdmin(); } catch (_) {}
+        }, 30);
       }
     });
   });

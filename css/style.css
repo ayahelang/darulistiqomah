@@ -1628,3 +1628,22 @@ body.admin-edit-armed [data-admin-edit]:hover {
   width: 100%;
   margin-top: 1.5rem;
 }
+
+
+/* Video group opener — keep desktop video card density (grid-2) */
+.vg-group .gg-summary-thumb { position: relative; }
+.vg-play-mini {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.vg-play-mini span {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(11,110,79,.85); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem;
+}
+.video-card h3 .v-desc {
+  display: block; font-size: .8rem; font-weight: 500; color: var(--muted, #5B6575);
+  margin-top: .25rem; line-height: 1.35;
+}
+.vg-open-grid { margin-top: .75rem; }
