@@ -1,15 +1,10 @@
-Revisi grup galeri (hanya 3 file):
+Revisi (uji coba / darulistiqomah.silverhawk.web.id)
 
-1. js/admin.js
-   - Modal "Lihat / Edit Foto" sekarang pakai class edit-modal (sebelumnya tidak tampil)
-   - Preview thumbnail kartu di daftar grup admin
-   - Tombol diganti: "Lihat / Edit Foto"
+File:
+  js/admin.js  — modal edit foto grup + preview admin
+  js/app.js    — layout grup full-width + fix tombol "Muat lebih banyak"
+  css/style.css — gallery-stack + load-more-wrap[hidden]
 
-2. js/app.js
-   - Frontend: #gallery tidak lagi meremukkan grup menjadi sel grid kecil
-   - Setiap grup tampil full-width dengan grid 3 kolom seperti galeri biasa
-
-3. css/style.css
-   - Class .gallery-stack untuk layout penuh
-
-Tidak mengubah file admin/index.html atau fitur tab lain.
+Bug fix load-more:
+  - Tombol disembunyikan saat sisa = 0 (CSS display tidak menimpa lagi)
+  - Angka "tersisa" tidak fiktif; shown tidak melampaui total
