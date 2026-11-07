@@ -1113,7 +1113,9 @@
         } else if (defDesc) {
           desc = defDesc + ' — ' + baseName;
         } else {
-          desc = '';
+          // default: nama grup + judul foto (bulk galeri foto)
+          const gName = (gg.name || '').trim();
+          desc = gName ? (gName + ' — ' + title) : title;
         }
         return { file: name, title: title, desc: desc };
       });

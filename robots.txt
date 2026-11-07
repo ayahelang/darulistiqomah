@@ -4,5 +4,4 @@ Allow: /
 # Panel admin tidak perlu diindeks
 Disallow: /admin/
 
-Sitemap: https://sditdaarulistiqomah.sch.id/sitemap.xml
-Sitemap: https://sditdaarulistiqomah.web.id/sitemap.xml
+Sitemap: https://darulistiqomah.silverhawk.web.id/sitemap.xml

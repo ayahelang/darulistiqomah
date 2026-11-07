@@ -660,6 +660,20 @@
         <button class="btn btn-primary" type="button" id="btnAddGallery" data-tip="Tambah foto ke galeri dengan URL/path gambar langsung (bukan link post IG). Untuk link IG, gunakan form Tambah Media di atas.">+ Tambah Foto (URL gambar)</button>
       </div>
     </div>
+<div class="admin-card">
+      <h2>Grup Galeri Foto (bulk dari folder)</h2>
+      <p class="hint">
+        Bulk upload mirip Grup Video. Isi <strong>nama grup</strong> dan <strong>path folder</strong>
+        (contoh: <code>images/foto/mabit</code>) tempat file gambar berada di repo.
+        Klik <strong>Scan Folder</strong> → sistem deteksi file via GitHub API.
+        Judul default = nama file; deskripsi default = nama grup + judul foto.
+        Hasil tampil di frontend saat card grup diklik. Edit per-foto lewat tombol Edit File.
+      </p>
+      <div class="list" id="galleryGroupList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddGalleryGroup" data-tip="Tambah grup galeri foto baru. Setelah isi folder, gunakan Scan Folder.">+ Tambah Grup Galeri Foto</button>
+      </div>
+    </div>
 </div><!-- /tab-galeri -->
 
 
