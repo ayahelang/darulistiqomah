@@ -159,9 +159,11 @@
       bar.className = 'media-toolbar';
       bar.innerHTML =
         '<div class="media-toolbar-search">' +
-          '<input type="search" id="' + kind + 'Search" name="' + kind + '_q_nofil" ' +
-            'placeholder="Cari judul, deskripsi…" autocomplete="off" autocorrect="off" ' +
-            'autocapitalize="off" spellcheck="false" inputmode="search" data-lpignore="true" data-1p-ignore="true" role="searchbox">' +
+          // type=text + readonly awal: browser jarang autofill email ke field ini
+          '<input type="text" id="' + kind + 'Search" name="sdit_filter_' + kind + '_' + Date.now() + '" ' +
+            'placeholder="Cari judul, deskripsi…" autocomplete="new-password" autocorrect="off" ' +
+            'autocapitalize="off" spellcheck="false" inputmode="search" ' +
+            'data-lpignore="true" data-1p-ignore="true" data-form-type="other" readonly>' +
         '</div>' +
         '<div class="media-toolbar-sort" role="group" aria-label="Urutkan">' +
           '<button type="button" class="media-sort-btn" data-sort="newest">Terbaru</button>' +
@@ -170,29 +172,38 @@
       box.parentNode.insertBefore(bar, box);
       const input = bar.querySelector('input');
       const state = _mediaFilter[kind];
-      // Jangan biarkan browser autofill (email/password) mengisi search
-      input.value = '';
-      input.setAttribute('autocomplete', 'off');
-      // set nilai filter setelah tick agar autofill tidak menang
-      setTimeout(function () {
-        // buang autofill email/password yang sering mengisi kotak search
-        var q = state.q || '';
-        if (/@/.test(q) || /password/i.test(q)) {
-          q = '';
-          state.q = '';
-        }
-        input.value = q;
-      }, 50);
+      function cleanQ(v) {
+        v = String(v || '').trim();
+        if (/@/.test(v) || /password/i.test(v) || /^[\w.+-]+@/.test(v)) return '';
+        return v;
+      }
+      state.q = cleanQ(state.q);
+      input.value = state.q || '';
+      // buka readonly hanya saat user fokus (cegah autofill)
       input.addEventListener('focus', function () {
+        input.removeAttribute('readonly');
         input.setAttribute('autocomplete', 'off');
       });
-      // jika browser tetap mengisi, bersihkan saat input event pertama dari autofill
-      input.addEventListener('change', function () {
+      input.addEventListener('blur', function () {
+        // kalau terisi email, bersihkan
+        var v = cleanQ(input.value);
+        if (v !== input.value) {
+          input.value = v;
+          state.q = v;
+          if (kind === 'gallery' && typeof window.__rerenderGallery === 'function') window.__rerenderGallery();
+          if (kind === 'videos' && typeof window.__rerenderVideos === 'function') window.__rerenderVideos();
+        }
+      });
+      // interval singkat: buang autofill yang masuk tanpa event
+      var guard = 0;
+      var guardTimer = setInterval(function () {
+        guard++;
+        if (guard > 20) { clearInterval(guardTimer); return; }
         if (/@/.test(input.value)) {
           input.value = '';
           state.q = '';
         }
-      });
+      }, 200);
       let timer = null;
       input.addEventListener('input', function () {
         const v = input.value;
