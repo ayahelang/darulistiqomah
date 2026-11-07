@@ -763,15 +763,6 @@
       return b;
     };
     menu.appendChild(mkItem('Preview', '', () => prev.onclick()));
-    if (type === 'videos') {
-      menu.appendChild(mkItem('▶ Preview YouTube', '', () => {
-        const list = getListRef(type);
-        const item = list[index] || {};
-        const id = item.youtubeId || '';
-        if (!id) { status('Tidak ada YouTube ID'); return; }
-        openPreviewCard('Preview YouTube', '<iframe src="https://www.youtube.com/embed/' + id + '" style="width:100%;height:min(360px,50vh);border:0;border-radius:12px" allowfullscreen loading="lazy"></iframe>');
-      }));
-    }
     menu.appendChild(mkItem('Edit', '', () => edit.onclick()));
     menu.appendChild(mkItem('Hapus', 'danger', () => del.onclick()));
     moreBtn.onclick = (e) => {
