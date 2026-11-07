@@ -712,6 +712,10 @@
   function rowActions(type, index) {
     const wrap = document.createElement('div');
     wrap.className = 'actions-row';
+
+    // Desktop / wide: tombol terpisah
+    const inline = document.createElement('div');
+    inline.className = 'actions-inline';
     const prev = document.createElement('button');
     prev.type = 'button';
     prev.className = 'btn btn-accent';
@@ -734,9 +738,43 @@
     del.textContent = 'Hapus';
     del.setAttribute('data-tip', 'Hapus item. Klik Simpan ke Google Sheets agar permanen.');
     del.onclick = () => deleteItem(type, index);
-    wrap.appendChild(prev);
-    wrap.appendChild(edit);
-    wrap.appendChild(del);
+    inline.appendChild(prev);
+    inline.appendChild(edit);
+    inline.appendChild(del);
+    wrap.appendChild(inline);
+
+    // Mobile / narrow: menu titik tiga
+    const moreWrap = document.createElement('div');
+    moreWrap.className = 'actions-more';
+    const moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'btn btn-ghost btn-more';
+    moreBtn.setAttribute('aria-label', 'Menu aksi');
+    moreBtn.textContent = '⋮';
+    const menu = document.createElement('div');
+    menu.className = 'actions-menu';
+    menu.hidden = true;
+    const mkItem = (label, cls, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'actions-menu-item ' + (cls || '');
+      b.textContent = label;
+      b.onclick = (e) => { e.stopPropagation(); menu.hidden = true; fn(); };
+      return b;
+    };
+    menu.appendChild(mkItem('Preview', '', () => prev.onclick()));
+    menu.appendChild(mkItem('Edit', '', () => edit.onclick()));
+    menu.appendChild(mkItem('Hapus', 'danger', () => del.onclick()));
+    moreBtn.onclick = (e) => {
+      e.stopPropagation();
+      const open = menu.hidden;
+      document.querySelectorAll('.actions-menu').forEach((m) => { m.hidden = true; });
+      menu.hidden = !open;
+    };
+    moreWrap.appendChild(moreBtn);
+    moreWrap.appendChild(menu);
+    wrap.appendChild(moreWrap);
+
     return wrap;
   }
 
@@ -1389,10 +1427,11 @@
             cell.type = 'button';
             cell.title = (f.title || f.file || '') + ' — klik untuk edit semua foto';
             cell.style.cssText = 'border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;padding:0;background:#f9fafb;cursor:pointer;text-align:left';
-            const src = folder ? (folder + '/' + (f.file || '')) : (f.file || '');
+            const rawSrc = folder ? (folder + '/' + (f.file || '')) : (f.file || '');
+            const src = resolveAdminAsset(rawSrc);
             cell.innerHTML =
-              '<div style="aspect-ratio:1;background:#e5e7eb">' +
-                (src ? '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.background=\'#d1d5db\'">' : '') +
+              '<div style="aspect-ratio:1;background:#e5e7eb;overflow:hidden">' +
+                (src ? '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.parentElement.style.background=\'#d1d5db\'">' : '') +
               '</div>' +
               '<div style="padding:4px 6px;font-size:.68rem;line-height:1.25;max-height:2.6em;overflow:hidden">' +
                 escapeHtml(f.title || f.file || '') +
@@ -1625,6 +1664,15 @@
   $('btnAddArticle').onclick = () => openEditor('articles', -1);
   $('btnAddGallery').onclick = () => openEditor('gallery', -1);
   const bv = $('btnAddVideo'); if (bv) bv.onclick = () => openEditor('videos', -1);
+
+  // Tutup menu ⋮ saat klik di luar
+  if (!window.__actionsMenuOutside) {
+    window.__actionsMenuOutside = true;
+    document.addEventListener('click', function () {
+      document.querySelectorAll('.actions-menu').forEach(function (m) { m.hidden = true; });
+    });
+  }
+
   const bgg = $('btnAddGalleryGroup');
   if (bgg) bgg.onclick = () => openEditor('galleryGroups', -1);
   try { renderVideoGroupsAdmin(); } catch (_e) {}

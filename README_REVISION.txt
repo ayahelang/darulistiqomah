@@ -20,3 +20,10 @@ Cara pakai bulk foto:
 4. Frontend: card grup muncul; klik untuk membuka daftar foto.
 
 Upload zip ini ke repo darulistiqomah (overwrite code files; images tetap).
+
+Revisi UI admin (mobile-friendly):
+- Thumbnail grup galeri: path di-resolve dengan ../ agar tidak broken di /admin/
+- Card list (foto/video): di layar sempit aksi digabung ke menu ⋮ (titik tiga)
+- Meta/path panjang disembunyikan di mobile (cukup judul)
+- Tab menu & toolbar atas: scroll horizontal 1 baris (gaya Shopee/Tokped)
+- Preview grid grup foto lebih rapat
