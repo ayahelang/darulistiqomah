@@ -1571,8 +1571,18 @@ body.admin-edit-armed [data-admin-edit]:hover {
   position: relative;
 }
 @media (max-width: 900px) {
-  .media-toolbar { flex-direction: column; align-items: stretch; }
+  .media-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .5rem;
+    margin-bottom: .75rem;
+  }
   .media-toolbar-sort { align-self: flex-start; }
+  .media-toolbar-search { min-width: 0; }
+  /* cegah area kosong besar di atas grid */
+  #gallery, #videos, .gallery-grid, .video-grid {
+    min-height: 0 !important;
+  }
 }
 
 /* Campuran card + grup tertutup: satu grid 3 kolom */

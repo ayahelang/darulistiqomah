@@ -398,33 +398,39 @@
       .admin-tab { font-size: .74rem; padding: .42rem .65rem; }
     }
 
-    /* Toolbar tombol atas — 1 baris scroll horizontal di mobile */
+    /* Toolbar tombol atas — 1 baris + scroll (desktop & mobile) */
     .admin-toolbar {
       display: flex;
-      flex-wrap: wrap;
-      gap: .45rem;
-      margin-top: .75rem;
+      flex-wrap: nowrap;
+      gap: .4rem;
+      margin-top: .55rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      padding-bottom: 2px;
     }
+    .admin-toolbar .btn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      font-size: .8rem;
+      padding: .42rem .7rem;
+    }
+    .admin-toolbar::-webkit-scrollbar { height: 4px; }
+    .admin-card > .hint { margin-top: .25rem; margin-bottom: 0; }
+    .admin-card h1 { margin-bottom: .2rem; }
     @media (max-width: 640px) {
       .admin-toolbar {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        padding-bottom: 4px;
-        margin-top: .5rem;
+        margin-top: .4rem;
       }
       .admin-toolbar::-webkit-scrollbar { display: none; }
       .admin-toolbar .btn {
-        flex: 0 0 auto;
-        white-space: nowrap;
-        font-size: .78rem;
-        padding: .45rem .7rem;
+        font-size: .76rem;
+        padding: .4rem .65rem;
       }
       .admin-card { padding: .9rem 1rem; }
       .admin-card h1 { font-size: 1.15rem; }
       .admin-wrap { width: min(960px, 96vw); margin: .75rem auto 2rem; }
-      /* Grup galeri preview lebih rapat */
       .gg-admin-card { gap: 6px !important; }
       .gg-admin-preview {
         grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)) !important;

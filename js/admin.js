@@ -1212,33 +1212,80 @@
     const body = document.getElementById('gfBody');
     body.innerHTML = '';
     const folder = (gg.folder || '').replace(/\/+$/, '');
-    files.forEach(function (f, i) {
-      const row = document.createElement('div');
-      row.className = 'gg-file-row';
-      row.style.cssText = 'border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:start;background:#fff';
-      const imgPath = folder ? (folder + '/' + (f.file || '')) : (f.file || '');
-      row.innerHTML =
-        '<div style="width:88px;height:88px;border-radius:8px;overflow:hidden;background:#f3f4f6;flex-shrink:0">' +
-          (imgPath
-            ? '<img src="' + escapeHtml(imgPath) + '" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display=\'none\'">'
-            : '') +
-        '</div>' +
-        '<div style="display:grid;gap:6px">' +
-          '<div style="font-size:.78rem;color:#6b7280"><code>' + escapeHtml(f.file || '') + '</code></div>' +
+    function rebuildGfRows() {
+      body.innerHTML = '';
+      const current = Array.isArray(gg.files) ? gg.files : [];
+      if (!current.length) {
+        body.innerHTML = '<p class="hint">Tidak ada foto di grup ini. Scan Folder lagi atau tutup modal.</p>';
+        return;
+      }
+      current.forEach(function (f, i) {
+        const row = document.createElement('div');
+        row.className = 'gg-file-row';
+        row.style.cssText = 'border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:96px 1fr auto;gap:12px;align-items:start;background:#fff';
+        const raw = folder ? (folder + '/' + (f.file || '')) : (f.file || '');
+        const imgPath = resolveAdminAsset(raw);
+        const thumb = document.createElement('button');
+        thumb.type = 'button';
+        thumb.title = 'Klik untuk perbesar';
+        thumb.style.cssText = 'width:96px;height:96px;border-radius:8px;overflow:hidden;background:#e5e7eb;border:1px solid #e5e7eb;padding:0;cursor:zoom-in';
+        if (imgPath) {
+          thumb.innerHTML = '<img src="' + escapeHtml(imgPath) + '" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async" onerror="this.parentElement.style.background=\'#d1d5db\';this.remove()">';
+          thumb.onclick = function () {
+            openPreviewCard(
+              (f.title || f.file || 'Foto'),
+              '<img src="' + escapeHtml(imgPath) + '" alt="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:12px;background:#111">'
+            );
+          };
+        } else {
+          thumb.textContent = '—';
+          thumb.style.cursor = 'default';
+        }
+        const fields = document.createElement('div');
+        fields.style.cssText = 'display:grid;gap:6px;min-width:0';
+        fields.innerHTML =
+          '<div style="font-size:.72rem;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><code>' + escapeHtml(f.file || '') + '</code></div>' +
           '<label style="font-size:.75rem;font-weight:600">Judul' +
             '<input type="text" data-gf-i="' + i + '" data-gf-k="title" value="' + escapeHtml(f.title || '') + '" style="width:100%;margin-top:2px"></label>' +
           '<label style="font-size:.75rem;font-weight:600">Deskripsi' +
-            '<input type="text" data-gf-i="' + i + '" data-gf-k="desc" value="' + escapeHtml(f.desc || '') + '" style="width:100%;margin-top:2px"></label>' +
-        '</div>';
-      body.appendChild(row);
-    });
+            '<input type="text" data-gf-i="' + i + '" data-gf-k="desc" value="' + escapeHtml(f.desc || '') + '" style="width:100%;margin-top:2px"></label>';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-ghost';
+        delBtn.textContent = 'Hapus';
+        delBtn.title = 'Hapus foto ini dari grup';
+        delBtn.style.cssText = 'align-self:start;white-space:nowrap;color:#991b1b';
+        delBtn.onclick = function () {
+          if (!confirm('Hapus foto ini dari grup?\n' + (f.file || f.title || ''))) return;
+          // simpan input dulu
+          body.querySelectorAll('[data-gf-i]').forEach(function (inp) {
+            const ii = parseInt(inp.getAttribute('data-gf-i'), 10);
+            const k = inp.getAttribute('data-gf-k');
+            if (current[ii]) current[ii][k] = inp.value.trim();
+          });
+          current.splice(i, 1);
+          gg.files = current;
+          window.__siteDirty = true;
+          const db = document.getElementById('dirtyBanner');
+          if (db) { db.hidden = false; db.style.display = 'block'; }
+          rebuildGfRows();
+          status('Foto dihapus dari grup (belum ke Sheets).');
+        };
+        row.appendChild(thumb);
+        row.appendChild(fields);
+        row.appendChild(delBtn);
+        body.appendChild(row);
+      });
+    }
+    rebuildGfRows();
     document.getElementById('gfSave').onclick = function () {
+      const current = Array.isArray(gg.files) ? gg.files : [];
       body.querySelectorAll('[data-gf-i]').forEach(function (inp) {
         const i = parseInt(inp.getAttribute('data-gf-i'), 10);
         const k = inp.getAttribute('data-gf-k');
-        if (files[i]) files[i][k] = inp.value.trim();
+        if (current[i]) current[i][k] = inp.value.trim();
       });
-      gg.files = files;
+      gg.files = current;
       window.__siteDirty = true;
       const db = document.getElementById('dirtyBanner');
       if (db) { db.hidden = false; db.style.display = 'block'; }

@@ -159,7 +159,9 @@
       bar.className = 'media-toolbar';
       bar.innerHTML =
         '<div class="media-toolbar-search">' +
-          '<input type="search" id="' + kind + 'Search" placeholder="Cari judul, deskripsi…" autocomplete="off">' +
+          '<input type="search" id="' + kind + 'Search" name="' + kind + '_q_nofil" ' +
+            'placeholder="Cari judul, deskripsi…" autocomplete="off" autocorrect="off" ' +
+            'autocapitalize="off" spellcheck="false" inputmode="search" data-lpignore="true" data-1p-ignore="true" role="searchbox">' +
         '</div>' +
         '<div class="media-toolbar-sort" role="group" aria-label="Urutkan">' +
           '<button type="button" class="media-sort-btn" data-sort="newest">Terbaru</button>' +
@@ -168,7 +170,29 @@
       box.parentNode.insertBefore(bar, box);
       const input = bar.querySelector('input');
       const state = _mediaFilter[kind];
-      input.value = state.q || '';
+      // Jangan biarkan browser autofill (email/password) mengisi search
+      input.value = '';
+      input.setAttribute('autocomplete', 'off');
+      // set nilai filter setelah tick agar autofill tidak menang
+      setTimeout(function () {
+        // buang autofill email/password yang sering mengisi kotak search
+        var q = state.q || '';
+        if (/@/.test(q) || /password/i.test(q)) {
+          q = '';
+          state.q = '';
+        }
+        input.value = q;
+      }, 50);
+      input.addEventListener('focus', function () {
+        input.setAttribute('autocomplete', 'off');
+      });
+      // jika browser tetap mengisi, bersihkan saat input event pertama dari autofill
+      input.addEventListener('change', function () {
+        if (/@/.test(input.value)) {
+          input.value = '';
+          state.q = '';
+        }
+      });
       let timer = null;
       input.addEventListener('input', function () {
         const v = input.value;
