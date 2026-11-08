@@ -2656,6 +2656,158 @@
     };
   }
 
+  /* ===== Drive folder → playlist → videoGroups ===== */
+  window.__vgDriveScan = null;
+
+  async function apiDriveAction(action, payload) {
+    const conf = window.SDIT_CONFIG || {};
+    const token = (typeof getToken === 'function' ? getToken() : '') || sessionStorage.getItem('sdit_di_admin_token_v1') || '';
+    const body = Object.assign({ action: action, token: token }, payload || {});
+    const r = await fetch(conf.sheetsApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    });
+    return r.json();
+  }
+
+  function renderDriveFileList(files) {
+    const box = $('vgDriveFileList');
+    if (!box) return;
+    if (!files || !files.length) {
+      box.innerHTML = '<p class="hint">Tidak ada file video di folder.</p>';
+      return;
+    }
+    box.innerHTML = files.map(function (f, i) {
+      return '<label style="display:flex;gap:.5rem;align-items:flex-start;padding:.35rem 0;border-bottom:1px solid rgba(0,0,0,.06)">' +
+        '<input type="checkbox" class="vg-drive-cb" data-id="' + (f.id || '') + '" checked>' +
+        '<span><strong>' + (i + 1) + '.</strong> ' + (f.name || '') +
+        ' <span class="meta">(' + (f.sizeMb || '?') + ' MB)</span></span></label>';
+    }).join('');
+  }
+
+  const btnVgScan = $('btnVgScanDrive');
+  if (btnVgScan) {
+    btnVgScan.onclick = async function () {
+      const folder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
+      const st = $('vgDriveStatus');
+      if (!folder) { if (st) st.textContent = 'Isi link folder Google Drive dulu.'; return; }
+      if (st) st.textContent = 'Memindai folder Drive…';
+      try {
+        const j = await apiDriveAction('scanDriveFolder', { folderUrl: folder, url: folder });
+        if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal scan folder');
+        window.__vgDriveScan = j;
+        renderDriveFileList(j.files || []);
+        if (st) st.textContent = '✓ ' + (j.count || 0) + ' video di folder "' + (j.folderName || '') + '". Centang yang ingin dipakai, lalu Buat Playlist + Grup.';
+      } catch (err) {
+        window.__vgDriveScan = null;
+        if (st) st.textContent = '✗ ' + (err.message || err);
+      }
+    };
+  }
+
+  const btnVgDriveGroup = $('btnVgDriveToGroup');
+  if (btnVgDriveGroup) {
+    btnVgDriveGroup.onclick = async function () {
+      const name = (($('vgDriveName') && $('vgDriveName').value) || '').trim();
+      const folder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
+      const st = $('vgDriveStatus');
+      if (!name) { if (st) st.textContent = 'Nama grup wajib.'; return; }
+      if (!folder) { if (st) st.textContent = 'Link folder Drive wajib.'; return; }
+
+      // Ambil file tercentang (urutan sesuai scan = natural sort)
+      let selectedIds = [];
+      document.querySelectorAll('.vg-drive-cb:checked').forEach(function (cb) {
+        const id = cb.getAttribute('data-id');
+        if (id) selectedIds.push(id);
+      });
+      if (!selectedIds.length && window.__vgDriveScan && window.__vgDriveScan.files) {
+        selectedIds = (window.__vgDriveScan.files || []).map(function (f) { return f.id; });
+      }
+      if (!selectedIds.length) {
+        if (st) st.textContent = 'Scan folder dulu, atau tidak ada video terpilih.';
+        return;
+      }
+
+      if (st) st.textContent = 'Membuat playlist & grup video (bisa memakan waktu)…';
+      btnVgDriveGroup.disabled = true;
+      try {
+        // Mode playlist_only + items kosong dulu: kita upload satu-per-satu agar tidak timeout sekaligus
+        const items = [];
+        const files = (window.__vgDriveScan && window.__vgDriveScan.files) || [];
+        const byId = {};
+        files.forEach(function (f) { byId[f.id] = f; });
+
+        for (let i = 0; i < selectedIds.length; i++) {
+          const fid = selectedIds[i];
+          const meta = byId[fid] || { name: fid };
+          const partTitle = name + ' – Bagian ' + (i + 1);
+          if (st) st.textContent = 'Upload ' + (i + 1) + '/' + selectedIds.length + ': ' + (meta.name || fid) + '…';
+          const up = await apiDriveAction('uploadDriveVideo', {
+            fileId: fid,
+            title: partTitle,
+            description: name + ' (bagian ' + (i + 1) + ' dari ' + selectedIds.length + ')',
+            privacy: 'public'
+          });
+          if (up && up.ok && up.youtubeId) {
+            items.push({
+              youtubeId: up.youtubeId,
+              title: partTitle,
+              order: i + 1,
+              thumb: up.thumb || ('https://img.youtube.com/vi/' + up.youtubeId + '/hqdefault.jpg'),
+              driveFileId: fid,
+              driveName: meta.name || ''
+            });
+          } else {
+            if (st) st.textContent = '✗ Upload gagal pada bagian ' + (i + 1) + ': ' + ((up && up.error) || 'unknown') +
+              ' — lanjut video berikutnya jika ada.';
+          }
+        }
+
+        if (!items.length) {
+          throw new Error('Tidak ada video berhasil di-upload. Coba file lebih kecil, atau upload manual lalu pakai form playlist di bawah.');
+        }
+
+        if (st) st.textContent = 'Membuat playlist YouTube (' + items.length + ' video)…';
+        const groupRes = await apiDriveAction('driveFolderToVideoGroup', {
+          groupName: name,
+          folderUrl: folder,
+          mode: 'playlist_only',
+          privacy: 'public',
+          items: items
+        });
+        if (!groupRes || !groupRes.ok) {
+          throw new Error((groupRes && groupRes.error) || 'Gagal membuat playlist/grup');
+        }
+
+        const vg = groupRes.videoGroup;
+        if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
+        data.videoGroups.unshift({
+          id: (vg && vg.id) || ('vg' + Date.now()),
+          name: name,
+          playlistUrl: (vg && vg.playlistUrl) || '',
+          playlistId: (vg && vg.playlistId) || '',
+          sourceDriveFolder: folder,
+          date: new Date().toISOString().slice(0, 10),
+          order: 0,
+          active: true,
+          items: (vg && vg.items) || items
+        });
+        window.__siteDirty = true;
+        const db = document.getElementById('dirtyBanner');
+        if (db) { db.hidden = false; db.style.display = 'block'; }
+        try { renderVideoGroupsAdmin(); } catch (_) {}
+        try { renderLists(); } catch (_) {}
+        if (st) st.textContent = '✓ Grup "' + name + '" + playlist siap (' + items.length + ' video). Simpan ke Google Sheets.';
+        status('Grup video dari Drive ditambahkan. Simpan ke Google Sheets.');
+      } catch (err) {
+        if (st) st.textContent = '✗ ' + (err.message || err);
+      } finally {
+        btnVgDriveGroup.disabled = false;
+      }
+    };
+  }
+
   document.querySelectorAll('.admin-tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
       if (btn.getAttribute('data-tab') === 'video') {

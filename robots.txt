@@ -5,3 +5,4 @@ Allow: /
 Disallow: /admin/
 
 Sitemap: https://darulistiqomah.silverhawk.web.id/sitemap.xml
+Sitemap: https://darulistiqomah.silverhawk.web.id/sitemap.xml

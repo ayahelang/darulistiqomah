@@ -758,18 +758,38 @@
 <div class="admin-card">
       <h2>Grup Video (Playlist / multi-link)</h2>
       <p class="hint">
-        Mirip grup galeri foto. Isi <strong>nama grup</strong>, lalu salah satu:
-        (1) URL <strong>playlist YouTube</strong> → deteksi otomatis daftar video, atau
-        (2) tempel <strong>banyak link video</strong> (satu per baris).
-        Judul &amp; deskripsi bisa diedit nanti di admin atau di frontend.
+        Buat grup video untuk website. <strong>Dua cara:</strong>
+        (1) folder Google Drive → scan → playlist → grup,
+        (2) link playlist YouTube / daftar link manual (fitur lama).
+        Judul otomatis: Nama Grup – Bagian 1, 2, … (urutan dari nama file).
       </p>
       <div class="list" id="videoGroupsList"></div>
+
+      <div style="margin-top:1rem;padding:1rem;border:1px solid rgba(11,110,79,.25);border-radius:12px;background:rgba(11,110,79,.04)">
+        <h3 style="margin:0 0 .5rem;font-size:1rem">📁 Dari folder Google Drive</h3>
+        <p class="hint" style="margin-bottom:.75rem">
+          Paste link folder Drive. File diurutkan natural (1,2,10). Privacy: <strong>Public</strong>.
+          Folder harus di-share ke akun yang menjalankan Apps Script.
+        </p>
+        <label>Nama grup / judul playlist</label>
+        <input type="text" id="vgDriveName" placeholder="Contoh: Acara 17an 2026">
+        <label style="margin-top:.5rem;display:block">Link folder Google Drive</label>
+        <input type="url" id="vgDriveFolder" placeholder="https://drive.google.com/drive/folders/XXXX">
+        <div class="actions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem">
+          <button class="btn btn-ghost" type="button" id="btnVgScanDrive">Scan Folder Drive</button>
+          <button class="btn btn-primary" type="button" id="btnVgDriveToGroup">Buat Playlist + Grup Video</button>
+        </div>
+        <p id="vgDriveStatus" class="hint" style="margin-top:.5rem"></p>
+        <div id="vgDriveFileList" style="margin-top:.75rem;max-height:260px;overflow:auto"></div>
+      </div>
+
       <div style="margin-top:1rem;padding:1rem;border:1px solid rgba(11,110,79,.15);border-radius:12px;background:#f8fbf9">
+        <h3 style="margin:0 0 .5rem;font-size:1rem">Atau dari playlist / link YouTube</h3>
         <label>Nama grup</label>
         <input type="text" id="vgName" placeholder="Contoh: Kajian Rutin / Kegiatan Tahfidz">
-        <label>URL playlist YouTube (opsional)</label>
+        <label style="margin-top:.5rem;display:block">URL playlist YouTube (opsional)</label>
         <input type="url" id="vgPlaylist" placeholder="https://www.youtube.com/playlist?list=PLxxxx">
-        <label>Atau daftar link video (satu per baris)</label>
+        <label style="margin-top:.5rem;display:block">Atau daftar link video (satu per baris)</label>
         <textarea id="vgLinks" rows="5" placeholder="https://www.youtube.com/watch?v=xxxxx&#10;https://youtu.be/yyyyy"></textarea>
         <div class="actions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem">
           <button class="btn btn-ghost" type="button" id="btnVgFetchPlaylist">Deteksi dari playlist</button>

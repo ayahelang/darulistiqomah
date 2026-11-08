@@ -1,1 +1,3 @@
 SDIT_TRIAL=1
+FEATURE=drive_folder_to_video_group
+BASED=2026-11-08
