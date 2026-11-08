@@ -204,6 +204,7 @@
     data = j.data;
     if (!data.media) data.media = [];
     if (!Array.isArray(data.galleryGroups)) data.galleryGroups = [];
+    if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
     if (!data.announcements) data.announcements = [];
     ensureSiteArrays(data);
     fillForm();
@@ -390,8 +391,10 @@
       { key: 'type', label: 'Tipe', type: 'text' }
     ],
     galleryGroups: [
-      { key: 'name', label: 'Nama grup', type: 'text' },
-      { key: 'folder', label: 'Path folder (contoh: images/foto/mabit)', type: 'text' },
+      { key: 'name', label: 'Nama grup (wajib)', type: 'text' },
+      { key: 'folder', label: 'Path folder (wajib, contoh: images/foto/mabit)', type: 'text' },
+      { key: 'defaultTitle', label: 'Judul default (opsional — jika diisi, semua foto pakai judul ini; kosong = dari nama file)', type: 'text' },
+      { key: 'defaultDesc', label: 'Deskripsi default (opsional — jika diisi, tiap foto: deskripsi + nama file; kosong = tanpa deskripsi)', type: 'textarea' },
       { key: 'order', label: 'Urutan (angka, kecil = atas)', type: 'text' },
       { key: 'active', label: 'Aktif (true/false)', type: 'text' }
     ],
@@ -399,6 +402,13 @@
       { key: 'title', label: 'Judul', type: 'text' },
       { key: 'youtubeId', label: 'YouTube ID', type: 'text' },
       { key: 'thumb', label: 'URL Thumbnail', type: 'text' }
+    ],
+    videoGroups: [
+      { key: 'name', label: 'Nama grup video (wajib)', type: 'text' },
+      { key: 'playlistUrl', label: 'URL playlist YouTube (opsional)', type: 'text' },
+      { key: 'date', label: 'Tanggal (YYYY-MM-DD)', type: 'text' },
+      { key: 'order', label: 'Urutan (angka, kecil = atas)', type: 'text' },
+      { key: 'active', label: 'Aktif (true/false)', type: 'text' }
     ],
     announcements: [
       { key: 'title', label: 'Judul', type: 'text' },
@@ -544,7 +554,7 @@
       facilities: 'name', teachers: 'name', leadership: 'name',
       achievements: 'title', calendar: 'title', faq: 'q',
       'ppdb.steps': 'title', 'ppdb.schedule': 'label', 'fees.items': 'name',
-      carousel: 'title', articles: 'title', gallery: 'title', galleryGroups: 'name', videos: 'title', media: 'title',
+      carousel: 'title', articles: 'title', gallery: 'title', galleryGroups: 'name', videoGroups: 'name', videos: 'title', media: 'title',
       programs: 'title', activities: 'title', stats: 'label'
     }[type];
     if (requiredKey && !(item[requiredKey] || '').trim()) {
@@ -559,6 +569,13 @@
       if (typeof item.active === 'string') item.active = (item.active.toLowerCase() !== 'false');
       if (item.order !== undefined && item.order !== '') item.order = parseInt(item.order, 10) || 0;
       if (!Array.isArray(item.files)) item.files = [];
+      item.folder = (item.folder || '').replace(/^\/+|\/+$/g, '');
+      if (!item.folder) {
+        status('✗ Path folder wajib diisi (contoh: images/foto/mabit)');
+        const el = document.getElementById('ef_folder');
+        if (el) { el.focus(); el.style.outline = '2px solid #c0392b'; }
+        return;
+      }
     }
     if (index >= 0) list[index] = item;
     else list.unshift(item);
@@ -567,6 +584,15 @@
     if (db) { db.hidden = false; db.style.display = 'block'; }
     closeEditor();
     renderLists();
+    // Grup baru / folder diisi: langsung scan folder → isi list file → siap simpan Sheets
+    if (type === 'galleryGroups') {
+      const gi = index >= 0 ? index : 0;
+      status('✓ Grup disimpan di panel. Memindai folder…');
+      scanGalleryGroupFolder(gi).then(function () {
+        status('✓ Galeri grup siap. Klik tombol hijau "Simpan ke Google Sheets" agar tampil di website.');
+      });
+      return;
+    }
     status('✓ Item disimpan di panel. Klik tombol hijau "Simpan ke Google Sheets" agar tampil di website publik.');
   }
 
@@ -686,6 +712,10 @@
   function rowActions(type, index) {
     const wrap = document.createElement('div');
     wrap.className = 'actions-row';
+
+    // Desktop / wide: tombol terpisah
+    const inline = document.createElement('div');
+    inline.className = 'actions-inline';
     const prev = document.createElement('button');
     prev.type = 'button';
     prev.className = 'btn btn-accent';
@@ -708,9 +738,43 @@
     del.textContent = 'Hapus';
     del.setAttribute('data-tip', 'Hapus item. Klik Simpan ke Google Sheets agar permanen.');
     del.onclick = () => deleteItem(type, index);
-    wrap.appendChild(prev);
-    wrap.appendChild(edit);
-    wrap.appendChild(del);
+    inline.appendChild(prev);
+    inline.appendChild(edit);
+    inline.appendChild(del);
+    wrap.appendChild(inline);
+
+    // Mobile / narrow: menu titik tiga
+    const moreWrap = document.createElement('div');
+    moreWrap.className = 'actions-more';
+    const moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'btn btn-ghost btn-more';
+    moreBtn.setAttribute('aria-label', 'Menu aksi');
+    moreBtn.textContent = '⋮';
+    const menu = document.createElement('div');
+    menu.className = 'actions-menu';
+    menu.hidden = true;
+    const mkItem = (label, cls, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'actions-menu-item ' + (cls || '');
+      b.textContent = label;
+      b.onclick = (e) => { e.stopPropagation(); menu.hidden = true; fn(); };
+      return b;
+    };
+    menu.appendChild(mkItem('Preview', '', () => prev.onclick()));
+    menu.appendChild(mkItem('Edit', '', () => edit.onclick()));
+    menu.appendChild(mkItem('Hapus', 'danger', () => del.onclick()));
+    moreBtn.onclick = (e) => {
+      e.stopPropagation();
+      const open = menu.hidden;
+      document.querySelectorAll('.actions-menu').forEach((m) => { m.hidden = true; });
+      menu.hidden = !open;
+    };
+    moreWrap.appendChild(moreBtn);
+    moreWrap.appendChild(menu);
+    wrap.appendChild(moreWrap);
+
     return wrap;
   }
 
@@ -730,6 +794,9 @@
       overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
       document.getElementById('previewCardClose').onclick = () => overlay.classList.remove('open');
     }
+    // pastikan di atas modal edit (z-index edit-modal = 10000)
+    overlay.style.zIndex = '100050';
+    document.body.appendChild(overlay); // pindah ke akhir body
     document.getElementById('previewCardTitle').textContent = title || 'Preview';
     document.getElementById('previewCardBody').innerHTML = htmlBody;
     overlay.classList.add('open');
@@ -1029,39 +1096,76 @@
     const folder = String(gg.folder).replace(/^\/+|\/+$/g, '');
     status('Memindai folder ' + folder + ' via GitHub API…');
     try {
-      const api = 'https://api.github.com/repos/ayahelang/sditdaarulistiqomah/contents/' + folder;
-      const res = await fetch(api, { headers: { Accept: 'application/vnd.github.v3+json' } });
-      if (!res.ok) {
-        throw new Error('GitHub API ' + res.status + ' — pastikan folder ada di repo dan repo publik.');
+      // Coba kedua repo (produksi & development)
+      const repos = ['ayahelang/darulistiqomah', 'ayahelang/sditdaarulistiqomah'];
+      let items = null;
+      let lastErr = null;
+      for (let r = 0; r < repos.length; r++) {
+        const api = 'https://api.github.com/repos/' + repos[r] + '/contents/' + encodeURIComponent(folder).replace(/%2F/g, '/');
+        try {
+          const res = await fetch(api, { headers: { Accept: 'application/vnd.github.v3+json' } });
+          if (res.ok) {
+            const json = await res.json();
+            if (Array.isArray(json)) { items = json; break; }
+          } else {
+            lastErr = 'GitHub API ' + res.status + ' (' + repos[r] + ')';
+          }
+        } catch (e) {
+          lastErr = e.message || String(e);
+        }
       }
-      const items = await res.json();
-      if (!Array.isArray(items)) throw new Error('Respons API tidak valid');
+      if (!items) {
+        throw new Error(lastErr || 'Folder tidak ditemukan di repo publik. Pastikan path benar dan file sudah di-push.');
+      }
       const imgExt = /\.(jpe?g|png|gif|webp|bmp|avif)$/i;
       const found = items
         .filter(function (it) { return it.type === 'file' && imgExt.test(it.name); })
         .map(function (it) { return it.name; })
         .sort();
       if (!found.length) {
-        status('Tidak ada file gambar di folder ' + folder);
+        status('Tidak ada file gambar (jpg/jpeg/png/webp/gif) di folder ' + folder);
         return;
       }
-      // merge: keep existing title/desc by filename
+      // Aturan judul & deskripsi:
+      // - defaultTitle diisi → semua foto pakai judul itu
+      // - defaultTitle kosong → judul dari nama file
+      // - defaultDesc diisi → deskripsi = defaultDesc + ' — ' + nama file (tanpa ekstensi)
+      // - defaultDesc kosong → deskripsi kosong (tidak ditampilkan di frontend)
+      // Merge: jika file sudah ada title/desc kustom, pertahankan
       const oldMap = {};
       (gg.files || []).forEach(function (f) {
         if (f && f.file) oldMap[f.file] = f;
       });
+      const defTitle = (gg.defaultTitle || '').trim();
+      const defDesc = (gg.defaultDesc || '').trim();
       gg.files = found.map(function (name) {
         const prev = oldMap[name];
-        return {
-          file: name,
-          title: (prev && prev.title) || titleFromFilenameAdmin(name),
-          desc: (prev && prev.desc) || ''
-        };
+        const baseName = String(name).replace(/\.[^.]+$/, '');
+        let title, desc;
+        if (prev && prev.title && String(prev.title).trim()) {
+          title = prev.title;
+        } else if (defTitle) {
+          title = defTitle;
+        } else {
+          title = titleFromFilenameAdmin(name);
+        }
+        if (prev && prev.desc && String(prev.desc).trim()) {
+          desc = prev.desc;
+        } else if (defDesc) {
+          desc = defDesc + ' — ' + baseName;
+        } else {
+          // default: nama grup + judul foto (bulk galeri foto)
+          const gName = (gg.name || '').trim();
+          desc = gName ? (gName + ' — ' + title) : title;
+        }
+        return { file: name, title: title, desc: desc };
       });
       if (gg.active === undefined) gg.active = true;
       window.__siteDirty = true;
+      const db = document.getElementById('dirtyBanner');
+      if (db) { db.hidden = false; db.style.display = 'block'; }
       renderLists();
-      status('✓ Scan selesai: ' + found.length + ' foto. Klik Simpan ke Google Sheets.');
+      status('✓ Scan selesai: ' + found.length + ' foto dari ' + folder + '. Klik Simpan ke Google Sheets.');
     } catch (err) {
       status('✗ Scan gagal: ' + (err.message || err));
       console.error(err);
@@ -1082,47 +1186,115 @@
     if (!box) {
       box = document.createElement('div');
       box.id = 'groupFilesModal';
-      box.className = 'modal';
+      box.className = 'edit-modal';
+      box.hidden = true;
       box.innerHTML = `
-        <div class="modal-card" style="max-width:720px;max-height:85vh;overflow:auto">
-          <div class="modal-head">
-            <strong id="gfTitle">Edit judul & deskripsi foto</strong>
+        <div class="edit-modal-inner" style="max-width:min(920px,96vw);width:96vw;max-height:90vh;display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:.75rem;flex-shrink:0">
+            <h2 id="gfTitle" style="margin:0;font-size:1.1rem;color:#084C37">Edit judul &amp; deskripsi foto</h2>
             <button type="button" class="btn btn-ghost" id="gfClose">Tutup</button>
           </div>
-          <div id="gfBody" style="padding:12px 16px"></div>
-          <div class="modal-foot" style="padding:12px 16px;display:flex;gap:8px;justify-content:flex-end">
+          <p id="gfHint" class="hint" style="margin:0 0 .75rem;flex-shrink:0"></p>
+          <div id="gfBody" style="overflow:auto;flex:1;padding-right:4px"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:12px;flex-shrink:0;border-top:1px solid #e5e7eb;margin-top:12px">
+            <button type="button" class="btn btn-ghost" id="gfCancel">Batal</button>
             <button type="button" class="btn btn-primary" id="gfSave">Terapkan</button>
           </div>
         </div>`;
       document.body.appendChild(box);
-      document.getElementById('gfClose').onclick = () => { box.hidden = true; };
+      const close = function () { box.hidden = true; };
+      document.getElementById('gfClose').onclick = close;
+      document.getElementById('gfCancel').onclick = close;
+      box.addEventListener('click', function (e) { if (e.target === box) close(); });
     }
     box.hidden = false;
     document.getElementById('gfTitle').textContent = 'Edit foto — ' + (gg.name || gg.folder || 'Grup');
+    document.getElementById('gfHint').textContent =
+      (files.length) + ' foto · folder: ' + (gg.folder || '-') +
+      ' · ubah judul/deskripsi lalu Terapkan, kemudian Simpan ke Google Sheets.';
     const body = document.getElementById('gfBody');
     body.innerHTML = '';
-    files.forEach(function (f, i) {
-      const row = document.createElement('div');
-      row.style.cssText = 'border-bottom:1px solid #eee;padding:10px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px';
-      row.innerHTML = `
-        <div style="grid-column:1/-1;font-size:.8rem;color:#666"><code>${escapeHtml(f.file || '')}</code></div>
-        <div><label style="font-size:.75rem">Judul</label>
-          <input type="text" data-gf-i="${i}" data-gf-k="title" value="${escapeHtml(f.title || '')}"></div>
-        <div><label style="font-size:.75rem">Deskripsi</label>
-          <input type="text" data-gf-i="${i}" data-gf-k="desc" value="${escapeHtml(f.desc || '')}"></div>`;
-      body.appendChild(row);
-    });
-    document.getElementById('gfSave').onclick = () => {
+    const folder = (gg.folder || '').replace(/\/+$/, '');
+    function rebuildGfRows() {
+      body.innerHTML = '';
+      const current = Array.isArray(gg.files) ? gg.files : [];
+      if (!current.length) {
+        body.innerHTML = '<p class="hint">Tidak ada foto di grup ini. Scan Folder lagi atau tutup modal.</p>';
+        return;
+      }
+      current.forEach(function (f, i) {
+        const row = document.createElement('div');
+        row.className = 'gg-file-row';
+        row.style.cssText = 'border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:96px 1fr auto;gap:12px;align-items:start;background:#fff';
+        const raw = folder ? (folder + '/' + (f.file || '')) : (f.file || '');
+        const imgPath = resolveAdminAsset(raw);
+        const thumb = document.createElement('button');
+        thumb.type = 'button';
+        thumb.title = 'Klik untuk perbesar';
+        thumb.style.cssText = 'width:96px;height:96px;border-radius:8px;overflow:hidden;background:#e5e7eb;border:1px solid #e5e7eb;padding:0;cursor:zoom-in';
+        if (imgPath) {
+          thumb.innerHTML = '<img src="' + escapeHtml(imgPath) + '" alt="" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async" onerror="this.parentElement.style.background=\'#d1d5db\';this.remove()">';
+          thumb.onclick = function () {
+            openPreviewCard(
+              (f.title || f.file || 'Foto'),
+              '<img src="' + escapeHtml(imgPath) + '" alt="" style="width:100%;max-height:70vh;object-fit:contain;border-radius:12px;background:#111">'
+            );
+          };
+        } else {
+          thumb.textContent = '—';
+          thumb.style.cursor = 'default';
+        }
+        const fields = document.createElement('div');
+        fields.style.cssText = 'display:grid;gap:6px;min-width:0';
+        fields.innerHTML =
+          '<div style="font-size:.72rem;color:#6b7280;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><code>' + escapeHtml(f.file || '') + '</code></div>' +
+          '<label style="font-size:.75rem;font-weight:600">Judul' +
+            '<input type="text" data-gf-i="' + i + '" data-gf-k="title" value="' + escapeHtml(f.title || '') + '" style="width:100%;margin-top:2px"></label>' +
+          '<label style="font-size:.75rem;font-weight:600">Deskripsi' +
+            '<input type="text" data-gf-i="' + i + '" data-gf-k="desc" value="' + escapeHtml(f.desc || '') + '" style="width:100%;margin-top:2px"></label>';
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-ghost';
+        delBtn.textContent = 'Hapus';
+        delBtn.title = 'Hapus foto ini dari grup';
+        delBtn.style.cssText = 'align-self:start;white-space:nowrap;color:#991b1b';
+        delBtn.onclick = function () {
+          if (!confirm('Hapus foto ini dari grup?\n' + (f.file || f.title || ''))) return;
+          // simpan input dulu
+          body.querySelectorAll('[data-gf-i]').forEach(function (inp) {
+            const ii = parseInt(inp.getAttribute('data-gf-i'), 10);
+            const k = inp.getAttribute('data-gf-k');
+            if (current[ii]) current[ii][k] = inp.value.trim();
+          });
+          current.splice(i, 1);
+          gg.files = current;
+          window.__siteDirty = true;
+          const db = document.getElementById('dirtyBanner');
+          if (db) { db.hidden = false; db.style.display = 'block'; }
+          rebuildGfRows();
+          status('Foto dihapus dari grup (belum ke Sheets).');
+        };
+        row.appendChild(thumb);
+        row.appendChild(fields);
+        row.appendChild(delBtn);
+        body.appendChild(row);
+      });
+    }
+    rebuildGfRows();
+    document.getElementById('gfSave').onclick = function () {
+      const current = Array.isArray(gg.files) ? gg.files : [];
       body.querySelectorAll('[data-gf-i]').forEach(function (inp) {
         const i = parseInt(inp.getAttribute('data-gf-i'), 10);
         const k = inp.getAttribute('data-gf-k');
-        if (files[i]) files[i][k] = inp.value.trim();
+        if (current[i]) current[i][k] = inp.value.trim();
       });
-      gg.files = files;
+      gg.files = current;
       window.__siteDirty = true;
+      const db = document.getElementById('dirtyBanner');
+      if (db) { db.hidden = false; db.style.display = 'block'; }
       box.hidden = true;
       renderLists();
-      status('Judul/desc diperbarui (belum disimpan ke Sheets).');
+      status('Judul/desc diperbarui (belum disimpan ke Sheets). Klik Simpan ke Google Sheets.');
     };
   }
 
@@ -1233,7 +1405,12 @@
       if (!Array.isArray(data.galleryGroups)) data.galleryGroups = [];
       (data.galleryGroups || []).forEach((gg, i) => {
         const row = document.createElement('div');
-        row.className = 'list-item';
+        row.className = 'list-item gg-admin-card';
+        row.style.cssText = 'flex-direction:column;align-items:stretch;gap:10px';
+
+        const top = document.createElement('div');
+        top.style.cssText = 'display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start';
+
         const mid = document.createElement('div');
         mid.className = 'li-info';
         const fileCount = Array.isArray(gg.files) ? gg.files.length : 0;
@@ -1242,10 +1419,12 @@
           : '<span class="badge foto">aktif</span>';
         mid.innerHTML = `${activeBadge} <strong>${escapeHtml(gg.name || '(tanpa nama)')}</strong>
           <div class="meta">Folder: <code>${escapeHtml(gg.folder || '')}</code> · ${fileCount} file · order ${escapeHtml(String(gg.order != null ? gg.order : ''))}</div>`;
-        row.appendChild(mid);
+        top.appendChild(mid);
 
         const acts = document.createElement('div');
         acts.className = 'li-actions';
+        acts.style.cssText = 'flex-wrap:wrap';
+
         const btnScan = document.createElement('button');
         btnScan.type = 'button';
         btnScan.className = 'btn btn-accent';
@@ -1257,15 +1436,15 @@
         const btnEdit = document.createElement('button');
         btnEdit.type = 'button';
         btnEdit.className = 'btn btn-ghost';
-        btnEdit.textContent = 'Edit';
+        btnEdit.textContent = 'Edit Grup';
         btnEdit.onclick = () => openEditor('galleryGroups', i);
         acts.appendChild(btnEdit);
 
         const btnFiles = document.createElement('button');
         btnFiles.type = 'button';
-        btnFiles.className = 'btn btn-ghost';
-        btnFiles.textContent = 'Edit Judul/Desc';
-        btnFiles.title = 'Edit title & deskripsi tiap foto dalam grup';
+        btnFiles.className = 'btn btn-primary';
+        btnFiles.textContent = 'Lihat / Edit Foto';
+        btnFiles.title = 'Preview + edit judul & deskripsi tiap foto';
         btnFiles.onclick = () => openGroupFilesEditor(i);
         acts.appendChild(btnFiles);
 
@@ -1281,7 +1460,52 @@
           status('Grup dihapus (belum disimpan ke Sheets).');
         };
         acts.appendChild(btnDel);
-        row.appendChild(acts);
+        top.appendChild(acts);
+        row.appendChild(top);
+
+        // Preview thumbnails
+        const files = Array.isArray(gg.files) ? gg.files : [];
+        const folder = (gg.folder || '').replace(/\/+$/, '');
+        if (files.length) {
+          const prev = document.createElement('div');
+          prev.className = 'gg-admin-preview';
+          prev.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px';
+          const maxShow = Math.min(files.length, 12);
+          for (let fi = 0; fi < maxShow; fi++) {
+            const f = files[fi];
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            cell.title = (f.title || f.file || '') + ' — klik untuk edit semua foto';
+            cell.style.cssText = 'border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;padding:0;background:#f9fafb;cursor:pointer;text-align:left';
+            const rawSrc = folder ? (folder + '/' + (f.file || '')) : (f.file || '');
+            const src = resolveAdminAsset(rawSrc);
+            cell.innerHTML =
+              '<div style="aspect-ratio:1;background:#e5e7eb;overflow:hidden">' +
+                (src ? '<img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.parentElement.style.background=\'#d1d5db\'">' : '') +
+              '</div>' +
+              '<div style="padding:4px 6px;font-size:.68rem;line-height:1.25;max-height:2.6em;overflow:hidden">' +
+                escapeHtml(f.title || f.file || '') +
+              '</div>';
+            cell.onclick = () => openGroupFilesEditor(i);
+            prev.appendChild(cell);
+          }
+          if (files.length > maxShow) {
+            const more = document.createElement('button');
+            more.type = 'button';
+            more.className = 'btn btn-ghost';
+            more.style.cssText = 'min-height:88px';
+            more.textContent = '+' + (files.length - maxShow) + ' lagi';
+            more.onclick = () => openGroupFilesEditor(i);
+            prev.appendChild(more);
+          }
+          row.appendChild(prev);
+        } else {
+          const empty = document.createElement('div');
+          empty.className = 'hint';
+          empty.textContent = 'Belum ada foto. Klik Scan Folder setelah path folder diisi.';
+          row.appendChild(empty);
+        }
+
         ggBox.appendChild(row);
       });
     }
@@ -1490,8 +1714,18 @@
   $('btnAddArticle').onclick = () => openEditor('articles', -1);
   $('btnAddGallery').onclick = () => openEditor('gallery', -1);
   const bv = $('btnAddVideo'); if (bv) bv.onclick = () => openEditor('videos', -1);
+
+  // Tutup menu ⋮ saat klik di luar
+  if (!window.__actionsMenuOutside) {
+    window.__actionsMenuOutside = true;
+    document.addEventListener('click', function () {
+      document.querySelectorAll('.actions-menu').forEach(function (m) { m.hidden = true; });
+    });
+  }
+
   const bgg = $('btnAddGalleryGroup');
   if (bgg) bgg.onclick = () => openEditor('galleryGroups', -1);
+  try { renderVideoGroupsAdmin(); } catch (_e) {}
 
   updateSheetsHint();
   (async () => {
@@ -2165,5 +2399,653 @@
   if (_btnLogin) {
     _btnLogin.addEventListener('click', () => setTimeout(() => { if (isAuthed()) focusPpdbSectionIfNeeded(); }, 200));
   }
+
+
+
+  // ——— Multi password editor (frontend edit) ———
+  async function apiEditors(action, body) {
+    const conf = window.SDIT_CONFIG || {};
+    const token = sessionStorage.getItem('sdit_di_admin_token_v1') || localStorage.getItem('sdit_di_admin_token_v1') || '';
+    const url = (conf.sheetsApiUrl || '') + (conf.sheetsApiUrl && conf.sheetsApiUrl.indexOf('?') >= 0 ? '&' : '?') + 'action=' + encodeURIComponent(action) + (token ? '&token=' + encodeURIComponent(token) : '');
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action: action, token: token }, body || {}))
+    });
+    return r.json();
+  }
+
+  async function refreshEditorList() {
+    const box = $('editorPassList');
+    const st = $('edStatus');
+    if (!box) return;
+    box.innerHTML = '<div class="hint">Memuat…</div>';
+    try {
+      const j = await apiEditors('listEditors', {});
+      if (!j || !j.ok) {
+        box.innerHTML = '<div class="hint" style="color:#b91c1c">' + ((j && j.error) || 'Gagal memuat. Pastikan sudah login & Code.gs terbaru di-deploy.') + '</div>';
+        return;
+      }
+      const list = j.editors || [];
+      if (!list.length) {
+        box.innerHTML = '<div class="hint">Belum ada password editor. Hanya password admin utama yang aktif.</div>';
+        return;
+      }
+      box.innerHTML = '';
+      list.forEach(function (ed) {
+        const row = document.createElement('div');
+        row.className = 'list-row';
+        row.innerHTML =
+          '<div class="list-main"><strong>' + (ed.label || ed.id) + '</strong>' +
+          '<div class="meta">' + (ed.createdAt ? ('Dibuat: ' + ed.createdAt) : ed.id) +
+          (ed.hasPassword ? ' · password aktif' : '') + '</div></div>';
+        const actions = document.createElement('div');
+        actions.className = 'actions-row';
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'btn btn-ghost';
+        del.style.color = '#b91c1c';
+        del.textContent = 'Hapus';
+        del.onclick = async function () {
+          if (!confirm('Hapus password editor "' + (ed.label || ed.id) + '"?')) return;
+          const res = await apiEditors('removeEditor', { id: ed.id });
+          if (st) st.textContent = res.ok ? '✓ Dihapus' : ('✗ ' + (res.error || 'gagal'));
+          refreshEditorList();
+        };
+        actions.appendChild(del);
+        row.appendChild(actions);
+        box.appendChild(row);
+      });
+    } catch (err) {
+      box.innerHTML = '<div class="hint" style="color:#b91c1c">' + (err.message || err) + '</div>';
+    }
+  }
+
+  const btnAddEditor = $('btnAddEditor');
+  if (btnAddEditor) {
+    btnAddEditor.onclick = async function () {
+      const label = (($('edLabel') && $('edLabel').value) || '').trim();
+      const p1 = (($('edPass') && $('edPass').value) || '');
+      const p2 = (($('edPass2') && $('edPass2').value) || '');
+      const st = $('edStatus');
+      if (p1.length < 4) { if (st) st.textContent = 'Password minimal 4 karakter.'; return; }
+      if (p1 !== p2) { if (st) st.textContent = 'Password tidak sama.'; return; }
+      if (st) st.textContent = 'Menyimpan…';
+      try {
+        const res = await apiEditors('addEditor', { label: label || 'Editor', password: p1 });
+        if (!res.ok) { if (st) st.textContent = '✗ ' + (res.error || 'gagal'); return; }
+        if ($('edLabel')) $('edLabel').value = '';
+        if ($('edPass')) $('edPass').value = '';
+        if ($('edPass2')) $('edPass2').value = '';
+        if (st) st.textContent = '✓ Editor ditambahkan. Bisa langsung dipakai di frontend.';
+        refreshEditorList();
+      } catch (err) {
+        if (st) st.textContent = '✗ ' + (err.message || err);
+      }
+    };
+  }
+  const btnRefEd = $('btnRefreshEditors');
+  if (btnRefEd) btnRefEd.onclick = refreshEditorList;
+
+  // auto-load when setup tab opened
+  document.querySelectorAll('.admin-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.getAttribute('data-tab') === 'setup') {
+        setTimeout(refreshEditorList, 50);
+      }
+    });
+  });
+
+  // ——— Video groups ———
+  function extractYtIdFromLine(line) {
+    const s = String(line || '').trim();
+    if (!s) return '';
+    try {
+      if (window.MediaUtils && typeof MediaUtils.parseSocialUrl === 'function') {
+        const p = MediaUtils.parseSocialUrl(s);
+        if (p && p.ok && p.source === 'youtube' && p.shortcode) return p.shortcode;
+      }
+    } catch (_) {}
+    const m = s.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{6,})/);
+    if (m) return m[1];
+    if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s;
+    return '';
+  }
+
+  function renderVideoGroupsAdmin() {
+    if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
+    const box = $('videoGroupsList');
+    if (!box) return;
+    box.innerHTML = '';
+    data.videoGroups.forEach(function (grp, gi) {
+      const n = (grp.items || []).length;
+      const row = document.createElement('div');
+      row.className = 'list-row';
+      row.innerHTML =
+        '<div class="list-main"><strong>' + (grp.name || 'Grup video') + '</strong>' +
+        '<div class="meta">' + n + ' video' +
+        (grp.playlistUrl ? (' · playlist') : '') + '</div></div>';
+      const actions = document.createElement('div');
+      actions.className = 'actions-row';
+      const edit = document.createElement('button');
+      edit.type = 'button'; edit.className = 'btn btn-ghost'; edit.textContent = 'Edit';
+      edit.onclick = function () { openEditor('videoGroups', gi); };
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'btn btn-ghost'; del.style.color = '#b91c1c'; del.textContent = 'Hapus';
+      del.onclick = function () {
+        if (!confirm('Hapus grup "' + (grp.name || '') + '"?')) return;
+        data.videoGroups.splice(gi, 1);
+        window.__siteDirty = true;
+        const db = document.getElementById('dirtyBanner');
+        if (db) { db.hidden = false; db.style.display = 'block'; }
+        renderLists();
+        status('Grup video dihapus (lokal). Simpan ke Google Sheets.');
+      };
+      actions.appendChild(edit);
+      actions.appendChild(del);
+      row.appendChild(actions);
+      const thumbs = document.createElement('div');
+      thumbs.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:.5rem;width:100%';
+      (grp.items || []).slice(0, 8).forEach(function (it) {
+        const id = it.youtubeId || '';
+        const src = it.thumb || (id ? ('https://img.youtube.com/vi/' + id + '/hqdefault.jpg') : '');
+        if (!src) return;
+        const im = document.createElement('img');
+        im.src = src; im.alt = it.title || '';
+        im.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid rgba(11,110,79,.12)';
+        thumbs.appendChild(im);
+      });
+      row.appendChild(thumbs);
+      box.appendChild(row);
+    });
+  }
+
+  async function apiFetchYtPlaylist(playlistUrl) {
+    const conf = window.SDIT_CONFIG || {};
+    const token = (typeof getToken === 'function' ? getToken() : '') || sessionStorage.getItem('sdit_di_admin_token_v1') || '';
+    const r = await fetch(conf.sheetsApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'fetchYtPlaylist', token: token, url: playlistUrl, playlistUrl: playlistUrl })
+    });
+    return r.json();
+  }
+
+  const btnVgFetch = $('btnVgFetchPlaylist');
+  if (btnVgFetch) {
+    btnVgFetch.onclick = async function () {
+      const url = (($('vgPlaylist') && $('vgPlaylist').value) || '').trim();
+      const st = $('vgStatus');
+      if (!url) { if (st) st.textContent = 'Isi URL playlist dulu.'; return; }
+      if (st) st.textContent = 'Mengambil daftar video dari playlist…';
+      try {
+        const j = await apiFetchYtPlaylist(url);
+        if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal deteksi playlist');
+        const items = j.items || [];
+        if (!items.length) throw new Error('Playlist kosong / tidak terbaca');
+        if ($('vgLinks')) {
+          $('vgLinks').value = items.map(function (it) {
+            return 'https://www.youtube.com/watch?v=' + it.youtubeId;
+          }).join('\n');
+        }
+        window.__vgFetchedItems = items;
+        if (st) st.textContent = '✓ ' + items.length + ' video terdeteksi. Klik Tambah Grup untuk menyimpan.';
+      } catch (err) {
+        if (st) st.textContent = '✗ ' + (err.message || err);
+      }
+    };
+  }
+
+  const btnAddVg = $('btnAddVideoGroup');
+  if (btnAddVg) {
+    btnAddVg.onclick = async function () {
+      const name = (($('vgName') && $('vgName').value) || '').trim();
+      const playlist = (($('vgPlaylist') && $('vgPlaylist').value) || '').trim();
+      const raw = (($('vgLinks') && $('vgLinks').value) || '').trim();
+      const st = $('vgStatus');
+      if (!name) { if (st) st.textContent = 'Nama grup wajib.'; return; }
+      let items = [];
+      if (window.__vgFetchedItems && window.__vgFetchedItems.length) {
+        items = window.__vgFetchedItems.slice();
+      }
+      if (raw) {
+        const lines = raw.split(/[\n\r]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+        const fromLines = [];
+        lines.forEach(function (line) {
+          const id = extractYtIdFromLine(line);
+          if (!id) return;
+          const meta = (window.__vgFetchedItems || []).find(function (x) { return x.youtubeId === id; });
+          fromLines.push({
+            youtubeId: id,
+            title: (meta && meta.title) || ('Video ' + id),
+            desc: (meta && meta.desc) || '',
+            thumb: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg'
+          });
+        });
+        if (fromLines.length) items = fromLines;
+      }
+      if (!items.length && playlist) {
+        if (st) st.textContent = 'Klik "Deteksi dari playlist" dulu, atau isi daftar link.';
+        return;
+      }
+      if (!items.length) {
+        if (st) st.textContent = 'Isi daftar link video atau deteksi playlist.';
+        return;
+      }
+      if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
+      data.videoGroups.unshift({
+        id: 'vg' + Date.now(),
+        name: name,
+        playlistUrl: playlist,
+        date: new Date().toISOString().slice(0, 10),
+        order: 0,
+        active: true,
+        items: items
+      });
+      window.__vgFetchedItems = null;
+      window.__siteDirty = true;
+      const db = document.getElementById('dirtyBanner');
+      if (db) { db.hidden = false; db.style.display = 'block'; }
+      if ($('vgName')) $('vgName').value = '';
+      if ($('vgPlaylist')) $('vgPlaylist').value = '';
+      if ($('vgLinks')) $('vgLinks').value = '';
+      try { renderVideoGroupsAdmin(); } catch (_) {}
+      try { renderLists(); } catch (_) {}
+      if (st) st.textContent = '✓ Grup "' + name + '" dengan ' + items.length + ' video. Simpan ke Google Sheets.';
+      status('Grup video ditambahkan. Simpan ke Google Sheets.');
+    };
+  }
+
+  /* ===== Drive folder → playlist → videoGroups ===== */
+  window.__vgDriveScan = null;
+
+  async function apiDriveAction(action, payload) {
+    const conf = window.SDIT_CONFIG || {};
+    const token = (typeof getToken === 'function' ? getToken() : '') || sessionStorage.getItem('sdit_di_admin_token_v1') || '';
+    const body = Object.assign({ action: action, token: token }, payload || {});
+    const r = await fetch(conf.sheetsApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    });
+    return r.json();
+  }
+
+  function renderDriveFileList(files) {
+    const box = $('vgDriveFileList');
+    if (!box) return;
+    if (!files || !files.length) {
+      box.innerHTML = '<p class="hint">Tidak ada file video di folder.</p>';
+      return;
+    }
+    const head =
+      '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;font-size:.85rem">' +
+      '<label style="display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;margin:0">' +
+      '<input type="checkbox" id="vgDriveSelectAll" checked> Pilih semua</label>' +
+      '<span class="meta" id="vgDriveCount">' + files.length + ' dipilih</span></div>';
+    const rows = files.map(function (f, i) {
+      const name = String(f.name || '');
+      const short = name.length > 48 ? (name.slice(0, 22) + '…' + name.slice(-18)) : name;
+      return (
+        '<div class="vg-drive-row" style="display:flex;align-items:center;gap:.45rem;padding:.2rem .35rem;border-bottom:1px solid rgba(0,0,0,.06);font-size:.82rem;line-height:1.25">' +
+        '<input type="checkbox" class="vg-drive-cb" data-id="' + (f.id || '') + '" checked style="flex:0 0 auto;margin:0">' +
+        '<span style="flex:0 0 1.6rem;color:#64748b;text-align:right">' + (i + 1) + '.</span>' +
+        '<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + name.replace(/"/g, '&quot;') + '">' + short + '</span>' +
+        '<span class="meta" style="flex:0 0 auto;white-space:nowrap">' + (f.sizeMb || '?') + ' MB</span>' +
+        '</div>'
+      );
+    }).join('');
+    box.innerHTML = head + '<div style="border:1px solid rgba(11,110,79,.12);border-radius:8px;background:#fff;max-height:240px;overflow:auto">' + rows + '</div>';
+
+    const selAll = $('vgDriveSelectAll');
+    if (selAll) {
+      selAll.onchange = function () {
+        const on = !!selAll.checked;
+        box.querySelectorAll('.vg-drive-cb').forEach(function (cb) { cb.checked = on; });
+        updateDriveCount();
+      };
+    }
+    box.querySelectorAll('.vg-drive-cb').forEach(function (cb) {
+      cb.onchange = updateDriveCount;
+    });
+    function updateDriveCount() {
+      const n = box.querySelectorAll('.vg-drive-cb:checked').length;
+      const el = $('vgDriveCount');
+      if (el) el.textContent = n + ' dipilih';
+      if (selAll) selAll.checked = n === files.length;
+    }
+  }
+
+  const btnVgScan = $('btnVgScanDrive');
+  if (btnVgScan) {
+    btnVgScan.onclick = async function () {
+      const folder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
+      const st = $('vgDriveStatus');
+      if (!folder) { if (st) st.textContent = 'Isi link folder Google Drive dulu.'; return; }
+      if (st) st.textContent = 'Memindai folder Drive…';
+      try {
+        const j = await apiDriveAction('scanDriveFolder', { folderUrl: folder, url: folder });
+        if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal scan folder');
+        window.__vgDriveScan = j;
+        renderDriveFileList(j.files || []);
+        if (st) st.textContent = '✓ ' + (j.count || 0) + ' video di folder "' + (j.folderName || '') + '". Centang yang ingin dipakai, lalu Buat Playlist + Grup.';
+      } catch (err) {
+        window.__vgDriveScan = null;
+        if (st) st.textContent = '✗ ' + (err.message || err);
+      }
+    };
+  }
+
+  /* Panel progress upload (hemat ruang, selebar kartu) */
+  function ensureVgProgressPanel() {
+    let el = document.getElementById('vgProgressPanel');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'vgProgressPanel';
+    el.style.cssText = 'display:none;margin-top:.75rem;padding:.85rem 1rem;border-radius:12px;border:1px solid rgba(11,110,79,.25);background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.08)';
+    el.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.4rem">' +
+      '<strong id="vgProgTitle" style="font-size:.92rem">Proses upload</strong>' +
+      '<span id="vgProgFrac" class="meta" style="font-size:.85rem">0/0</span></div>' +
+      '<div style="height:10px;background:#e8f0ec;border-radius:999px;overflow:hidden;margin-bottom:.45rem">' +
+      '<div id="vgProgBar" style="height:100%;width:0%;background:#0b6e4f;transition:width .25s ease"></div></div>' +
+      '<div id="vgProgStage" style="font-size:.82rem;color:#334155;margin-bottom:.25rem">—</div>' +
+      '<div id="vgProgDetail" style="font-size:.78rem;color:#64748b;word-break:break-all">—</div>' +
+      '<div id="vgProgLog" style="margin-top:.5rem;max-height:110px;overflow:auto;font-size:.75rem;line-height:1.35;color:#475569;border-top:1px solid rgba(0,0,0,.06);padding-top:.4rem"></div>' +
+      '<div id="vgProgActions" style="margin-top:.55rem;display:none;gap:.4rem;flex-wrap:wrap"></div>';
+    const anchor = $('vgDriveStatus') || $('btnVgDriveToGroup');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(el, anchor.nextSibling);
+    else document.body.appendChild(el);
+    return el;
+  }
+
+  function setVgProgress(opts) {
+    opts = opts || {};
+    const panel = ensureVgProgressPanel();
+    panel.style.display = 'block';
+    const total = opts.total || 0;
+    const current = opts.current || 0;
+    const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : (opts.pct || 0);
+    const bar = $('vgProgBar');
+    const frac = $('vgProgFrac');
+    const stage = $('vgProgStage');
+    const detail = $('vgProgDetail');
+    const title = $('vgProgTitle');
+    if (title && opts.title) title.textContent = opts.title;
+    if (frac) frac.textContent = total ? (current + '/' + total + ' (' + pct + '%)') : (pct + '%');
+    if (bar) bar.style.width = pct + '%';
+    if (stage) stage.textContent = opts.stage || '';
+    if (detail) detail.textContent = opts.detail || '';
+    if (opts.logLine) {
+      const log = $('vgProgLog');
+      if (log) {
+        const line = document.createElement('div');
+        line.textContent = opts.logLine;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+    if (opts.clearLog) {
+      const log = $('vgProgLog');
+      if (log) log.innerHTML = '';
+    }
+  }
+
+  function setVgProgressActions(buttons) {
+    const box = $('vgProgActions');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!buttons || !buttons.length) { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    buttons.forEach(function (b) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn ' + (b.primary ? 'btn-primary' : 'btn-ghost');
+      btn.textContent = b.label;
+      btn.onclick = b.onClick;
+      box.appendChild(btn);
+    });
+  }
+
+  const MAX_AUTO_UPLOAD_MB = 100;
+
+  const btnVgDriveGroup = $('btnVgDriveToGroup');
+  if (btnVgDriveGroup) {
+    btnVgDriveGroup.onclick = async function () {
+      const name = (($('vgDriveName') && $('vgDriveName').value) || '').trim();
+      const folder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
+      const st = $('vgDriveStatus');
+      if (!name) { if (st) st.textContent = 'Nama grup wajib.'; return; }
+      if (!folder) { if (st) st.textContent = 'Link folder Drive wajib.'; return; }
+
+      let selectedIds = [];
+      document.querySelectorAll('.vg-drive-cb:checked').forEach(function (cb) {
+        const id = cb.getAttribute('data-id');
+        if (id) selectedIds.push(id);
+      });
+      if (!selectedIds.length && window.__vgDriveScan && window.__vgDriveScan.files) {
+        selectedIds = (window.__vgDriveScan.files || []).map(function (f) { return f.id; });
+      }
+      if (!selectedIds.length) {
+        if (st) st.textContent = 'Scan folder dulu, atau tidak ada video terpilih.';
+        return;
+      }
+
+      const files = (window.__vgDriveScan && window.__vgDriveScan.files) || [];
+      const byId = {};
+      files.forEach(function (f) { byId[f.id] = f; });
+
+      const queue = [];
+      const skippedHuge = [];
+      selectedIds.forEach(function (id) {
+        const meta = byId[id] || { id: id, name: id, sizeMb: 0 };
+        if ((meta.sizeMb || 0) > MAX_AUTO_UPLOAD_MB) skippedHuge.push(meta);
+        else queue.push(meta);
+      });
+
+      if (st) st.textContent = '';
+      setVgProgress({
+        title: 'Proses: ' + name,
+        current: 0,
+        total: queue.length,
+        pct: 0,
+        stage: 'Tahap 1/3 — Upload ke YouTube',
+        detail: queue.length + ' file akan di-upload' +
+          (skippedHuge.length ? (' · ' + skippedHuge.length + ' dilewati (> ' + MAX_AUTO_UPLOAD_MB + ' MB)') : ''),
+        clearLog: true,
+        logLine: skippedHuge.length
+          ? ('Lewati ' + skippedHuge.length + ' file besar (upload manual di YouTube Studio).')
+          : ('Mulai upload ' + queue.length + ' file…')
+      });
+      setVgProgressActions([]);
+      btnVgDriveGroup.disabled = true;
+      if (btnVgScan) btnVgScan.disabled = true;
+
+      const items = [];
+      const fails = [];
+
+      try {
+        for (let i = 0; i < queue.length; i++) {
+          const meta = queue[i];
+          const partTitle = name + ' – Bagian ' + (items.length + fails.length + 1);
+          setVgProgress({
+            current: i,
+            total: queue.length,
+            stage: 'Tahap 1/3 — Upload ke YouTube',
+            detail: 'Sedang: ' + (meta.name || meta.id) + ' (' + (meta.sizeMb || '?') + ' MB)',
+            logLine: '[' + (i + 1) + '/' + queue.length + '] Upload ' + (meta.name || '') + '…'
+          });
+
+          let up = null;
+          try {
+            up = await apiDriveAction('uploadDriveVideo', {
+              fileId: meta.id,
+              title: partTitle,
+              description: name + ' (bagian ' + (i + 1) + ' dari ' + queue.length + ')',
+              privacy: 'public'
+            });
+          } catch (netErr) {
+            up = { ok: false, error: String(netErr.message || netErr) };
+          }
+
+          if (up && up.ok && up.youtubeId) {
+            items.push({
+              youtubeId: up.youtubeId,
+              title: partTitle,
+              order: items.length + 1,
+              thumb: up.thumb || ('https://img.youtube.com/vi/' + up.youtubeId + '/hqdefault.jpg'),
+              driveFileId: meta.id,
+              driveName: meta.name || ''
+            });
+            setVgProgress({
+              current: i + 1,
+              total: queue.length,
+              stage: 'Tahap 1/3 — Upload ke YouTube',
+              detail: 'Berhasil: ' + partTitle,
+              logLine: '  ✓ ' + up.youtubeId
+            });
+          } else {
+            const errMsg = (up && (up.error || up.hint)) || 'gagal tanpa pesan';
+            fails.push({ name: meta.name, error: errMsg, sizeMb: meta.sizeMb });
+            setVgProgress({
+              current: i + 1,
+              total: queue.length,
+              stage: 'Tahap 1/3 — Upload ke YouTube',
+              detail: 'Gagal: ' + (meta.name || ''),
+              logLine: '  ✗ ' + errMsg
+            });
+          }
+        }
+
+        setVgProgress({
+          current: queue.length,
+          total: queue.length,
+          pct: 100,
+          stage: 'Tahap 1 selesai',
+          detail: 'Sukses ' + items.length + ' · Gagal ' + fails.length +
+            (skippedHuge.length ? (' · Dilewati ' + skippedHuge.length) : '')
+        });
+
+        if (!items.length) {
+          setVgProgress({
+            stage: 'Gagal — tidak ada video masuk YouTube',
+            detail: 'Kemungkinan: YouTube API belum di-authorize, kuota, atau file terlalu besar untuk Apps Script.',
+            logLine: 'Saran: di Apps Script Run forceAuthYouTube(), atau upload manual di Studio lalu pakai form playlist.'
+          });
+          setVgProgressActions([{
+            label: 'Tutup',
+            onClick: function () {
+              const p = $('vgProgressPanel');
+              if (p) p.style.display = 'none';
+            }
+          }]);
+          if (st) st.textContent = '✗ 0 berhasil dari ' + queue.length + ' upload. Lihat log panel progress.';
+          return;
+        }
+
+        setVgProgress({
+          pct: 92,
+          stage: 'Tahap 2/3 — Buat playlist YouTube',
+          detail: 'Menambahkan ' + items.length + ' video ke playlist…',
+          logLine: 'Membuat playlist "' + name + '"…'
+        });
+
+        const groupRes = await apiDriveAction('driveFolderToVideoGroup', {
+          groupName: name,
+          folderUrl: folder,
+          mode: 'playlist_only',
+          privacy: 'public',
+          items: items
+        });
+        if (!groupRes || !groupRes.ok) {
+          throw new Error((groupRes && groupRes.error) || 'Gagal membuat playlist/grup');
+        }
+
+        setVgProgress({
+          pct: 98,
+          stage: 'Tahap 3/3 — Simpan Grup Video',
+          detail: 'Menulis ke data website…',
+          logLine: 'Playlist: ' + ((groupRes.playlist && groupRes.playlist.playlistUrl) || (groupRes.videoGroup && groupRes.videoGroup.playlistUrl) || '')
+        });
+
+        const vg = groupRes.videoGroup;
+        if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
+        data.videoGroups.unshift({
+          id: (vg && vg.id) || ('vg' + Date.now()),
+          name: name,
+          playlistUrl: (vg && vg.playlistUrl) || '',
+          playlistId: (vg && vg.playlistId) || '',
+          sourceDriveFolder: folder,
+          date: new Date().toISOString().slice(0, 10),
+          order: 0,
+          active: true,
+          items: (vg && vg.items) || items
+        });
+        window.__siteDirty = true;
+        const db = document.getElementById('dirtyBanner');
+        if (db) { db.hidden = false; db.style.display = 'block'; }
+        try { renderVideoGroupsAdmin(); } catch (_) {}
+        try { renderLists(); } catch (_) {}
+
+        setVgProgress({
+          pct: 100,
+          stage: 'Selesai',
+          detail: 'Grup "' + name + '" siap · ' + items.length + ' video. Klik Simpan ke Google Sheets.',
+          logLine: fails.length
+            ? ('Catatan: ' + fails.length + ' file gagal di-upload.')
+            : 'Semua file dalam antrean berhasil.'
+        });
+        setVgProgressActions([
+          {
+            label: 'Simpan ke Google Sheets',
+            primary: true,
+            onClick: function () {
+              status('Klik tombol Simpan ke Google Sheets di toolbar atas.');
+            }
+          },
+          {
+            label: 'Tutup panel',
+            onClick: function () {
+              const p = $('vgProgressPanel');
+              if (p) p.style.display = 'none';
+            }
+          }
+        ]);
+        if (st) {
+          st.textContent = '✓ Selesai: ' + items.length + ' video' +
+            (fails.length ? (', ' + fails.length + ' gagal') : '') +
+            '. Simpan ke Google Sheets.';
+        }
+        status('Grup video dari Drive ditambahkan. Simpan ke Google Sheets.');
+      } catch (err) {
+        setVgProgress({
+          stage: 'Error',
+          detail: String(err.message || err),
+          logLine: '✗ ' + String(err.message || err)
+        });
+        setVgProgressActions([{
+          label: 'Tutup',
+          onClick: function () {
+            const p = $('vgProgressPanel');
+            if (p) p.style.display = 'none';
+          }
+        }]);
+        if (st) st.textContent = '✗ ' + (err.message || err);
+      } finally {
+        btnVgDriveGroup.disabled = false;
+        if (btnVgScan) btnVgScan.disabled = false;
+      }
+    };
+  }
+
+  document.querySelectorAll('.admin-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.getAttribute('data-tab') === 'video') {
+        setTimeout(function () {
+          try { renderVideoGroupsAdmin(); } catch (_) {}
+        }, 30);
+      }
+    });
+  });
 
 })();

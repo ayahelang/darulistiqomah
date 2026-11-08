@@ -3,714 +3,1015 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SDIT Daarul Istiqomah — Membentuk Generasi Qurani</title>
-  <meta name="description" content="Website resmi SDIT Daarul Istiqomah (sditdaarulistiqomah.sch.id) Tajurhalang, Bogor. Sekolah Dasar Islam Terpadu, Akreditasi A. PPDB online.">
+  <title>Admin — SDIT Daarul Istiqomah</title>
   <meta name="theme-color" content="#0B6E4F">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://sditdaarulistiqomah.sch.id/">
+  <link rel="icon" href="../images/logo.png" type="image/jpeg">
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    body { background: #eef5f1; }
+    .admin-wrap { width: min(960px, 94vw); margin: 1.5rem auto 3rem; }
+    .admin-card {
+      background: #fff; border-radius: 16px; padding: 1.25rem 1.35rem;
+      box-shadow: 0 8px 28px rgba(8,76,55,.08); margin-bottom: 1.1rem;
+      border: 1px solid rgba(11,110,79,.07);
+    }
+    .admin-card h1 { font-size: 1.35rem; color: var(--primary-dark); margin-bottom: .35rem; }
+    .admin-card h2 { font-size: 1.05rem; color: var(--primary); margin: 0 0 .75rem; }
+    label { display: block; font-size: .85rem; font-weight: 700; color: var(--muted); margin: .6rem 0 .25rem; }
+    input, textarea, select {
+      width: 100%; padding: .65rem .8rem; border-radius: 10px;
+      border: 1px solid rgba(11,110,79,.2); background: #fafcfa;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+    .hint { font-size: .88rem; color: var(--muted); margin-top: .5rem; line-height: 1.5; }
+    .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+    .list-item {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: .55rem .7rem;
+      background: #f4faf7;
+      border-radius: 10px;
+      font-size: .88rem;
+      margin-bottom: .4rem;
+    }
+    .list-item .li-thumb {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      flex: 0 0 auto;
+      width: 64px;
+    }
+    .list-item .li-info {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: left;
+    }
+    .list-item .li-info strong {
+      display: block;
+      margin-top: 1px;
+      word-break: break-word;
+      font-size: .9rem;
+      line-height: 1.3;
+    }
+    .list-item .meta {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: .1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .list-item .actions-row {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: .35rem;
+      flex: 0 0 auto;
+      margin-left: auto;
+      position: relative;
+    }
+    .list-item .actions-inline {
+      display: flex;
+      gap: .35rem;
+      align-items: center;
+    }
+    .list-item .actions-more { display: none; position: relative; }
+    .list-item .btn-more {
+      padding: .35rem .55rem !important;
+      font-size: 1.15rem !important;
+      line-height: 1;
+      min-width: 36px;
+    }
+    .list-item .actions-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 4px);
+      z-index: 40;
+      background: #fff;
+      border: 1px solid rgba(11,110,79,.15);
+      border-radius: 10px;
+      box-shadow: 0 10px 28px rgba(0,0,0,.12);
+      min-width: 140px;
+      padding: .35rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .list-item .actions-menu[hidden] { display: none !important; }
+    .list-item .actions-menu-item {
+      border: none;
+      background: transparent;
+      text-align: left;
+      padding: .5rem .7rem;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      color: #084C37;
+    }
+    .list-item .actions-menu-item:hover { background: #f0f7f3; }
+    .list-item .actions-menu-item.danger { color: #991b1b; }
+    .list-item .actions-row .btn {
+      padding: .35rem .65rem;
+      font-size: .78rem;
+      white-space: nowrap;
+    }
+    /* Mobile: compact + ⋮ menu, hide long path noise */
+    @media (max-width: 640px) {
+      .list-item {
+        gap: 8px;
+        padding: .5rem .6rem;
+      }
+      .list-item .li-thumb { width: 56px; }
+      .list-item .meta { display: none; } /* path panjang tidak dibutuhkan di mobile */
+      .list-item .actions-inline { display: none; }
+      .list-item .actions-more { display: block; }
+      .list-item .preview-status { font-size: .65rem; }
+      /* Tombol Preview YouTube tetap ada di mobile (satu tombol, tidak boros) */
+      .list-item .li-info .btn {
+        display: inline-block;
+        margin-top: 4px !important;
+        padding: .3rem .55rem !important;
+        font-size: .72rem !important;
+      }
+    }
+    .badge {
+      display: inline-block; padding: .15rem .5rem; font-size: .72rem; font-weight: 700;
+      border-radius: 999px; background: var(--accent-soft); color: var(--primary-dark);
+      margin-right: .35rem;
+    }
+    .badge.video { background: #dbeafe; color: #1e40af; }
+    .badge.foto { background: #d1fae5; color: #065f46; }
+    .status-bar {
+      position: sticky; top: 0; z-index: 50; background: var(--primary-dark); color: #fff;
+      padding: .55rem 1rem; font-size: .88rem; text-align: center;
+    }
+    .detect-box {
+      background: #f0fdf4; border: 1px dashed rgba(11,110,79,.3);
+      border-radius: 12px; padding: 1rem; margin-top: .75rem; display: none;
+    }
+    .detect-box.show { display: block; }
+    .detect-box strong { color: var(--primary-dark); }
+    code { background: #eef5f1; padding: .1rem .35rem; border-radius: 4px; font-size: .85em; }
+  
+    #adminLogin {
+      position: fixed; inset: 0; z-index: 99999;
+      background: linear-gradient(145deg, #084C37, #0B6E4F);
+      display: grid; place-items: center; padding: 1.5rem;
+      visibility: visible; opacity: 1;
+    }
+    /* .hidden always wins over body.admin-locked (higher specificity) */
+    body.admin-locked #adminLogin.hidden,
+    #adminLogin.hidden {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+    }
+    body.admin-locked #adminApp { display: none !important; }
+    body.admin-locked #adminLogin:not(.hidden) { display: grid !important; }
+    body:not(.admin-locked) #adminApp:not(.locked) { display: block !important; }
+    .login-card {
+      background: #fff; border-radius: 18px; padding: 1.75rem 1.5rem;
+      width: min(400px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,.25);
+    }
+    .login-card h1 { font-size: 1.2rem; color: #084C37; margin-bottom: .35rem; }
+    .login-card p { font-size: .88rem; color: #5c6b66; margin-bottom: 1rem; }
+    .login-card input {
+      width: 100%; padding: .75rem .9rem; border-radius: 10px;
+      border: 1.5px solid rgba(11,110,79,.25); margin-bottom: .75rem;
+      font-size: 1rem;
+    }
+    .login-card .err { color: #b91c1c; font-size: .85rem; min-height: 1.2em; margin-bottom: .5rem; }
+    #adminApp.locked { display: none !important; }
 
-  <!-- Open Graph (WhatsApp, Facebook, Telegram, dll.) -->
-  <meta property="og:type" content="website">
-  <meta property="og:locale" content="id_ID">
-  <meta property="og:site_name" content="SDIT Daarul Istiqomah">
-  <meta property="og:title" content="SDIT Daarul Istiqomah — Generasi Qurani, Cerdas, Berakhlak Mulia">
-  <meta property="og:description" content="Sekolah Dasar Islam Terpadu di Tajurhalang, Bogor. Akreditasi A. Program Tahfidz, Kurikulum Merdeka, PPDB online.">
-  <meta property="og:url" content="https://sditdaarulistiqomah.sch.id/">
-  <meta property="og:image" content="https://sditdaarulistiqomah.sch.id/images/og-cover.jpg">
-  <meta property="og:image:secure_url" content="https://sditdaarulistiqomah.sch.id/images/og-cover.jpg">
-  <meta property="og:image:type" content="image/jpeg">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="SDIT Daarul Istiqomah Tajurhalang Bogor">
+    .edit-modal {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(8,30,22,.55);
+      display: grid; place-items: center; padding: 1rem;
+    }
+    .edit-modal[hidden] { display: none !important; }
+    .edit-modal-inner {
+      background: #fff; border-radius: 16px; padding: 1.35rem 1.4rem;
+      width: min(520px, 100%); max-height: 90vh; overflow: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,.3);
+    }
+    .edit-modal-inner h2 { font-size: 1.1rem; color: #084C37; margin-bottom: .75rem; }
 
-  <!-- Twitter / X Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="SDIT Daarul Istiqomah — Generasi Qurani">
-  <meta name="twitter:description" content="SD Islam Terpadu, Akreditasi A, Tajurhalang Bogor. PPDB online.">
-  <meta name="twitter:image" content="https://sditdaarulistiqomah.sch.id/images/og-cover.jpg">
 
-  <link rel="icon" href="images/logo.png" type="image/jpeg">
-  <link rel="apple-touch-icon" href="images/logo.png">
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/lock.css">
+  
+  
+    /* Large detailed tooltips */
+    [data-tip] {
+      position: relative;
+    }
+    [data-tip]::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 50%; bottom: calc(100% + 10px);
+      transform: translateX(-50%) translateY(4px);
+      background: #0f2e24;
+      color: #fff;
+      font-size: .82rem;
+      font-weight: 500;
+      line-height: 1.45;
+      text-align: left;
+      padding: .75rem .9rem;
+      border-radius: 12px;
+      width: max(220px, min(320px, 70vw));
+      white-space: normal;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease, transform .15s ease;
+      z-index: 1000;
+      box-shadow: 0 12px 32px rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    [data-tip]::before {
+      content: '';
+      position: absolute;
+      left: 50%; bottom: calc(100% + 4px);
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+      border-top-color: #0f2e24;
+      opacity: 0;
+      transition: opacity .15s ease;
+      z-index: 1001;
+    }
+    [data-tip]:hover::after,
+    [data-tip]:focus-visible::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    [data-tip]:hover::before,
+    [data-tip]:focus-visible::before {
+      opacity: 1;
+    }
+
+  
+    /* Match site theme */
+    * { scrollbar-width: thin; scrollbar-color: #0B6E4F #e8f2ed; }
+    *::-webkit-scrollbar { width: 10px; height: 10px; }
+    *::-webkit-scrollbar-track { background: #e8f2ed; border-radius: 999px; }
+    *::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #0d8a62, #0B6E4F);
+      border-radius: 999px; border: 2px solid #e8f2ed;
+    }
+    ::selection { background: rgba(11,110,79,.28); color: #084C37; }
+    .edit-modal { background: rgba(8, 76, 55, 0.82) !important; backdrop-filter: blur(6px); }
+    .edit-modal-inner {
+      border: 2px solid rgba(201, 162, 39, 0.4);
+      box-shadow: 0 24px 60px rgba(8, 76, 55, 0.35);
+    }
+    input, textarea, select { accent-color: #0B6E4F; caret-color: #0B6E4F; }
+
+
+    .media-preview-box {
+      margin-top: 12px; border: 1px solid rgba(11,110,79,.15); border-radius: 12px;
+      overflow: hidden; background: #0f172a08; min-height: 80px; position: relative;
+    }
+    .media-preview-box.ok { border-color: #12A87A; }
+    .media-preview-box.err { border-color: #c0392b; background: #fdecea; }
+    .media-preview-box img { width: 100%; max-height: 280px; object-fit: contain; background: #111; display: block; }
+    .media-preview-box iframe { display: block; }
+    .media-preview-box.none { padding: 14px; color: #5B6575; font-size: .9rem; }
+    .media-preview-fail { padding: 12px; color: #c0392b; font-size: .88rem; }
+    .media-preview-note { padding: 8px 10px; font-size: .75rem; color: #5B6575; margin: 0; background: #fff; }
+    .list-item .thumb-prev {
+      width: 72px; height: 54px; border-radius: 8px; object-fit: cover;
+      background: #eee; flex-shrink: 0; border: 1px solid rgba(0,0,0,.08);
+      display: block;
+    }
+    .list-item .thumb-prev.err { outline: 2px solid #c0392b; }
+    .preview-status { font-size: .75rem; margin-top: 4px; }
+    .preview-status.ok { color: #0B6E4F; font-weight: 700; }
+    .preview-status.err { color: #c0392b; font-weight: 700; }
+    #detectPreview { margin-top: 14px; }
+
+    #previewOverlay {
+      display: none; position: fixed; inset: 0; z-index: 100050;
+      background: rgba(15,23,42,.72); align-items: center; justify-content: center;
+      padding: 12px;
+    }
+    #previewOverlay.open { display: flex; }
+    .preview-card {
+      background: #fff; border-radius: 16px; max-width: min(920px, 96vw); width: 100%;
+      max-height: 92vh; overflow: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,.35);
+    }
+    .preview-card-body img {
+      width: 100%; height: auto; max-height: 78vh; object-fit: contain;
+      display: block; margin: 0 auto; background: #111; border-radius: 8px;
+    }
+    .preview-card-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; border-bottom: 1px solid #e8e4d8;
+    }
+    .preview-card-body { padding: 14px 16px 18px; }
+    .status-bar.flash {
+      background: #0B6E4F !important; color: #fff !important;
+      transition: background .2s;
+    }
+
+    .ann-admin-preview {
+      border: 1px dashed rgba(11,110,79,.3); border-radius: 12px; padding: 10px;
+      background: #f8faf8; margin-top: 8px; min-height: 80px;
+    }
+    .ann-admin-preview img { max-width: 100%; max-height: 160px; border-radius: 8px; display: block; margin-bottom: 8px; }
+    .ann-paste-zone {
+      border: 2px dashed rgba(11,110,79,.35); border-radius: 12px; padding: 14px;
+      text-align: center; color: var(--muted); font-size: .88rem; margin-top: 8px;
+      background: #fff; cursor: pointer;
+    }
+    .ann-paste-zone:focus, .ann-paste-zone.drag { border-color: var(--primary); background: #f0faf5; outline: none; }
+
+    /* PPDB admin */
+    .ppdb-toolbar { display:flex; flex-wrap:wrap; gap:.5rem; margin:.75rem 0 1rem; align-items:center; }
+    .ppdb-search { flex:1; min-width:160px; max-width:280px; }
+    .ppdb-table-wrap { overflow-x:auto; border-radius:12px; border:1px solid rgba(11,110,79,.12); background:#fff; }
+    .ppdb-table { width:100%; border-collapse:collapse; font-size:.84rem; }
+    .ppdb-table th, .ppdb-table td { padding:.55rem .65rem; text-align:left; border-bottom:1px solid #e8f0ec; vertical-align:top; }
+    .ppdb-table th { background:#f0f7f3; color:#084C37; font-weight:800; white-space:nowrap; position:sticky; top:0; }
+    .ppdb-table tr:hover td { background:#f8fbf9; }
+    .ppdb-table .mono { font-family:ui-monospace,monospace; font-size:.78rem; }
+    .badge-status { display:inline-block; padding:.15rem .45rem; border-radius:999px; font-size:.72rem; font-weight:800; }
+    .badge-status.baru { background:#e0f2fe; color:#0369a1; }
+    .badge-status.proses { background:#fef3c7; color:#92400e; }
+    .badge-status.diterima { background:#d1fae5; color:#065f46; }
+    .badge-status.ditolak { background:#fee2e2; color:#991b1b; }
+    .ppdb-actions-cell { display:flex; flex-wrap:wrap; gap:.3rem; }
+    .ppdb-actions-cell .btn { padding:.3rem .55rem; font-size:.75rem; }
+    .ppdb-empty { padding:1.25rem; text-align:center; color:var(--muted); }
+    .ppdb-modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:.65rem .85rem; max-height:60vh; overflow:auto; padding-right:4px; }
+    @media (max-width:640px){ .ppdb-modal-grid { grid-template-columns:1fr; } }
+    .ppdb-modal-grid label { margin:0; }
+    .ppdb-modal-grid .full { grid-column:1/-1; }
+    .ppdb-count { font-size:.85rem; color:var(--muted); font-weight:600; }
+
+    /* Horizontal tabs — scroll kiri-kanan seperti Shopee/Tokped */
+    .admin-tabs-bar {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: .3rem;
+      padding: .35rem;
+      margin: 0 0 1rem;
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid rgba(11,110,79,.1);
+      box-shadow: 0 4px 16px rgba(8,76,55,.06);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .admin-tabs-bar::-webkit-scrollbar { display: none; }
+    .admin-tab {
+      border: none;
+      background: transparent;
+      color: var(--muted, #5B6575);
+      font-weight: 700;
+      font-size: .82rem;
+      padding: .5rem .8rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      transition: background .15s, color .15s;
+    }
+    .admin-tab:hover { background: #f0f7f3; color: #084C37; }
+    .admin-tab.active {
+      background: #0B6E4F;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(11,110,79,.25);
+    }
+    .admin-tab-panel { display: none; }
+    .admin-tab-panel.active { display: block; animation: tabIn .2s ease; }
+    @keyframes tabIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+    @media (max-width: 640px) {
+      .admin-tabs-bar { gap: .2rem; padding: .28rem; margin-bottom: .75rem; }
+      .admin-tab { font-size: .74rem; padding: .42rem .65rem; }
+    }
+
+    /* Toolbar tombol atas — 1 baris + scroll (desktop & mobile) */
+    .admin-toolbar {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: .4rem;
+      margin-top: .55rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      padding-bottom: 2px;
+    }
+    .admin-toolbar .btn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      font-size: .8rem;
+      padding: .42rem .7rem;
+    }
+    .admin-toolbar::-webkit-scrollbar { height: 4px; }
+    .admin-card > .hint { margin-top: .25rem; margin-bottom: 0; }
+    .admin-card h1 { margin-bottom: .2rem; }
+    @media (max-width: 640px) {
+      .admin-toolbar {
+        scrollbar-width: none;
+        margin-top: .4rem;
+      }
+      .admin-toolbar::-webkit-scrollbar { display: none; }
+      .admin-toolbar .btn {
+        font-size: .76rem;
+        padding: .4rem .65rem;
+      }
+      .admin-card { padding: .9rem 1rem; }
+      .admin-card h1 { font-size: 1.15rem; }
+      .admin-wrap { width: min(960px, 96vw); margin: .75rem auto 2rem; }
+      .gg-admin-card { gap: 6px !important; }
+      .gg-admin-preview {
+        grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)) !important;
+        gap: 6px !important;
+      }
+      .gg-admin-card .li-actions {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: .35rem;
+        width: 100%;
+        margin-top: 4px;
+      }
+      .gg-admin-card .li-actions::-webkit-scrollbar { display: none; }
+      .gg-admin-card .li-actions .btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        font-size: .72rem;
+        padding: .35rem .55rem;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="../css/lock.css">
 </head>
-<body
-  data-shlock-mode="ultimate"
+<body class="admin-locked"
+  data-shlock-mode="lite"
   data-shlock-domain="sditdaarulistiqomah.sch.id,sditdaarulistiqomah.web.id,darulistiqomah.silverhawk.web.id,localhost,127.0.0.1"
-  data-shlock-brand="SDIT Daarul Istiqomah"
+  data-shlock-brand="SDIT Daarul Istiqomah Admin"
   data-shlock-social="https://www.instagram.com/sdit_daarul_istiqomah/"
 >
-  <header class="site-header">
-    <div class="container nav-wrap">
-      <a class="brand" href="#beranda">
-        <img class="brand-logo-img" src="images/logo.png" alt="Logo SDIT Daarul Istiqomah" width="44" height="44">
-        <div class="brand-text">
-          <strong id="schoolName">SDIT Daarul Istiqomah</strong>
-          <span>Tajurhalang · Bogor</span>
-        </div>
-      </a>
-      <button class="nav-toggle" id="navToggle" aria-label="Menu"><span></span><span></span><span></span></button>
-      <nav class="nav-links" id="navLinks">
-        <a href="#beranda">Beranda</a>
-        <a href="#tentang">Tentang</a>
-        <a href="#program">Program</a>
-        <a href="#berita">Berita</a>
-        <a href="#galeri">Galeri</a>
-        <a href="#kegiatan">Kegiatan</a>
-        <a href="#ppdb">PPDB</a>
-        <div class="nav-dropdown" id="navMore" hidden>
-          <button type="button" class="nav-dropdown-toggle" id="navMoreBtn" aria-expanded="false" aria-haspopup="true">
-            Info lainnya <span class="nav-caret" aria-hidden="true">▾</span>
-          </button>
-          <div class="nav-dropdown-menu" id="navMoreMenu" role="menu">
-            <a href="#visi" data-show-if="visionMission" role="menuitem">Visi &amp; Misi</a>
-            <a href="#fasilitas" data-show-if="facilities" role="menuitem">Fasilitas</a>
-            <a href="#guru" data-show-if="teachers" role="menuitem">Guru</a>
-            <a href="#prestasi" data-show-if="achievements" role="menuitem">Prestasi</a>
-            <a href="#kalender" data-show-if="calendar" role="menuitem">Kalender</a>
-            <a href="#biaya" data-show-if="fees" role="menuitem">Biaya</a>
-          </div>
-        </div>
-        <a href="#kontak">Kontak</a>
-        <a class="btn btn-primary nav-cta" href="#ppdb">Daftar</a>
-      </nav>
+  
+  <div id="adminLogin">
+    <div class="login-card">
+      <h1>🔒 Admin SDIT Daarul Istiqomah</h1>
+      <p>Masukkan password admin untuk mengakses panel.</p>
+      <div class="err" id="loginErr"></div>
+      <input type="password" id="loginPass" placeholder="Password admin" autocomplete="current-password">
+      <button class="btn btn-primary" type="button" id="btnLogin" data-tip="Masuk ke panel admin setelah password diisi dengan benar." style="width:100%">Masuk</button>
+      <p style="margin-top:1rem;font-size:.8rem;text-align:center"><a href="../">← Kembali ke website</a></p>
     </div>
-  </header>
+  </div>
 
-  <main>
-    <!-- Pengumuman dinamis -->
-    <div id="annRoot" aria-live="polite"></div>
-    <section class="hero" id="beranda">
-      <div class="carousel" id="carousel" aria-label="Carousel">
-        <div class="carousel-loading" id="carouselLoading" aria-live="polite" aria-busy="true">
-          <p class="typewriter" id="typewriterText"><span class="tw-text"></span><span class="tw-cursor" aria-hidden="true">|</span></p>
-        </div>
+  <div id="adminApp" class="locked">
+  <div class="status-bar" id="status">Memuat…</div>
+  <div id="dirtyBanner" hidden style="display:none;background:#fff7e6;border-bottom:2px solid #C9A227;color:#084C37;padding:.65rem 1rem;text-align:center;font-weight:600;font-size:.9rem">
+    Ada perubahan yang belum disimpan. Klik <strong>Simpan ke Google Sheets</strong> agar tampil di website publik.
+  </div>
+
+  <div class="admin-wrap"><div class="admin-card">
+      <h1>Panel Admin</h1>
+      <p class="hint">SDIT Daarul Istiqomah — kelola profil, berita, dan media dari link Instagram/Facebook.</p>
+      <div class="actions admin-toolbar">
+        <a class="btn btn-ghost" href="../" data-tip="Kembali ke halaman website publik tanpa menyimpan otomatis. Simpan dulu jika ada perubahan.">← Kembali ke Website</a>
+        <button class="btn btn-primary" type="button" id="btnLoad" data-tip="Muat ulang data dari Google Sheets (sumber utama).">Muat Data</button>
+        <button class="btn btn-accent" type="button" id="btnSave" data-tip="Simpan SEMUA data website ke Google Sheets. Pengunjung & admin lain akan melihat data yang sama.">Simpan ke Google Sheets</button>
+        <button class="btn btn-ghost" type="button" id="btnReset" data-tip="Hapus semua edit lokal di browser dan kembalikan ke isi asli data/site.json. Tindakan ini tidak bisa dibatalkan.">Reset ke JSON Asli</button>
+        <button class="btn btn-ghost" type="button" id="btnExport" data-tip="Unduh file site.json berisi seluruh data saat ini. Untuk produksi: upload file ini ke folder data/ di hosting agar perubahan tampil untuk semua pengunjung.">Export JSON</button>
+        <button class="btn btn-primary" type="button" id="btnSyncSheets" data-tip="Kirim daftar media (foto/video dari link IG/FB) ke Google Sheets. Memerlukan sheetsApiUrl dan apiToken di js/config.js. Berguna agar guru lain bisa melihat data yang sama.">Simpan ulang ke Sheets</button>
+        <button class="btn btn-ghost" type="button" id="btnLogout" data-tip="Keluar dari panel admin dan wajib isi password lagi saat masuk berikutnya.">Keluar</button>
+        <button class="btn btn-ghost" type="button" id="btnPullSheets" data-tip="Ambil daftar media dari Google Sheets dan timpa media di panel ini. Memerlukan konfigurasi Sheets aktif. Data kemudian disimpan juga ke browser.">Muat dari Sheets</button>
       </div>
-      <div class="carousel-nav" id="carouselDots"></div>
-    </section>
-
-    <div class="container">
-      <div class="stats" id="stats"></div>
+      <p class="hint" id="sheetsHint">Google Sheets: belum dikonfigurasi. Isi <code>js/config.js</code> — lihat <code>apps-script/SETUP.md</code>.</p>
     </div>
 
-    <section id="tentang">
-      <div class="container about-panel">
-        <div class="copy">
-          <div class="label" style="color:var(--primary);font-weight:800;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;">Profil Sekolah</div>
-          <h2 id="schoolFullName">Sekolah Dasar Islam Terpadu Daarul Istiqomah</h2>
-          <p id="schoolTagline">Membentuk Generasi Qurani, Cerdas, dan Berakhlak Mulia</p>
-          <p>
-            SDIT Daarul Istiqomah berkomitmen menghadirkan pendidikan dasar yang memadukan
-            ilmu pengetahuan, adab Islami, dan pembiasaan Qurani. Kami mendampingi tumbuh kembang
-            anak dalam lingkungan yang aman, hangat, dan inspiratif.
-          </p>
-          <p>
-            Terletak di Tajurhalang, Kabupaten Bogor, sekolah ini mengutamakan kolaborasi
-            antara guru, orang tua, dan komunitas untuk membentuk karakter peserta didik.
-          </p>
-          <a class="btn btn-primary" href="#program">Lihat Program Unggulan</a>
-        </div>
-        <div class="visual">
+
+    <nav class="admin-tabs-bar" id="adminTabs" role="tablist" aria-label="Menu panel admin">
+      <button type="button" class="admin-tab active" role="tab" data-tab="profil" aria-selected="true">Profil</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="akademik" aria-selected="false">Akademik</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="media" aria-selected="false">Media</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="pengumuman" aria-selected="false">Pengumuman</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="carousel" aria-selected="false">Carousel</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="berita" aria-selected="false">Berita</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="video" aria-selected="false">Video</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="galeri" aria-selected="false">Galeri</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="ppdb" aria-selected="false">PPDB</button>
+      <button type="button" class="admin-tab" role="tab" data-tab="setup" aria-selected="false">Setup</button>
+    </nav>
+
+
+<div class="admin-tab-panel active" id="tab-profil" role="tabpanel" data-tab-panel="profil">
+<div class="admin-card">
+      <h2>Profil Sekolah</h2>
+      <p class="hint">Kosongkan field yang belum siap — section terkait tidak tampil di website publik.</p>
+      <div class="row">
+        <div><label>Nama sekolah</label><input id="fName" type="text"></div>
+        <div><label>Tagline</label><input id="fTagline" type="text"></div>
+      </div>
+      <label>Alamat</label><input id="fAddress" type="text">
+      <div class="row">
+        <div><label>Email</label><input id="fEmail" type="email"></div>
+        <div><label>WhatsApp (62…)</label><input id="fWa" type="text"></div>
+      </div>
+      <div class="row">
+        <div><label>Kepala Sekolah</label><input id="fPrincipal" type="text" placeholder="Nama kepala sekolah"></div>
+        <div><label>Yayasan / Naungan</label><input id="fYayasan" type="text"></div>
+      </div>
+      <div class="row">
+        <div><label>Jam operasional</label><input id="fHours" type="text" placeholder="Senin–Jumat 07.00–15.00"></div>
+        <div><label>URL Sekolah Kita / profil resmi</label><input id="fSekolahKita" type="url" placeholder="https://…"></div>
+      </div>
+      <label>Izin operasional (opsional)</label><input id="fIzin" type="text" placeholder="Nomor SK / izin">
+    </div>
+<div class="admin-card">
+      <h2>Visi &amp; Misi</h2>
+      <label>Visi</label>
+      <textarea id="fVision" rows="3" placeholder="Kosongkan jika belum ingin ditampilkan"></textarea>
+      <label>Misi (satu baris per poin)</label>
+      <textarea id="fMission" rows="5" placeholder="Poin misi 1&#10;Poin misi 2"></textarea>
+      <label>Motto</label>
+      <input id="fMotto" type="text" placeholder="Opsional">
+    </div>
+<div class="admin-card">
+      <h2>Pimpinan</h2>
+      <div class="list" id="leadershipList"></div>
+      <div class="actions"><button class="btn btn-primary" type="button" id="btnAddLeadership">+ Tambah</button></div>
+    </div>
+<div class="admin-card">
+      <h2>Program Unggulan</h2>
+      <p class="hint">Card di section Program halaman publik. Isi judul + deskripsi, lalu Simpan ke Google Sheets.</p>
+      <div class="list" id="programsList"></div>
+      <div class="actions"><button class="btn btn-primary" type="button" id="btnAddProgram">+ Tambah Program</button></div>
+    </div>
+<div class="admin-card">
+      <h2>Kegiatan / Activities</h2>
+      <p class="hint">Item di section Kegiatan. Field: Hari, Judul, Deskripsi.</p>
+      <div class="list" id="activitiesList"></div>
+      <div class="actions"><button class="btn btn-primary" type="button" id="btnAddActivity">+ Tambah Kegiatan</button></div>
+    </div>
+<div class="admin-card">
+      <h2>Saran &amp; Pengaduan</h2>
+      <label>Tampilkan di website</label>
+      <select id="fComplaintEnabled"><option value="false">Tidak</option><option value="true">Ya</option></select>
+      <label>Catatan</label><textarea id="fComplaintNote" rows="2"></textarea>
+      <div class="row">
+        <div><label>Email pengaduan</label><input id="fComplaintEmail" type="email"></div>
+        <div><label>WA pengaduan (62…)</label><input id="fComplaintWa" type="text"></div>
+      </div>
+    </div>
+</div><!-- /tab-profil -->
+
+<div class="admin-tab-panel" id="tab-media" role="tabpanel" data-tab-panel="media">
+<div class="admin-card">
+      <h2>➕ Tambah Media dari IG / FB / YouTube / TikTok / X</h2>
+      <p class="hint">
+        Paste link Instagram, Facebook, YouTube, TikTok, X/Twitter, atau URL gambar/thumbnail (hotlink).
+        Sistem mendeteksi otomatis <strong>foto</strong> atau <strong>video</strong>, lalu menampilkan <strong>preview</strong>.
+      </p>
+      <label>Link media</label>
+      <input id="mediaUrl" type="url" placeholder="https://www.instagram.com/reel/… · youtube.com · tiktok.com · x.com · URL .jpg">
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnDetect" data-tip="Analisis link dan tampilkan preview apakah media bisa dimuat.">Deteksi & Preview</button>
+      </div>
+      <div class="detect-box" id="detectBox">
+        <p><strong>Hasil deteksi:</strong> <span id="detectResult">—</span></p>
+        <div id="detectPreview"></div>
+        <div class="row">
           <div>
-            <strong>A</strong>
-            Akreditasi Sekolah
-            <p style="opacity:.85;margin-top:.5rem;font-size:.95rem;">NPSN 70045471 · Kurikulum Merdeka</p>
+            <label>Judul (opsional)</label>
+            <input id="mediaTitle" type="text" placeholder="Otomatis dari jenis media">
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="program" style="background:#fff;">
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Program</div>
-          <h2>Program Unggulan</h2>
-          <p>Pembelajaran terpadu yang menumbuhkan iman, ilmu, dan keterampilan hidup.</p>
-        </div>
-        <div class="grid-3" id="programs"></div>
-      </div>
-    </section>
-
-    <section id="berita">
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Informasi</div>
-          <h2>Berita & Artikel</h2>
-          <p>Kabar kegiatan, prestasi, dan informasi terbaru dari sekolah.</p>
-        </div>
-        <div class="grid-3" id="articles"></div>
-        <div class="load-more-wrap" id="articlesMoreWrap" hidden>
-          <button type="button" class="btn btn-ghost load-more-btn" id="articlesMore">Muat lebih banyak</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="galeri" style="background:#fff;">
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Galeri</div>
-          <h2>Galeri Foto</h2>
-          <p>Momen belajar, ibadah, dan kebersamaan siswa.</p>
-        </div>
-        <div class="gallery-grid" id="gallery"></div>
-        <div class="load-more-wrap" id="galleryMoreWrap" hidden>
-          <button type="button" class="btn btn-ghost load-more-btn" id="galleryMore">Muat lebih banyak</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="video">
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Video</div>
-          <h2>Galeri Video</h2>
-          <p>Cuplikan kegiatan dan dokumentasi sekolah.</p>
-        </div>
-        <div class="grid-2" id="videos"></div>
-        <div class="load-more-wrap" id="videosMoreWrap" hidden>
-          <button type="button" class="btn btn-ghost load-more-btn" id="videosMore">Muat lebih banyak</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="kegiatan" style="background:#fff;">
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Rutinitas</div>
-          <h2>Kegiatan Siswa</h2>
-          <p>Aktivitas harian dan mingguan yang membentuk kebiasaan baik.</p>
-        </div>
-        <div class="activity-list" id="activities"></div>
-      </div>
-    </section>
-
-
-    <!-- Visi & Misi: disembunyikan jika kosong -->
-    <section id="visi" class="sec-optional" hidden>
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Landasan</div>
-          <h2>Visi &amp; Misi</h2>
-        </div>
-        <div class="vm-grid">
-          <article class="card vm-card" id="visionCard" hidden>
-            <h3>Visi</h3>
-            <p id="visionText"></p>
-          </article>
-          <article class="card vm-card" id="missionCard" hidden>
-            <h3>Misi</h3>
-            <ul id="missionList"></ul>
-          </article>
-        </div>
-        <p class="vm-motto" id="mottoText" hidden></p>
-      </div>
-    </section>
-
-    <!-- Pimpinan -->
-    <section id="pimpinan" class="sec-optional" style="background:#fff;" hidden>
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Kepemimpinan</div>
-          <h2>Pimpinan Sekolah</h2>
-        </div>
-        <div class="grid-3" id="leadershipGrid"></div>
-      </div>
-    </section>
-
-    <!-- Fasilitas -->
-    <section id="fasilitas" class="sec-optional" hidden>
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Sarana</div>
-          <h2>Fasilitas Sekolah</h2>
-        </div>
-        <div class="grid-3" id="facilitiesGrid"></div>
-      </div>
-    </section>
-
-    <!-- Guru -->
-    <section id="guru" class="sec-optional" style="background:#fff;" hidden>
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Tenaga Pendidik</div>
-          <h2>Guru &amp; Staff</h2>
-        </div>
-        <div class="grid-3" id="teachersGrid"></div>
-      </div>
-    </section>
-
-    <!-- Prestasi -->
-    <section id="prestasi" class="sec-optional" hidden>
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Capaian</div>
-          <h2>Prestasi</h2>
-        </div>
-        <div class="grid-3" id="achievementsGrid"></div>
-      </div>
-    </section>
-
-    <!-- Kalender -->
-    <section id="kalender" class="sec-optional" style="background:#fff;" hidden>
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Agenda</div>
-          <h2>Kalender Akademik</h2>
-        </div>
-        <div class="calendar-list" id="calendarList"></div>
-      </div>
-    </section>
-
-    <section id="ppdb">
-      <div class="container">
-        <div class="ppdb-box">
           <div>
-            <h2 id="ppdbYear">PPDB Tahun Ajaran 2026/2027</h2>
-            <p id="ppdbNote">Pendaftaran online dibuka. Isi formulir di bawah ini. Data siap diekspor untuk Dapodik &amp; aplikasi PPDB.</p>
-            <p id="ppdbQuota" class="ppdb-quota" hidden></p>
-            <ul id="ppdbReqs"></ul>
-            <div class="ppdb-actions">
-              <button type="button" class="btn btn-accent" id="btnShowPpdbForm">Isi Formulir Online</button>
-              <a class="btn btn-ghost-light" id="waLink" href="https://wa.me/62895355357028" target="_blank" rel="noopener">Chat WhatsApp</a>
-              <a class="btn btn-ghost-light" href="#kontak">Kontak Sekolah</a>
-            </div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:3rem;margin-bottom:.5rem;">📝</div>
-            <p style="opacity:.9;" id="ppdbSideNote">Siapkan berkas (Akta, KK, KTP) dan lengkapi formulir. Observasi &amp; wawancara dijadwalkan oleh panitia.</p>
+            <label>Kategori (opsional)</label>
+            <input id="mediaCategory" type="text" placeholder="Foto / Video / Kegiatan">
           </div>
         </div>
-
-        <div id="ppdbStepsWrap" class="ppdb-extra" hidden>
-          <h3 class="ppdb-extra-title">Alur Pendaftaran</h3>
-          <ol class="ppdb-steps" id="ppdbSteps"></ol>
-        </div>
-        <div id="ppdbScheduleWrap" class="ppdb-extra" hidden>
-          <h3 class="ppdb-extra-title">Jadwal PPDB</h3>
-          <div class="calendar-list" id="ppdbSchedule"></div>
-        </div>
-        <div id="ppdbFaqWrap" class="ppdb-extra" hidden>
-          <h3 class="ppdb-extra-title">FAQ PPDB</h3>
-          <div class="faq-list" id="ppdbFaq"></div>
-        </div>
-
-        <!-- Formulir PPDB Online — field selaras Dapodik -->
-        <div class="ppdb-form-wrap is-hidden" id="ppdbForm" hidden>
-          <div class="section-head" style="margin-top:2.5rem;">
-            <div class="label">Formulir Online</div>
-            <h2>Pendaftaran Peserta Didik Baru</h2>
-            <p>Data di bawah mengikuti struktur standar Dapodik agar mudah diimpor ke aplikasi PPDB sekolah. Tanda <span class="req">*</span> wajib diisi.</p>
-            <p style="margin-top:.5rem"><button type="button" class="btn btn-ghost" id="btnHidePpdbForm">Tutup formulir</button></p>
-          </div>
-
-          <form id="ppdbRegistrationForm" class="ppdb-form" novalidate>
-            <input type="hidden" name="tahun_ajaran" value="2026/2027">
-            <input type="hidden" name="jenjang" value="SD">
-            <input type="hidden" name="sekolah" value="SDIT Daarul Istiqomah">
-            <input type="hidden" name="npsn" value="70045471">
-
-            <!-- DATA SISWA -->
-            <fieldset class="ppdb-fieldset">
-              <legend>1. Data Calon Siswa</legend>
-              <div class="form-grid">
-                <div class="form-group full">
-                  <label for="nama_lengkap">Nama Lengkap <span class="req">*</span></label>
-                  <input type="text" id="nama_lengkap" name="nama_lengkap" required maxlength="100" autocomplete="name" placeholder="Sesuai Akta Kelahiran">
-                </div>
-                <div class="form-group">
-                  <label for="nik">NIK Siswa <span class="req">*</span></label>
-                  <input type="text" id="nik" name="nik" required pattern="[0-9]{16}" maxlength="16" inputmode="numeric" placeholder="16 digit NIK">
-                </div>
-                <div class="form-group">
-                  <label for="nisn">NISN <span class="opt">(jika ada)</span></label>
-                  <input type="text" id="nisn" name="nisn" pattern="[0-9]{10}" maxlength="10" inputmode="numeric" placeholder="10 digit NISN">
-                </div>
-                <div class="form-group">
-                  <label for="no_akta_lahir">No. Akta Kelahiran</label>
-                  <input type="text" id="no_akta_lahir" name="no_akta_lahir" maxlength="50" placeholder="Nomor akta">
-                </div>
-                <div class="form-group">
-                  <label for="tempat_lahir">Tempat Lahir <span class="req">*</span></label>
-                  <input type="text" id="tempat_lahir" name="tempat_lahir" required maxlength="50" placeholder="Kota/Kabupaten">
-                </div>
-                <div class="form-group">
-                  <label for="tanggal_lahir">Tanggal Lahir <span class="req">*</span></label>
-                  <input type="date" id="tanggal_lahir" name="tanggal_lahir" required>
-                </div>
-                <div class="form-group">
-                  <label for="jenis_kelamin">Jenis Kelamin <span class="req">*</span></label>
-                  <select id="jenis_kelamin" name="jenis_kelamin" required>
-                    <option value="">— Pilih —</option>
-                    <option value="L">Laki-laki</option>
-                    <option value="P">Perempuan</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="agama">Agama <span class="req">*</span></label>
-                  <select id="agama" name="agama" required>
-                    <option value="">— Pilih —</option>
-                    <option value="Islam" selected>Islam</option>
-                    <option value="Kristen">Kristen</option>
-                    <option value="Katolik">Katolik</option>
-                    <option value="Hindu">Hindu</option>
-                    <option value="Buddha">Buddha</option>
-                    <option value="Konghucu">Konghucu</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="kewarganegaraan">Kewarganegaraan</label>
-                  <select id="kewarganegaraan" name="kewarganegaraan">
-                    <option value="WNI" selected>WNI</option>
-                    <option value="WNA">WNA</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="anak_ke">Anak ke-</label>
-                  <input type="number" id="anak_ke" name="anak_ke" min="1" max="20" placeholder="1">
-                </div>
-                <div class="form-group">
-                  <label for="jumlah_saudara">Jumlah Saudara Kandung</label>
-                  <input type="number" id="jumlah_saudara" name="jumlah_saudara" min="0" max="20" placeholder="0">
-                </div>
-                <div class="form-group">
-                  <label for="kebutuhan_khusus">Berkebutuhan Khusus</label>
-                  <select id="kebutuhan_khusus" name="kebutuhan_khusus">
-                    <option value="Tidak" selected>Tidak</option>
-                    <option value="Ya">Ya (sebutkan di catatan)</option>
-                  </select>
-                </div>
-              </div>
-            </fieldset>
-
-            <!-- ALAMAT -->
-            <fieldset class="ppdb-fieldset">
-              <legend>2. Alamat Tempat Tinggal</legend>
-              <div class="form-grid">
-                <div class="form-group full">
-                  <label for="alamat_jalan">Alamat Jalan / Dusun <span class="req">*</span></label>
-                  <input type="text" id="alamat_jalan" name="alamat_jalan" required maxlength="200" placeholder="Jl. ... RT/RW akan diisi terpisah">
-                </div>
-                <div class="form-group">
-                  <label for="rt">RT</label>
-                  <input type="text" id="rt" name="rt" maxlength="3" inputmode="numeric" placeholder="001">
-                </div>
-                <div class="form-group">
-                  <label for="rw">RW</label>
-                  <input type="text" id="rw" name="rw" maxlength="3" inputmode="numeric" placeholder="001">
-                </div>
-                <div class="form-group">
-                  <label for="desa_kelurahan">Desa / Kelurahan <span class="req">*</span></label>
-                  <input type="text" id="desa_kelurahan" name="desa_kelurahan" required maxlength="60" placeholder="Nama desa/kelurahan">
-                </div>
-                <div class="form-group">
-                  <label for="kecamatan">Kecamatan <span class="req">*</span></label>
-                  <input type="text" id="kecamatan" name="kecamatan" required maxlength="60" placeholder="Kecamatan">
-                </div>
-                <div class="form-group">
-                  <label for="kabupaten_kota">Kabupaten / Kota <span class="req">*</span></label>
-                  <input type="text" id="kabupaten_kota" name="kabupaten_kota" required maxlength="60" placeholder="Kab. Bogor / Kota ...">
-                </div>
-                <div class="form-group">
-                  <label for="provinsi">Provinsi <span class="req">*</span></label>
-                  <input type="text" id="provinsi" name="provinsi" required maxlength="60" value="Jawa Barat">
-                </div>
-                <div class="form-group">
-                  <label for="kode_pos">Kode Pos</label>
-                  <input type="text" id="kode_pos" name="kode_pos" pattern="[0-9]{5}" maxlength="5" inputmode="numeric" placeholder="16320">
-                </div>
-                <div class="form-group">
-                  <label for="jarak_km">Jarak ke Sekolah (km)</label>
-                  <input type="number" id="jarak_km" name="jarak_km" min="0" max="100" step="0.1" placeholder="1.5">
-                </div>
-                <div class="form-group">
-                  <label for="transportasi">Alat Transportasi</label>
-                  <select id="transportasi" name="transportasi">
-                    <option value="">— Pilih —</option>
-                    <option value="Jalan kaki">Jalan kaki</option>
-                    <option value="Sepeda">Sepeda</option>
-                    <option value="Motor">Motor</option>
-                    <option value="Mobil pribadi">Mobil pribadi</option>
-                    <option value="Antar jemput sekolah">Antar jemput sekolah</option>
-                    <option value="Angkutan umum">Angkutan umum</option>
-                    <option value="Lainnya">Lainnya</option>
-                  </select>
-                </div>
-              </div>
-            </fieldset>
-
-            <!-- ASAL SEKOLAH -->
-            <fieldset class="ppdb-fieldset">
-              <legend>3. Asal Sekolah / Pendidikan Sebelumnya</legend>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="asal_sekolah">Nama TK / PAUD / RA</label>
-                  <input type="text" id="asal_sekolah" name="asal_sekolah" maxlength="100" placeholder="Nama lembaga (jika ada)">
-                </div>
-                <div class="form-group">
-                  <label for="asal_sekolah_alamat">Alamat Asal Sekolah</label>
-                  <input type="text" id="asal_sekolah_alamat" name="asal_sekolah_alamat" maxlength="150" placeholder="Kota/Kabupaten">
-                </div>
-                <div class="form-group">
-                  <label for="tahun_lulus_asal">Tahun Lulus / Selesai</label>
-                  <input type="number" id="tahun_lulus_asal" name="tahun_lulus_asal" min="2018" max="2026" placeholder="2026">
-                </div>
-              </div>
-            </fieldset>
-
-            <!-- DATA AYAH -->
-            <fieldset class="ppdb-fieldset">
-              <legend>4. Data Ayah Kandung</legend>
-              <div class="form-grid">
-                <div class="form-group full">
-                  <label for="ayah_nama">Nama Ayah <span class="req">*</span></label>
-                  <input type="text" id="ayah_nama" name="ayah_nama" required maxlength="100" placeholder="Nama lengkap ayah">
-                </div>
-                <div class="form-group">
-                  <label for="ayah_nik">NIK Ayah</label>
-                  <input type="text" id="ayah_nik" name="ayah_nik" pattern="[0-9]{16}" maxlength="16" inputmode="numeric" placeholder="16 digit">
-                </div>
-                <div class="form-group">
-                  <label for="ayah_pendidikan">Pendidikan Terakhir</label>
-                  <select id="ayah_pendidikan" name="ayah_pendidikan">
-                    <option value="">— Pilih —</option>
-                    <option value="Tidak sekolah">Tidak sekolah</option>
-                    <option value="SD">SD / sederajat</option>
-                    <option value="SMP">SMP / sederajat</option>
-                    <option value="SMA">SMA / sederajat</option>
-                    <option value="D1">D1</option>
-                    <option value="D2">D2</option>
-                    <option value="D3">D3</option>
-                    <option value="S1">S1</option>
-                    <option value="S2">S2</option>
-                    <option value="S3">S3</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="ayah_pekerjaan">Pekerjaan</label>
-                  <input type="text" id="ayah_pekerjaan" name="ayah_pekerjaan" maxlength="60" placeholder="Contoh: Karyawan swasta">
-                </div>
-                <div class="form-group">
-                  <label for="ayah_penghasilan">Penghasilan Bulanan</label>
-                  <select id="ayah_penghasilan" name="ayah_penghasilan">
-                    <option value="">— Pilih —</option>
-                    <option value="< 1 juta">&lt; Rp 1.000.000</option>
-                    <option value="1-2 juta">Rp 1.000.000 – 2.000.000</option>
-                    <option value="2-3 juta">Rp 2.000.000 – 3.000.000</option>
-                    <option value="3-5 juta">Rp 3.000.000 – 5.000.000</option>
-                    <option value="> 5 juta">&gt; Rp 5.000.000</option>
-                    <option value="Tidak berpenghasilan">Tidak berpenghasilan</option>
-                  </select>
-                </div>
-              </div>
-            </fieldset>
-
-            <!-- DATA IBU -->
-            <fieldset class="ppdb-fieldset">
-              <legend>5. Data Ibu Kandung</legend>
-              <div class="form-grid">
-                <div class="form-group full">
-                  <label for="ibu_nama">Nama Ibu <span class="req">*</span></label>
-                  <input type="text" id="ibu_nama" name="ibu_nama" required maxlength="100" placeholder="Nama lengkap ibu">
-                </div>
-                <div class="form-group">
-                  <label for="ibu_nik">NIK Ibu</label>
-                  <input type="text" id="ibu_nik" name="ibu_nik" pattern="[0-9]{16}" maxlength="16" inputmode="numeric" placeholder="16 digit">
-                </div>
-                <div class="form-group">
-                  <label for="ibu_pendidikan">Pendidikan Terakhir</label>
-                  <select id="ibu_pendidikan" name="ibu_pendidikan">
-                    <option value="">— Pilih —</option>
-                    <option value="Tidak sekolah">Tidak sekolah</option>
-                    <option value="SD">SD / sederajat</option>
-                    <option value="SMP">SMP / sederajat</option>
-                    <option value="SMA">SMA / sederajat</option>
-                    <option value="D1">D1</option>
-                    <option value="D2">D2</option>
-                    <option value="D3">D3</option>
-                    <option value="S1">S1</option>
-                    <option value="S2">S2</option>
-                    <option value="S3">S3</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="ibu_pekerjaan">Pekerjaan</label>
-                  <input type="text" id="ibu_pekerjaan" name="ibu_pekerjaan" maxlength="60" placeholder="Contoh: Ibu rumah tangga">
-                </div>
-                <div class="form-group">
-                  <label for="ibu_penghasilan">Penghasilan Bulanan</label>
-                  <select id="ibu_penghasilan" name="ibu_penghasilan">
-                    <option value="">— Pilih —</option>
-                    <option value="< 1 juta">&lt; Rp 1.000.000</option>
-                    <option value="1-2 juta">Rp 1.000.000 – 2.000.000</option>
-                    <option value="2-3 juta">Rp 2.000.000 – 3.000.000</option>
-                    <option value="3-5 juta">Rp 3.000.000 – 5.000.000</option>
-                    <option value="> 5 juta">&gt; Rp 5.000.000</option>
-                    <option value="Tidak berpenghasilan">Tidak berpenghasilan</option>
-                  </select>
-                </div>
-              </div>
-            </fieldset>
-
-            <!-- WALI & KONTAK -->
-            <fieldset class="ppdb-fieldset">
-              <legend>6. Wali &amp; Kontak (jika berbeda dari orang tua)</legend>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="wali_nama">Nama Wali</label>
-                  <input type="text" id="wali_nama" name="wali_nama" maxlength="100" placeholder="Kosongkan jika orang tua">
-                </div>
-                <div class="form-group">
-                  <label for="wali_hubungan">Hubungan dengan Siswa</label>
-                  <input type="text" id="wali_hubungan" name="wali_hubungan" maxlength="40" placeholder="Contoh: Kakek / Paman">
-                </div>
-                <div class="form-group">
-                  <label for="no_hp">No. HP / WhatsApp Orang Tua <span class="req">*</span></label>
-                  <input type="tel" id="no_hp" name="no_hp" required maxlength="16" inputmode="tel" placeholder="08xxxxxxxxxx">
-                </div>
-                <div class="form-group">
-                  <label for="email_ortu">Email Orang Tua</label>
-                  <input type="email" id="email_ortu" name="email_ortu" maxlength="80" placeholder="email@contoh.com">
-                </div>
-              </div>
-            </fieldset>
-
-            <!-- TAMBAHAN SDIT -->
-            <fieldset class="ppdb-fieldset">
-              <legend>7. Informasi Tambahan</legend>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label for="minat_program">Minat Program Unggulan</label>
-                  <select id="minat_program" name="minat_program">
-                    <option value="">— Pilih —</option>
-                    <option value="Tahfidz Al-Qur'an">Tahfidz Al-Qur'an</option>
-                    <option value="Sains &amp; Teknologi">Sains &amp; Teknologi</option>
-                    <option value="Bahasa">Bahasa</option>
-                    <option value="Olahraga">Olahraga</option>
-                    <option value="Seni Islami">Seni Islami</option>
-                    <option value="Umum">Umum / Belum ditentukan</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="tinggi_badan">Tinggi Badan (cm)</label>
-                  <input type="number" id="tinggi_badan" name="tinggi_badan" min="80" max="180" placeholder="110">
-                </div>
-                <div class="form-group">
-                  <label for="berat_badan">Berat Badan (kg)</label>
-                  <input type="number" id="berat_badan" name="berat_badan" min="10" max="80" step="0.1" placeholder="20">
-                </div>
-                <div class="form-group full">
-                  <label for="catatan">Catatan / Keterangan Lain</label>
-                  <textarea id="catatan" name="catatan" rows="3" maxlength="500" placeholder="Alergi, riwayat kesehatan, atau info penting lainnya"></textarea>
-                </div>
-              </div>
-            </fieldset>
-
-            <p id="ppdbPrivacyNote" class="ppdb-privacy" hidden></p>
-            <div class="ppdb-consent">
-              <label class="checkbox-label">
-                <input type="checkbox" id="persetujuan" name="persetujuan" required>
-                <span>Saya menyatakan data yang diisi benar dan bersedia mengirimkan berkas pendukung ke sekolah. Data akan digunakan untuk keperluan PPDB dan pelaporan Dapodik sesuai ketentuan yang berlaku. <span class="req">*</span></span>
-              </label>
-            </div>
-
-            <div class="ppdb-form-actions">
-              <button type="submit" class="btn btn-accent" id="ppdbSubmitBtn">Kirim Pendaftaran</button>
-              <button type="reset" class="btn btn-ghost">Reset Form</button>
-            </div>
-            <div id="ppdbFormStatus" class="ppdb-form-status" role="status" aria-live="polite"></div>
-          </form>
+        <label>URL Thumbnail (opsional — jika preview kosong, tempel hotlink gambar)</label>
+        <input id="mediaThumb" type="url" placeholder="https://…/image.jpg">
+        <label>Deskripsi (opsional)</label>
+        <textarea id="mediaDesc" placeholder="Caption singkat — boleh kosong"></textarea>
+        <div class="actions">
+          <button class="btn btn-accent" type="button" id="btnAddMedia" data-tip="Tambahkan media ke daftar setelah preview OK.">Tambahkan ke Galeri</button>
         </div>
       </div>
-    </section>
+    </div>
+<div class="admin-card">
+      <h2>Media (Foto & Video)</h2>
+      <div class="list" id="mediaList"></div>
+      <p class="hint">Item <span class="badge video">video</span> → section Video. <span class="badge foto">foto</span> → Galeri Foto.</p>
+    </div>
+</div><!-- /tab-media -->
 
-
-    <section id="biaya" class="sec-optional" hidden>
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Transparansi</div>
-          <h2 id="feesTitle">Informasi Biaya Pendidikan</h2>
-          <p id="feesNote"></p>
-        </div>
-        <div class="fees-table-wrap" id="feesTableWrap"></div>
+<div class="admin-tab-panel" id="tab-pengumuman" role="tabpanel" data-tab-panel="pengumuman">
+<div class="admin-card">
+      <h2>📢 Pengumuman</h2>
+      <p class="hint">
+        Tampil di halaman publik sebagai <strong>popup</strong>, banner atas/bawah, atau float.
+        Atur jadwal mulai–selesai, durasi, dan frekuensi. Gambar bisa di-upload URL atau
+        <strong>Ctrl+V screenshot</strong> di zona paste.
+        Default aman: popup, 12 detik, sekali per sesi, bisa ditutup.
+      </p>
+      <div class="list" id="annList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddAnn">+ Tambah Pengumuman</button>
       </div>
-    </section>
 
-    <section id="kontak" style="background:#fff;">
-      <div class="container">
-        <div class="section-head">
-          <div class="label">Hubungi Kami</div>
-          <h2>Kontak & Lokasi</h2>
-          <p>Silakan kunjungi atau hubungi sekretariat sekolah.</p>
+      <div id="annEditor" hidden style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(11,110,79,.12)">
+        <h3 id="annEditorTitle" style="font-size:1rem;color:#084C37;margin-bottom:.75rem">Edit pengumuman</h3>
+        <label>Judul</label>
+        <input type="text" id="annTitle" placeholder="Judul pengumuman">
+        <label>Isi pesan</label>
+        <textarea id="annBody" placeholder="Teks pengumuman…"></textarea>
+        <div class="row">
+          <div>
+            <label>Mode tampilan</label>
+            <select id="annMode">
+              <option value="popup">Popup tengah (modal)</option>
+              <option value="top">Banner atas (sticky)</option>
+              <option value="bottom">Banner bawah (sticky)</option>
+              <option value="float-left">Float kiri bawah</option>
+              <option value="float-right">Float kanan bawah</option>
+              <option value="corner">Kartu pojok kanan</option>
+            </select>
+          </div>
+          <div>
+            <label>Frekuensi</label>
+            <select id="annFreq">
+              <option value="session">Sekali per sesi tab</option>
+              <option value="once">Sekali saja (selamanya di browser)</option>
+              <option value="always">Setiap kunjungan / refresh</option>
+            </select>
+          </div>
         </div>
-        <div class="contact-grid">
-          <div class="contact-card">
-            <h3>Informasi Kontak</h3>
-            <p id="schoolAddress">Jl. Manunggal RT.03/12, Tajur Halang, Kec. Tajurhalang, Kab. Bogor</p>
-            <a id="schoolEmail" href="mailto:darulistiqomahsdit@gmail.com">darulistiqomahsdit@gmail.com</a>
-            <a id="igLink" href="https://www.instagram.com/sdit_daarul_istiqomah/" target="_blank" rel="noopener">Instagram @sdit_daarul_istiqomah</a>
-            <p id="schoolHours" class="meta-line" hidden></p>
-            <p id="schoolPrincipal" class="meta-line" hidden></p>
-            <p id="schoolYayasan" class="meta-line" hidden></p>
-            <p id="officialLinks" class="meta-line" hidden></p>
-            <div id="complaintCard" class="complaint-box" hidden>
-              <h4>Saran &amp; Pengaduan</h4>
-              <p id="complaintNote"></p>
-              <div class="ppdb-actions" id="complaintActions"></div>
-            </div>
+        <div class="row">
+          <div>
+            <label>Mulai (kosong = segera)</label>
+            <input type="datetime-local" id="annStart">
           </div>
-          <div class="map-card">
-            <iframe id="mapFrame" title="Peta lokasi sekolah" loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              src="https://www.google.com/maps?q=-6.4804,106.7577&z=16&output=embed"></iframe>
+          <div>
+            <label>Selesai (kosong = tanpa batas)</label>
+            <input type="datetime-local" id="annEnd">
           </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Durasi tampil (detik, default 12)</label>
+            <input type="number" id="annDuration" min="3" max="300" placeholder="12">
+          </div>
+          <div>
+            <label>Prioritas (angka besar = lebih dulu)</label>
+            <input type="number" id="annPriority" min="0" max="100" placeholder="0">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Teks tombol CTA (opsional)</label>
+            <input type="text" id="annCtaText" placeholder="Selengkapnya">
+          </div>
+          <div>
+            <label>Link CTA</label>
+            <input type="url" id="annCtaLink" placeholder="https://…">
+          </div>
+        </div>
+        <label>URL gambar (opsional)</label>
+        <input type="url" id="annImage" placeholder="https://… atau tempel screenshot di bawah">
+        <div class="ann-paste-zone" id="annPaste" tabindex="0">
+          Klik di sini lalu <strong>Ctrl+V</strong> untuk menempel screenshot dari clipboard<br>
+          <span style="font-size:.8rem">Gambar di-resize otomatis agar muat di Sheets</span>
+        </div>
+        <div class="ann-admin-preview" id="annPreview"></div>
+        <div class="row" style="margin-top:.75rem">
+          <div>
+            <label>Aktif</label>
+            <select id="annActive">
+              <option value="true">Ya</option>
+              <option value="false">Tidak</option>
+            </select>
+          </div>
+          <div>
+            <label>Bisa ditutup (tombol ×)</label>
+            <select id="annDismiss">
+              <option value="true">Ya</option>
+              <option value="false">Tidak</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-accent" type="button" id="btnAnnSave">Simpan pengumuman</button>
+          <button class="btn btn-primary" type="button" id="btnAnnPreview" data-tip="Buka halaman publik di tab baru dan tampilkan pengumuman ini (mode preview, mengabaikan jadwal).">Preview di website</button>
+          <button class="btn btn-ghost" type="button" id="btnAnnCancel">Batal</button>
         </div>
       </div>
-    </section>
-  </main>
+    </div>
+</div><!-- /tab-pengumuman -->
 
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-grid">
+<div class="admin-tab-panel" id="tab-carousel" role="tabpanel" data-tab-panel="carousel">
+<div class="admin-card">
+      <h2>Carousel</h2>
+      <div class="list" id="carouselList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddCarousel" data-tip="Tambah slide baru di carousel beranda. Anda akan mengisi judul, subtitle, gambar, dan tombol CTA lewat form Edit.">+ Tambah Slide</button>
+      </div>
+    </div>
+</div><!-- /tab-carousel -->
+
+<div class="admin-tab-panel" id="tab-berita" role="tabpanel" data-tab-panel="berita">
+<div class="admin-card">
+      <h2>Artikel / Berita</h2>
+      <div class="list" id="articleList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddArticle" data-tip="Tambah berita/artikel baru. Isi judul, kategori, tanggal, ringkasan, dan gambar lewat form yang muncul.">+ Tambah Artikel</button>
+      </div>
+    </div>
+</div><!-- /tab-berita -->
+
+<div class="admin-tab-panel" id="tab-video" role="tabpanel" data-tab-panel="video">
+<div class="admin-card">
+      <h2>Video (YouTube)</h2>
+      <div class="list" id="videoList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddVideo" data-tip="Tambah video YouTube ke section Video. Isi judul, YouTube ID (kode setelah v=), dan URL thumbnail.">+ Tambah Video</button>
+      </div>
+    </div>
+<div class="admin-card">
+      <h2>Grup Video (Playlist / multi-link)</h2>
+      <p class="hint">
+        Buat grup video untuk website. <strong>Dua cara:</strong>
+        (1) folder Google Drive → scan → playlist → grup,
+        (2) link playlist YouTube / daftar link manual (fitur lama).
+        Judul otomatis: Nama Grup – Bagian 1, 2, … (urutan dari nama file).
+      </p>
+      <div class="list" id="videoGroupsList"></div>
+
+      <div style="margin-top:1rem;padding:1rem;border:1px solid rgba(11,110,79,.25);border-radius:12px;background:rgba(11,110,79,.04)">
+        <h3 style="margin:0 0 .5rem;font-size:1rem">📁 Dari folder Google Drive</h3>
+        <p class="hint" style="margin-bottom:.75rem">
+          Paste link folder Drive. File diurutkan natural (1,2,10). Privacy: <strong>Public</strong>.
+          Folder harus di-share ke akun yang menjalankan Apps Script.
+        </p>
+        <label>Nama grup / judul playlist</label>
+        <input type="text" id="vgDriveName" placeholder="Contoh: Acara 17an 2026">
+        <label style="margin-top:.5rem;display:block">Link folder Google Drive</label>
+        <input type="url" id="vgDriveFolder" placeholder="https://drive.google.com/drive/folders/XXXX">
+        <div class="actions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem">
+          <button class="btn btn-ghost" type="button" id="btnVgScanDrive">Scan Folder Drive</button>
+          <button class="btn btn-primary" type="button" id="btnVgDriveToGroup">Buat Playlist + Grup Video</button>
+        </div>
+        <p id="vgDriveStatus" class="hint" style="margin-top:.5rem"></p>
+        <div id="vgDriveFileList" style="margin-top:.5rem"></div>
+      </div>
+
+      <div style="margin-top:1rem;padding:1rem;border:1px solid rgba(11,110,79,.15);border-radius:12px;background:#f8fbf9">
+        <h3 style="margin:0 0 .5rem;font-size:1rem">Atau dari playlist / link YouTube</h3>
+        <label>Nama grup</label>
+        <input type="text" id="vgName" placeholder="Contoh: Kajian Rutin / Kegiatan Tahfidz">
+        <label style="margin-top:.5rem;display:block">URL playlist YouTube (opsional)</label>
+        <input type="url" id="vgPlaylist" placeholder="https://www.youtube.com/playlist?list=PLxxxx">
+        <label style="margin-top:.5rem;display:block">Atau daftar link video (satu per baris)</label>
+        <textarea id="vgLinks" rows="5" placeholder="https://www.youtube.com/watch?v=xxxxx&#10;https://youtu.be/yyyyy"></textarea>
+        <div class="actions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem">
+          <button class="btn btn-ghost" type="button" id="btnVgFetchPlaylist">Deteksi dari playlist</button>
+          <button class="btn btn-primary" type="button" id="btnAddVideoGroup">+ Tambah / Generate Grup Video</button>
+        </div>
+        <p id="vgStatus" class="hint" style="margin-top:.5rem"></p>
+      </div>
+    </div>
+</div><!-- /tab-video -->
+
+<div class="admin-tab-panel" id="tab-galeri" role="tabpanel" data-tab-panel="galeri">
+<div class="admin-card">
+      <h2>Galeri Foto (URL langsung)</h2>
+      <div class="list" id="galleryList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddGallery" data-tip="Tambah foto ke galeri dengan URL/path gambar langsung (bukan link post IG). Untuk link IG, gunakan form Tambah Media di atas.">+ Tambah Foto (URL gambar)</button>
+      </div>
+    </div>
+<div class="admin-card">
+      <h2>Grup Galeri Foto (bulk dari folder)</h2>
+      <p class="hint">
+        Bulk upload mirip Grup Video. Isi <strong>nama grup</strong> dan <strong>path folder</strong>
+        (contoh: <code>images/foto/mabit</code>) tempat file gambar berada di repo.
+        Klik <strong>Scan Folder</strong> → sistem deteksi file via GitHub API.
+        Judul default = nama file; deskripsi default = nama grup + judul foto.
+        Hasil tampil di frontend saat card grup diklik. Edit per-foto lewat tombol Edit File.
+      </p>
+      <div class="list" id="galleryGroupList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" id="btnAddGalleryGroup" data-tip="Tambah grup galeri foto baru. Setelah isi folder, gunakan Scan Folder.">+ Tambah Grup Galeri Foto</button>
+      </div>
+    </div>
+</div><!-- /tab-galeri -->
+
+
+<div class="admin-tab-panel" id="tab-akademik" role="tabpanel" data-tab-panel="akademik">
+<div class="admin-card">
+  <h2>Fasilitas</h2>
+  <p class="hint">
+    Isi minimal <strong>Nama</strong> (wajib). Icon emoji &amp; URL gambar opsional.
+    Setelah tambah/edit, klik <strong>Simpan ke Google Sheets</strong> di toolbar atas,
+    lalu buka website publik dan hard-refresh (Ctrl+Shift+R).
+    Section Fasilitas hanya muncul di frontend jika ada minimal 1 item bernama.
+  </p>
+  <div class="list" id="facilitiesList"></div>
+  <div class="actions"><button class="btn btn-primary" type="button" id="btnAddFacility">+ Tambah Fasilitas</button></div>
+</div>
+<div class="admin-card">
+  <h2>Guru &amp; Staff</h2>
+  <div class="list" id="teachersList"></div>
+  <div class="actions"><button class="btn btn-primary" type="button" id="btnAddTeacher">+ Tambah Guru</button></div>
+</div>
+<div class="admin-card">
+  <h2>Prestasi</h2>
+  <div class="list" id="achievementsList"></div>
+  <div class="actions"><button class="btn btn-primary" type="button" id="btnAddAchievement">+ Tambah Prestasi</button></div>
+</div>
+<div class="admin-card">
+  <h2>Kalender Akademik</h2>
+  <div class="list" id="calendarListAdmin"></div>
+  <div class="actions"><button class="btn btn-primary" type="button" id="btnAddCalendar">+ Tambah Agenda</button></div>
+</div>
+</div><!-- /tab-akademik -->
+
+<div class="admin-tab-panel" id="tab-ppdb" role="tabpanel" data-tab-panel="ppdb">
+<div class="admin-card">
+      <h2>PPDB — Pengaturan</h2>
+      <div class="row">
+        <div><label>Tahun ajaran</label><input id="fPpdbYear" type="text"></div>
         <div>
-          <h4>SDIT Daarul Istiqomah</h4>
-          <p id="footerAddress">Jl. Manunggal RT.03/12, Tajur Halang, Kab. Bogor</p>
-          <p id="footerEmail">darulistiqomahsdit@gmail.com</p>
-        </div>
-        <div>
-          <h4>Menu</h4>
-          <p><a href="#program">Program</a></p>
-          <p><a href="#berita">Berita</a></p>
-          <p><a href="#galeri">Galeri</a></p>
-          <p><a href="#ppdb">PPDB</a></p>
-        </div>
-        <div>
-          <h4>Media</h4>
-          <p><a href="https://www.instagram.com/sdit_daarul_istiqomah/" target="_blank" rel="noopener">Instagram Utama</a></p>
-          <p><a href="https://www.instagram.com/sd_it_darul_istiqomah/" target="_blank" rel="noopener">Instagram Alternatif</a></p>
-          
+          <label>Status buka</label>
+          <select id="fPpdbOpen"><option value="true">Dibuka</option><option value="false">Ditutup</option></select>
         </div>
       </div>
-      <div class="footer-bottom">
-        <span>© <span id="year"></span> SDIT Daarul Istiqomah. Semua hak dilindungi.</span>
-        <span class="powered">Powered by <a href="https://silverhawk.web.id" target="_blank" rel="noopener">silverhawk.web.id</a></span>
+      <label>Catatan PPDB</label><textarea id="fPpdbNote"></textarea>
+      <label>Kuota</label><input id="fPpdbQuota" type="text" placeholder="Contoh: 56 siswa (2 rombel)">
+      <label>Catatan samping / alur singkat</label><textarea id="fPpdbFlowNote" rows="2"></textarea>
+      <label>Kebijakan privasi data (form)</label><textarea id="fPpdbPrivacy" rows="3" placeholder="Penjelasan penggunaan data calon siswa"></textarea>
+      <label>Syarat (satu baris per syarat)</label><textarea id="fPpdbReqs" rows="5"></textarea>
+    </div>
+<div class="admin-card">
+      <h2>Alur Pendaftaran (steps)</h2>
+      <div class="list" id="ppdbStepsList"></div>
+      <div class="actions"><button class="btn btn-primary" type="button" id="btnAddPpdbStep">+ Tambah Tahap</button></div>
+    </div>
+<div class="admin-card">
+      <h2>Jadwal PPDB</h2>
+      <div class="list" id="ppdbScheduleList"></div>
+      <div class="actions"><button class="btn btn-primary" type="button" id="btnAddPpdbSchedule">+ Tambah Jadwal</button></div>
+    </div>
+<div class="admin-card">
+      <h2>FAQ PPDB</h2>
+      <div class="list" id="faqList"></div>
+      <div class="actions"><button class="btn btn-primary" type="button" id="btnAddFaq">+ Tambah FAQ</button></div>
+    </div>
+<div class="admin-card">
+      <h2>Informasi Biaya</h2>
+      <p class="hint">Section Biaya hanya tampil jika diaktifkan dan ada item/catatan.</p>
+      <label>Tampilkan di website</label>
+      <select id="fFeesEnabled"><option value="false">Tidak</option><option value="true">Ya</option></select>
+      <label>Judul</label><input id="fFeesTitle" type="text" value="Informasi Biaya Pendidikan">
+      <label>Catatan</label><textarea id="fFeesNote" rows="2"></textarea>
+      <div class="list" id="feesList"></div>
+      <div class="actions"><button class="btn btn-primary" type="button" id="btnAddFee">+ Tambah Komponen Biaya</button></div>
+    </div>
+<div class="admin-card" id="ppdbDataCard">
+      <h2>📋 Data Pendaftaran PPDB</h2>
+      <p class="hint">
+        Daftar calon siswa dari formulir online. Data disimpan di sheet <code>ppdb</code> (Google Sheets).
+        Field selaras Dapodik — unduh CSV untuk impor aplikasi PPDB. Cetak form A4 untuk arsip fisik.
+      </p>
+      <div class="ppdb-toolbar">
+        <input type="search" id="ppdbSearch" class="ppdb-search" placeholder="Cari nama / NIK / no. registrasi…">
+        <select id="ppdbFilterStatus" style="max-width:140px">
+          <option value="">Semua status</option>
+          <option value="Baru">Baru</option>
+          <option value="Proses">Proses</option>
+          <option value="Diterima">Diterima</option>
+          <option value="Ditolak">Ditolak</option>
+        </select>
+        <button class="btn btn-ghost" type="button" id="btnPpdbRefresh" data-tip="Muat ulang daftar dari Google Sheets">↻ Refresh</button>
+        <button class="btn btn-primary" type="button" id="btnPpdbAdd" data-tip="Tambah pendaftaran manual">+ Tambah</button>
+        <button class="btn btn-accent" type="button" id="btnPpdbDownload" data-tip="Unduh semua data (filter aktif) sebagai CSV">⬇ Unduh CSV</button>
+        <span class="ppdb-count" id="ppdbCount"></span>
       </div>
+      <div class="ppdb-table-wrap">
+        <table class="ppdb-table" id="ppdbTable">
+          <thead>
+            <tr>
+              <th>No. Reg</th>
+              <th>Tanggal</th>
+              <th>Nama Siswa</th>
+              <th>NIK</th>
+              <th>L/P</th>
+              <th>TTL</th>
+              <th>Orang Tua / HP</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="ppdbTableBody">
+            <tr><td colspan="9" class="ppdb-empty">Klik Refresh untuk memuat data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</div><!-- /tab-ppdb -->
+
+<div class="admin-tab-panel" id="tab-setup" role="tabpanel" data-tab-panel="setup">
+<div class="admin-card">
+      <h2>Setup database</h2>
+      <p class="hint">
+        <strong>Google Sheets + Apps Script</strong> — ikuti <code>apps-script/SETUP.md</code>.
+        Multi-guru: share Spreadsheet (Editor). Rahasia (token &amp; password) di Script Properties.
+      </p>
+    </div>
+<div class="admin-card">
+      <h2>Password Editor (edit cepat di frontend)</h2>
+      <p class="hint">
+        Selain <strong>password admin utama</strong> (Script Properties → <code>ADMIN_PASSWORD</code>),
+        Anda bisa menambah beberapa password editor. Siapa pun yang tahu salah satu password
+        ini bisa memakai <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Shift</kbd> + double-click untuk
+        mengedit card di frontend. Password disimpan aman di Apps Script (bukan di GitHub).
+      </p>
+      <div class="list" id="editorPassList"></div>
+      <div style="margin-top:1rem;padding:1rem;border:1px solid rgba(11,110,79,.15);border-radius:12px;background:#f8fbf9">
+        <label>Label (nama guru / peran)</label>
+        <input type="text" id="edLabel" placeholder="Contoh: Bu Siti / Wali Kelas 3">
+        <label>Password baru</label>
+        <input type="password" id="edPass" placeholder="Minimal 4 karakter" autocomplete="new-password">
+        <label>Ulangi password</label>
+        <input type="password" id="edPass2" placeholder="Ketik ulang" autocomplete="new-password">
+        <div class="actions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem">
+          <button class="btn btn-primary" type="button" id="btnAddEditor">+ Tambah password editor</button>
+          <button class="btn btn-ghost" type="button" id="btnRefreshEditors">Refresh daftar</button>
+        </div>
+        <p id="edStatus" class="hint" style="margin-top:.5rem"></p>
+      </div>
+    </div>
+</div><!-- /tab-setup -->
+</div>
+
+  </div><!-- /adminApp -->
+
+  <footer class="site-footer" style="margin-top:2rem;">
+    <div class="container footer-bottom" style="border:0;padding:1rem 0;">
+      <span>Admin SDIT Daarul Istiqomah</span>
+      <span class="powered">Powered by <a href="https://silverhawk.web.id" target="_blank" rel="noopener">silverhawk.web.id</a></span>
     </div>
   </footer>
 
-  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
-    <button class="lightbox-close" type="button" aria-label="Tutup">×</button>
-    <img id="lightboxImg" alt="">
-  </div>
-  <div class="modal" id="videoModal" role="dialog" aria-modal="true">
-    <div class="modal-inner">
-      <button class="modal-close" type="button" aria-label="Tutup">×</button>
-      <iframe id="videoFrame" allow="autoplay; encrypted-media" allowfullscreen title="Video"></iframe>
+  
+  <!-- CRUD Editor Modal -->
+  
+  <!-- Modal detail / edit PPDB -->
+  <div id="ppdbModal" class="edit-modal" hidden>
+    <div class="edit-modal-inner" style="max-width:720px;width:94vw">
+      <h3 id="ppdbModalTitle" style="margin:0 0 .75rem;color:#084C37">Detail Pendaftaran</h3>
+      <div id="ppdbModalBody"></div>
+      <div class="actions" style="margin-top:1rem;flex-wrap:wrap">
+        <button class="btn btn-accent" type="button" id="btnPpdbModalSave">Simpan Perubahan</button>
+        <button class="btn btn-primary" type="button" id="btnPpdbModalPrint">🖨 Cetak PDF A4</button>
+        <button class="btn btn-ghost" type="button" id="btnPpdbModalDelete" style="color:#b91c1c">Hapus</button>
+        <button class="btn btn-ghost" type="button" id="btnPpdbModalClose">Tutup</button>
+      </div>
     </div>
   </div>
 
-  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
-  <script src="js/config.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/lock.js"></script>
+<div id="editModal" class="edit-modal" hidden>
+    <div class="edit-modal-inner">
+      <h2 id="editModalTitle">Edit</h2>
+      <div id="editFields"></div>
+      <div class="actions" style="margin-top:1rem">
+        <button class="btn btn-accent" type="button" id="btnEditSave" data-tip="Simpan perubahan item ini ke data di memori. Setelah itu klik tombol Simpan ke Google Sheets agar data tidak hilang saat refresh.">Simpan</button>
+        <button class="btn btn-ghost" type="button" id="btnEditCancel" data-tip="Tutup form tanpa menyimpan perubahan pada item ini.">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/media-utils.js"></script>
+  <script src="../js/admin.js"></script>
+  <script src="../js/lock.js"></script>
 </body>
 </html>
