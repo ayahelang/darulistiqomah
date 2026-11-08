@@ -2678,12 +2678,42 @@
       box.innerHTML = '<p class="hint">Tidak ada file video di folder.</p>';
       return;
     }
-    box.innerHTML = files.map(function (f, i) {
-      return '<label style="display:flex;gap:.5rem;align-items:flex-start;padding:.35rem 0;border-bottom:1px solid rgba(0,0,0,.06)">' +
-        '<input type="checkbox" class="vg-drive-cb" data-id="' + (f.id || '') + '" checked>' +
-        '<span><strong>' + (i + 1) + '.</strong> ' + (f.name || '') +
-        ' <span class="meta">(' + (f.sizeMb || '?') + ' MB)</span></span></label>';
+    const head =
+      '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;font-size:.85rem">' +
+      '<label style="display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;margin:0">' +
+      '<input type="checkbox" id="vgDriveSelectAll" checked> Pilih semua</label>' +
+      '<span class="meta" id="vgDriveCount">' + files.length + ' dipilih</span></div>';
+    const rows = files.map(function (f, i) {
+      const name = String(f.name || '');
+      const short = name.length > 48 ? (name.slice(0, 22) + '…' + name.slice(-18)) : name;
+      return (
+        '<div class="vg-drive-row" style="display:flex;align-items:center;gap:.45rem;padding:.2rem .35rem;border-bottom:1px solid rgba(0,0,0,.06);font-size:.82rem;line-height:1.25">' +
+        '<input type="checkbox" class="vg-drive-cb" data-id="' + (f.id || '') + '" checked style="flex:0 0 auto;margin:0">' +
+        '<span style="flex:0 0 1.6rem;color:#64748b;text-align:right">' + (i + 1) + '.</span>' +
+        '<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + name.replace(/"/g, '&quot;') + '">' + short + '</span>' +
+        '<span class="meta" style="flex:0 0 auto;white-space:nowrap">' + (f.sizeMb || '?') + ' MB</span>' +
+        '</div>'
+      );
     }).join('');
+    box.innerHTML = head + '<div style="border:1px solid rgba(11,110,79,.12);border-radius:8px;background:#fff;max-height:240px;overflow:auto">' + rows + '</div>';
+
+    const selAll = $('vgDriveSelectAll');
+    if (selAll) {
+      selAll.onchange = function () {
+        const on = !!selAll.checked;
+        box.querySelectorAll('.vg-drive-cb').forEach(function (cb) { cb.checked = on; });
+        updateDriveCount();
+      };
+    }
+    box.querySelectorAll('.vg-drive-cb').forEach(function (cb) {
+      cb.onchange = updateDriveCount;
+    });
+    function updateDriveCount() {
+      const n = box.querySelectorAll('.vg-drive-cb:checked').length;
+      const el = $('vgDriveCount');
+      if (el) el.textContent = n + ' dipilih';
+      if (selAll) selAll.checked = n === files.length;
+    }
   }
 
   const btnVgScan = $('btnVgScanDrive');
