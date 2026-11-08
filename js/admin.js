@@ -2571,7 +2571,57 @@
     return r.json();
   }
 
-  const btnVgFetch = $('btnVgFetchPlaylist');
+  
+  async function apiFetchDriveFolderVideos(folderUrl, pageToken) {
+    const cfg = window.SDIT_CONFIG || {};
+    const base = (cfg.sheetsApiUrl || '').replace(/\?.*$/, '');
+    const token = cfg.apiToken || '';
+    if (!base) throw new Error('sheetsApiUrl belum diisi di js/config.js');
+    const res = await fetch(base, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'listDriveFolderVideos',
+        token: token,
+        url: folderUrl,
+        folderUrl: folderUrl,
+        pageToken: pageToken || '',
+        pageSize: 20
+      })
+    });
+    const json = await res.json();
+    if (!json || json.ok === false) throw new Error((json && json.error) || 'Gagal list folder Drive');
+    return json;
+  }
+
+  /** Ambil semua video di folder Drive, batch demi batch hingga nextPageToken habis. */
+  async function fetchAllDriveFolderVideos(folderUrl, onProgress) {
+    var all = [];
+    var pageToken = '';
+    var page = 0;
+    do {
+      page++;
+      var res = await apiFetchDriveFolderVideos(folderUrl, pageToken);
+      var batch = Array.isArray(res.items) ? res.items : [];
+      all = all.concat(batch);
+      if (typeof onProgress === 'function') {
+        onProgress({
+          page: page,
+          batch: batch.length,
+          total: all.length,
+          done: !!res.done || !res.nextPageToken
+        });
+      }
+      pageToken = res.nextPageToken || '';
+      // jeda singkat agar tidak membanjiri Apps Script
+      if (pageToken) {
+        await new Promise(function (r) { setTimeout(r, 350); });
+      }
+    } while (pageToken);
+    return all;
+  }
+
+const btnVgFetch = $('btnVgFetchPlaylist');
   if (btnVgFetch) {
     btnVgFetch.onclick = async function () {
       const url = (($('vgPlaylist') && $('vgPlaylist').value) || '').trim();
@@ -2592,6 +2642,34 @@
         if (st) st.textContent = '✓ ' + items.length + ' video terdeteksi. Klik Tambah Grup untuk menyimpan.';
       } catch (err) {
         if (st) st.textContent = '✗ ' + (err.message || err);
+      }
+    };
+  }
+
+  const btnVgDrive = $('btnVgFetchDrive');
+  if (btnVgDrive) {
+    btnVgDrive.onclick = async function () {
+      const url = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
+      const st = $('vgStatus');
+      if (!url) { if (st) st.textContent = 'Isi URL folder Google Drive dulu.'; return; }
+      if (st) st.textContent = 'Memindai folder Drive (batch 20 file)…';
+      btnVgDrive.disabled = true;
+      try {
+        const items = await fetchAllDriveFolderVideos(url, function (p) {
+          if (st) {
+            st.textContent = 'Drive batch ke-' + p.page + ': +' + p.batch + ' file (total ' + p.total + ')' +
+              (p.done ? ' — selesai.' : ' — lanjut…');
+          }
+        });
+        if (!items.length) throw new Error('Tidak ada file video di folder (atau folder tidak bisa diakses).');
+        window.__vgFetchedItems = items;
+        if (st) st.textContent = '✓ ' + items.length + ' video Drive terdeteksi. Klik + Tambah / Generate Grup Video, lalu Simpan ke Sheets.';
+        status('Drive: ' + items.length + ' video');
+      } catch (err) {
+        if (st) st.textContent = '✗ ' + (err.message || err);
+        status('✗ Deteksi Drive gagal: ' + (err.message || err));
+      } finally {
+        btnVgDrive.disabled = false;
       }
     };
   }
@@ -2633,10 +2711,12 @@
         return;
       }
       if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
+      const driveFolder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
       data.videoGroups.unshift({
         id: 'vg' + Date.now(),
         name: name,
         playlistUrl: playlist,
+        driveFolderUrl: driveFolder,
         date: new Date().toISOString().slice(0, 10),
         order: 0,
         active: true,
@@ -2648,393 +2728,12 @@
       if (db) { db.hidden = false; db.style.display = 'block'; }
       if ($('vgName')) $('vgName').value = '';
       if ($('vgPlaylist')) $('vgPlaylist').value = '';
+      if ($('vgDriveFolder')) $('vgDriveFolder').value = '';
       if ($('vgLinks')) $('vgLinks').value = '';
       try { renderVideoGroupsAdmin(); } catch (_) {}
       try { renderLists(); } catch (_) {}
       if (st) st.textContent = '✓ Grup "' + name + '" dengan ' + items.length + ' video. Simpan ke Google Sheets.';
       status('Grup video ditambahkan. Simpan ke Google Sheets.');
-    };
-  }
-
-  /* ===== Drive folder → playlist → videoGroups ===== */
-  window.__vgDriveScan = null;
-
-  async function apiDriveAction(action, payload) {
-    const conf = window.SDIT_CONFIG || {};
-    const token = (typeof getToken === 'function' ? getToken() : '') || sessionStorage.getItem('sdit_di_admin_token_v1') || '';
-    const body = Object.assign({ action: action, token: token }, payload || {});
-    const r = await fetch(conf.sheetsApiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(body)
-    });
-    return r.json();
-  }
-
-  function renderDriveFileList(files) {
-    const box = $('vgDriveFileList');
-    if (!box) return;
-    if (!files || !files.length) {
-      box.innerHTML = '<p class="hint">Tidak ada file video di folder.</p>';
-      return;
-    }
-    const head =
-      '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;font-size:.85rem">' +
-      '<label style="display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;margin:0">' +
-      '<input type="checkbox" id="vgDriveSelectAll" checked> Pilih semua</label>' +
-      '<span class="meta" id="vgDriveCount">' + files.length + ' dipilih</span></div>';
-    const rows = files.map(function (f, i) {
-      const name = String(f.name || '');
-      const short = name.length > 48 ? (name.slice(0, 22) + '…' + name.slice(-18)) : name;
-      return (
-        '<div class="vg-drive-row" style="display:flex;align-items:center;gap:.45rem;padding:.2rem .35rem;border-bottom:1px solid rgba(0,0,0,.06);font-size:.82rem;line-height:1.25">' +
-        '<input type="checkbox" class="vg-drive-cb" data-id="' + (f.id || '') + '" checked style="flex:0 0 auto;margin:0">' +
-        '<span style="flex:0 0 1.6rem;color:#64748b;text-align:right">' + (i + 1) + '.</span>' +
-        '<span style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + name.replace(/"/g, '&quot;') + '">' + short + '</span>' +
-        '<span class="meta" style="flex:0 0 auto;white-space:nowrap">' + (f.sizeMb || '?') + ' MB</span>' +
-        '</div>'
-      );
-    }).join('');
-    box.innerHTML = head + '<div style="border:1px solid rgba(11,110,79,.12);border-radius:8px;background:#fff;max-height:240px;overflow:auto">' + rows + '</div>';
-
-    const selAll = $('vgDriveSelectAll');
-    if (selAll) {
-      selAll.onchange = function () {
-        const on = !!selAll.checked;
-        box.querySelectorAll('.vg-drive-cb').forEach(function (cb) { cb.checked = on; });
-        updateDriveCount();
-      };
-    }
-    box.querySelectorAll('.vg-drive-cb').forEach(function (cb) {
-      cb.onchange = updateDriveCount;
-    });
-    function updateDriveCount() {
-      const n = box.querySelectorAll('.vg-drive-cb:checked').length;
-      const el = $('vgDriveCount');
-      if (el) el.textContent = n + ' dipilih';
-      if (selAll) selAll.checked = n === files.length;
-    }
-  }
-
-  const btnVgScan = $('btnVgScanDrive');
-  if (btnVgScan) {
-    btnVgScan.onclick = async function () {
-      const folder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
-      const st = $('vgDriveStatus');
-      if (!folder) { if (st) st.textContent = 'Isi link folder Google Drive dulu.'; return; }
-      if (st) st.textContent = 'Memindai folder Drive…';
-      try {
-        const j = await apiDriveAction('scanDriveFolder', { folderUrl: folder, url: folder });
-        if (!j || !j.ok) throw new Error((j && j.error) || 'Gagal scan folder');
-        window.__vgDriveScan = j;
-        renderDriveFileList(j.files || []);
-        if (st) st.textContent = '✓ ' + (j.count || 0) + ' video di folder "' + (j.folderName || '') + '". Centang yang ingin dipakai, lalu Buat Playlist + Grup.';
-      } catch (err) {
-        window.__vgDriveScan = null;
-        if (st) st.textContent = '✗ ' + (err.message || err);
-      }
-    };
-  }
-
-  /* Panel progress upload (hemat ruang, selebar kartu) */
-  function ensureVgProgressPanel() {
-    let el = document.getElementById('vgProgressPanel');
-    if (el) return el;
-    el = document.createElement('div');
-    el.id = 'vgProgressPanel';
-    el.style.cssText = 'display:none;margin-top:.75rem;padding:.85rem 1rem;border-radius:12px;border:1px solid rgba(11,110,79,.25);background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.08)';
-    el.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.4rem">' +
-      '<strong id="vgProgTitle" style="font-size:.92rem">Proses upload</strong>' +
-      '<span id="vgProgFrac" class="meta" style="font-size:.85rem">0/0</span></div>' +
-      '<div style="height:10px;background:#e8f0ec;border-radius:999px;overflow:hidden;margin-bottom:.45rem">' +
-      '<div id="vgProgBar" style="height:100%;width:0%;background:#0b6e4f;transition:width .25s ease"></div></div>' +
-      '<div id="vgProgStage" style="font-size:.82rem;color:#334155;margin-bottom:.25rem">—</div>' +
-      '<div id="vgProgDetail" style="font-size:.78rem;color:#64748b;word-break:break-all">—</div>' +
-      '<div id="vgProgLog" style="margin-top:.5rem;max-height:110px;overflow:auto;font-size:.75rem;line-height:1.35;color:#475569;border-top:1px solid rgba(0,0,0,.06);padding-top:.4rem"></div>' +
-      '<div id="vgProgActions" style="margin-top:.55rem;display:none;gap:.4rem;flex-wrap:wrap"></div>';
-    const anchor = $('vgDriveStatus') || $('btnVgDriveToGroup');
-    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(el, anchor.nextSibling);
-    else document.body.appendChild(el);
-    return el;
-  }
-
-  function setVgProgress(opts) {
-    opts = opts || {};
-    const panel = ensureVgProgressPanel();
-    panel.style.display = 'block';
-    const total = opts.total || 0;
-    const current = opts.current || 0;
-    const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : (opts.pct || 0);
-    const bar = $('vgProgBar');
-    const frac = $('vgProgFrac');
-    const stage = $('vgProgStage');
-    const detail = $('vgProgDetail');
-    const title = $('vgProgTitle');
-    if (title && opts.title) title.textContent = opts.title;
-    if (frac) frac.textContent = total ? (current + '/' + total + ' (' + pct + '%)') : (pct + '%');
-    if (bar) bar.style.width = pct + '%';
-    if (stage) stage.textContent = opts.stage || '';
-    if (detail) detail.textContent = opts.detail || '';
-    if (opts.logLine) {
-      const log = $('vgProgLog');
-      if (log) {
-        const line = document.createElement('div');
-        line.textContent = opts.logLine;
-        log.appendChild(line);
-        log.scrollTop = log.scrollHeight;
-      }
-    }
-    if (opts.clearLog) {
-      const log = $('vgProgLog');
-      if (log) log.innerHTML = '';
-    }
-  }
-
-  function setVgProgressActions(buttons) {
-    const box = $('vgProgActions');
-    if (!box) return;
-    box.innerHTML = '';
-    if (!buttons || !buttons.length) { box.style.display = 'none'; return; }
-    box.style.display = 'flex';
-    buttons.forEach(function (b) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn ' + (b.primary ? 'btn-primary' : 'btn-ghost');
-      btn.textContent = b.label;
-      btn.onclick = b.onClick;
-      box.appendChild(btn);
-    });
-  }
-
-  const MAX_AUTO_UPLOAD_MB = 100;
-
-  const btnVgDriveGroup = $('btnVgDriveToGroup');
-  if (btnVgDriveGroup) {
-    btnVgDriveGroup.onclick = async function () {
-      const name = (($('vgDriveName') && $('vgDriveName').value) || '').trim();
-      const folder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
-      const st = $('vgDriveStatus');
-      if (!name) { if (st) st.textContent = 'Nama grup wajib.'; return; }
-      if (!folder) { if (st) st.textContent = 'Link folder Drive wajib.'; return; }
-
-      let selectedIds = [];
-      document.querySelectorAll('.vg-drive-cb:checked').forEach(function (cb) {
-        const id = cb.getAttribute('data-id');
-        if (id) selectedIds.push(id);
-      });
-      if (!selectedIds.length && window.__vgDriveScan && window.__vgDriveScan.files) {
-        selectedIds = (window.__vgDriveScan.files || []).map(function (f) { return f.id; });
-      }
-      if (!selectedIds.length) {
-        if (st) st.textContent = 'Scan folder dulu, atau tidak ada video terpilih.';
-        return;
-      }
-
-      const files = (window.__vgDriveScan && window.__vgDriveScan.files) || [];
-      const byId = {};
-      files.forEach(function (f) { byId[f.id] = f; });
-
-      const queue = [];
-      const skippedHuge = [];
-      selectedIds.forEach(function (id) {
-        const meta = byId[id] || { id: id, name: id, sizeMb: 0 };
-        if ((meta.sizeMb || 0) > MAX_AUTO_UPLOAD_MB) skippedHuge.push(meta);
-        else queue.push(meta);
-      });
-
-      if (st) st.textContent = '';
-      setVgProgress({
-        title: 'Proses: ' + name,
-        current: 0,
-        total: queue.length,
-        pct: 0,
-        stage: 'Tahap 1/3 — Upload ke YouTube',
-        detail: queue.length + ' file akan di-upload' +
-          (skippedHuge.length ? (' · ' + skippedHuge.length + ' dilewati (> ' + MAX_AUTO_UPLOAD_MB + ' MB)') : ''),
-        clearLog: true,
-        logLine: skippedHuge.length
-          ? ('Lewati ' + skippedHuge.length + ' file besar (upload manual di YouTube Studio).')
-          : ('Mulai upload ' + queue.length + ' file…')
-      });
-      setVgProgressActions([]);
-      btnVgDriveGroup.disabled = true;
-      if (btnVgScan) btnVgScan.disabled = true;
-
-      const items = [];
-      const fails = [];
-
-      try {
-        for (let i = 0; i < queue.length; i++) {
-          const meta = queue[i];
-          const partTitle = name + ' – Bagian ' + (items.length + fails.length + 1);
-          setVgProgress({
-            current: i,
-            total: queue.length,
-            stage: 'Tahap 1/3 — Upload ke YouTube',
-            detail: 'Sedang: ' + (meta.name || meta.id) + ' (' + (meta.sizeMb || '?') + ' MB)',
-            logLine: '[' + (i + 1) + '/' + queue.length + '] Upload ' + (meta.name || '') + '…'
-          });
-
-          let up = null;
-          try {
-            up = await apiDriveAction('uploadDriveVideo', {
-              fileId: meta.id,
-              title: partTitle,
-              description: name + ' (bagian ' + (i + 1) + ' dari ' + queue.length + ')',
-              privacy: 'public'
-            });
-          } catch (netErr) {
-            up = { ok: false, error: String(netErr.message || netErr) };
-          }
-
-          if (up && up.ok && up.youtubeId) {
-            items.push({
-              youtubeId: up.youtubeId,
-              title: partTitle,
-              order: items.length + 1,
-              thumb: up.thumb || ('https://img.youtube.com/vi/' + up.youtubeId + '/hqdefault.jpg'),
-              driveFileId: meta.id,
-              driveName: meta.name || ''
-            });
-            setVgProgress({
-              current: i + 1,
-              total: queue.length,
-              stage: 'Tahap 1/3 — Upload ke YouTube',
-              detail: 'Berhasil: ' + partTitle,
-              logLine: '  ✓ ' + up.youtubeId
-            });
-          } else {
-            const errMsg = (up && (up.error || up.hint)) || 'gagal tanpa pesan';
-            fails.push({ name: meta.name, error: errMsg, sizeMb: meta.sizeMb });
-            setVgProgress({
-              current: i + 1,
-              total: queue.length,
-              stage: 'Tahap 1/3 — Upload ke YouTube',
-              detail: 'Gagal: ' + (meta.name || ''),
-              logLine: '  ✗ ' + errMsg
-            });
-          }
-        }
-
-        setVgProgress({
-          current: queue.length,
-          total: queue.length,
-          pct: 100,
-          stage: 'Tahap 1 selesai',
-          detail: 'Sukses ' + items.length + ' · Gagal ' + fails.length +
-            (skippedHuge.length ? (' · Dilewati ' + skippedHuge.length) : '')
-        });
-
-        if (!items.length) {
-          setVgProgress({
-            stage: 'Gagal — tidak ada video masuk YouTube',
-            detail: 'Kemungkinan: YouTube API belum di-authorize, kuota, atau file terlalu besar untuk Apps Script.',
-            logLine: 'Saran: di Apps Script Run forceAuthYouTube(), atau upload manual di Studio lalu pakai form playlist.'
-          });
-          setVgProgressActions([{
-            label: 'Tutup',
-            onClick: function () {
-              const p = $('vgProgressPanel');
-              if (p) p.style.display = 'none';
-            }
-          }]);
-          if (st) st.textContent = '✗ 0 berhasil dari ' + queue.length + ' upload. Lihat log panel progress.';
-          return;
-        }
-
-        setVgProgress({
-          pct: 92,
-          stage: 'Tahap 2/3 — Buat playlist YouTube',
-          detail: 'Menambahkan ' + items.length + ' video ke playlist…',
-          logLine: 'Membuat playlist "' + name + '"…'
-        });
-
-        const groupRes = await apiDriveAction('driveFolderToVideoGroup', {
-          groupName: name,
-          folderUrl: folder,
-          mode: 'playlist_only',
-          privacy: 'public',
-          items: items
-        });
-        if (!groupRes || !groupRes.ok) {
-          throw new Error((groupRes && groupRes.error) || 'Gagal membuat playlist/grup');
-        }
-
-        setVgProgress({
-          pct: 98,
-          stage: 'Tahap 3/3 — Simpan Grup Video',
-          detail: 'Menulis ke data website…',
-          logLine: 'Playlist: ' + ((groupRes.playlist && groupRes.playlist.playlistUrl) || (groupRes.videoGroup && groupRes.videoGroup.playlistUrl) || '')
-        });
-
-        const vg = groupRes.videoGroup;
-        if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
-        data.videoGroups.unshift({
-          id: (vg && vg.id) || ('vg' + Date.now()),
-          name: name,
-          playlistUrl: (vg && vg.playlistUrl) || '',
-          playlistId: (vg && vg.playlistId) || '',
-          sourceDriveFolder: folder,
-          date: new Date().toISOString().slice(0, 10),
-          order: 0,
-          active: true,
-          items: (vg && vg.items) || items
-        });
-        window.__siteDirty = true;
-        const db = document.getElementById('dirtyBanner');
-        if (db) { db.hidden = false; db.style.display = 'block'; }
-        try { renderVideoGroupsAdmin(); } catch (_) {}
-        try { renderLists(); } catch (_) {}
-
-        setVgProgress({
-          pct: 100,
-          stage: 'Selesai',
-          detail: 'Grup "' + name + '" siap · ' + items.length + ' video. Klik Simpan ke Google Sheets.',
-          logLine: fails.length
-            ? ('Catatan: ' + fails.length + ' file gagal di-upload.')
-            : 'Semua file dalam antrean berhasil.'
-        });
-        setVgProgressActions([
-          {
-            label: 'Simpan ke Google Sheets',
-            primary: true,
-            onClick: function () {
-              status('Klik tombol Simpan ke Google Sheets di toolbar atas.');
-            }
-          },
-          {
-            label: 'Tutup panel',
-            onClick: function () {
-              const p = $('vgProgressPanel');
-              if (p) p.style.display = 'none';
-            }
-          }
-        ]);
-        if (st) {
-          st.textContent = '✓ Selesai: ' + items.length + ' video' +
-            (fails.length ? (', ' + fails.length + ' gagal') : '') +
-            '. Simpan ke Google Sheets.';
-        }
-        status('Grup video dari Drive ditambahkan. Simpan ke Google Sheets.');
-      } catch (err) {
-        setVgProgress({
-          stage: 'Error',
-          detail: String(err.message || err),
-          logLine: '✗ ' + String(err.message || err)
-        });
-        setVgProgressActions([{
-          label: 'Tutup',
-          onClick: function () {
-            const p = $('vgProgressPanel');
-            if (p) p.style.display = 'none';
-          }
-        }]);
-        if (st) st.textContent = '✗ ' + (err.message || err);
-      } finally {
-        btnVgDriveGroup.disabled = false;
-        if (btnVgScan) btnVgScan.disabled = false;
-      }
     };
   }
 

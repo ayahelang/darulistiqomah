@@ -57,20 +57,12 @@ function handleRequest(e, method) {
     if (action === 'fetchYtPlaylist') {
       return json_(fetchYtPlaylist_(body.url || body.playlistUrl || (e.parameter && e.parameter.url) || ''));
     }
-    if (action === 'scanDriveFolder') {
-      return json_(scanDriveFolder_(body.folderUrl || body.url || (e.parameter && e.parameter.folderUrl) || ''));
-    }
-    if (action === 'createYtPlaylist') {
-      return json_(createYtPlaylist_(body));
-    }
-    if (action === 'addVideosToPlaylist') {
-      return json_(addVideosToPlaylist_(body));
-    }
-    if (action === 'uploadDriveVideo') {
-      return json_(uploadDriveVideoToYt_(body));
-    }
-    if (action === 'driveFolderToVideoGroup') {
-      return json_(driveFolderToVideoGroup_(body));
+    if (action === 'listDriveFolderVideos') {
+      return json_(listDriveFolderVideos_(
+        body.url || body.folderUrl || (e.parameter && e.parameter.url) || '',
+        body.pageToken || (e.parameter && e.parameter.pageToken) || '',
+        body.pageSize || (e.parameter && e.parameter.pageSize) || 20
+      ));
     }
     if (action === 'listEditors') {
       return json_(listEditors_());
@@ -844,14 +836,81 @@ function parseYtAtomFeed_(xml) {
   return items;
 }
 
-/* ============================================================
- * Drive folder → YouTube playlist → videoGroups
- * Memerlukan:
- *  - Advanced service: Drive API, YouTube Data API v3
- *  - OAuth scopes: drive.readonly, youtube, youtube.upload
- * ============================================================ */
 
-var VIDEO_MIME_PREFIXES_ = ['video/', 'application/vnd.google-apps.video'];
+/** Ambil daftar file video dari folder Google Drive (berhalaman, pageSize kecil agar tidak timeout). */
+function listDriveFolderVideos_(folderUrl, pageToken, pageSize) {
+  var folderId = extractDriveFolderId_(folderUrl);
+  if (!folderId) {
+    return { ok: false, error: 'URL folder Google Drive tidak valid. Contoh: https://drive.google.com/drive/folders/XXXX' };
+  }
+  var size = parseInt(pageSize, 10) || 20;
+  if (size < 5) size = 5;
+  if (size > 40) size = 40;
+
+  // Pastikan scope Drive terpicu (readonly)
+  try { DriveApp.getRootFolder().getName(); } catch (e0) {}
+
+  var q = "'" + folderId + "' in parents and trashed = false and mimeType contains 'video/'";
+  var api = 'https://www.googleapis.com/drive/v3/files'
+    + '?q=' + encodeURIComponent(q)
+    + '&fields=' + encodeURIComponent('nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,modifiedTime)')
+    + '&pageSize=' + size
+    + '&orderBy=name'
+    + '&supportsAllDrives=true'
+    + '&includeItemsFromAllDrives=true';
+  if (pageToken) api += '&pageToken=' + encodeURIComponent(pageToken);
+
+  try {
+    var resp = UrlFetchApp.fetch(api, {
+      method: 'get',
+      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+      muteHttpExceptions: true,
+      followRedirects: true
+    });
+    var code = resp.getResponseCode();
+    var raw = resp.getContentText() || '';
+    if (code >= 400) {
+      var errMsg = 'Gagal baca folder Drive (HTTP ' + code + ').';
+      try {
+        var ej = JSON.parse(raw);
+        if (ej.error && ej.error.message) errMsg += ' ' + ej.error.message;
+      } catch (e1) {}
+      errMsg += ' Pastikan folder dibagikan ke akun yang menjalankan Apps Script (atau Anyone with link) dan scope Drive diizinkan.';
+      return { ok: false, error: errMsg, http: code };
+    }
+    var data = JSON.parse(raw);
+    var files = data.files || [];
+    var items = [];
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      if (!f || !f.id) continue;
+      var title = String(f.name || 'Video').replace(/\.[^.]+$/, '');
+      items.push({
+        source: 'drive',
+        driveFileId: f.id,
+        youtubeId: '',
+        title: title,
+        desc: '',
+        fileName: f.name || '',
+        mimeType: f.mimeType || '',
+        thumb: 'https://drive.google.com/thumbnail?id=' + f.id + '&sz=w640',
+        embedUrl: 'https://drive.google.com/file/d/' + f.id + '/preview',
+        url: 'https://drive.google.com/file/d/' + f.id + '/view',
+        date: (f.modifiedTime || '').slice(0, 10)
+      });
+    }
+    return {
+      ok: true,
+      folderId: folderId,
+      count: items.length,
+      items: items,
+      nextPageToken: data.nextPageToken || '',
+      done: !data.nextPageToken
+    };
+  } catch (err) {
+    return { ok: false, error: String(err.message || err) };
+  }
+}
 
 function extractDriveFolderId_(url) {
   var s = String(url || '').trim();
@@ -862,325 +921,4 @@ function extractDriveFolderId_(url) {
   if (m) return m[1];
   if (/^[a-zA-Z0-9_-]{10,}$/.test(s)) return s;
   return '';
-}
-
-function naturalCompare_(a, b) {
-  var ax = [], bx = [];
-  String(a || '').replace(/(\d+)|(\D+)/g, function (_, n, t) {
-    ax.push(n ? [1, Number(n)] : [0, t.toLowerCase()]);
-  });
-  String(b || '').replace(/(\d+)|(\D+)/g, function (_, n, t) {
-    bx.push(n ? [1, Number(n)] : [0, t.toLowerCase()]);
-  });
-  for (var i = 0; i < Math.max(ax.length, bx.length); i++) {
-    if (!ax[i]) return -1;
-    if (!bx[i]) return 1;
-    if (ax[i][0] !== bx[i][0]) return ax[i][0] - bx[i][0];
-    if (ax[i][1] < bx[i][1]) return -1;
-    if (ax[i][1] > bx[i][1]) return 1;
-  }
-  return 0;
-}
-
-function isVideoFile_(file) {
-  var mime = (file.getMimeType && file.getMimeType()) || '';
-  if (mime.indexOf('video/') === 0) return true;
-  var name = (file.getName && file.getName()) || '';
-  return /\.(mp4|mov|webm|mkv|avi|m4v|3gp)$/i.test(name);
-}
-
-/** Scan folder Google Drive → daftar video terurut natural by filename */
-function scanDriveFolder_(folderUrl) {
-  var folderId = extractDriveFolderId_(folderUrl);
-  if (!folderId) {
-    return { ok: false, error: 'Link folder Google Drive tidak valid. Contoh: https://drive.google.com/drive/folders/XXXX' };
-  }
-  try {
-    var folder = DriveApp.getFolderById(folderId);
-    var files = folder.getFiles();
-    var list = [];
-    while (files.hasNext()) {
-      var f = files.next();
-      if (!isVideoFile_(f)) continue;
-      list.push({
-        id: f.getId(),
-        name: f.getName(),
-        mimeType: f.getMimeType(),
-        size: f.getSize(),
-        sizeMb: Math.round((f.getSize() / (1024 * 1024)) * 10) / 10,
-        url: 'https://drive.google.com/file/d/' + f.getId() + '/view'
-      });
-    }
-    list.sort(function (a, b) { return naturalCompare_(a.name, b.name); });
-    return {
-      ok: true,
-      folderId: folderId,
-      folderName: folder.getName(),
-      count: list.length,
-      files: list
-    };
-  } catch (err) {
-    return { ok: false, error: 'Gagal baca folder Drive: ' + String(err.message || err) + '. Pastikan folder di-share ke akun yang menjalankan Apps Script (minimal Viewer).' };
-  }
-}
-
-/** Buat playlist YouTube baru (privacy public) */
-function createYtPlaylist_(body) {
-  var title = String((body && body.title) || '').trim();
-  var description = String((body && body.description) || '').trim();
-  var privacy = String((body && body.privacy) || 'public').toLowerCase();
-  if (privacy !== 'public' && privacy !== 'unlisted' && privacy !== 'private') privacy = 'public';
-  if (!title) return { ok: false, error: 'Judul playlist wajib diisi' };
-  try {
-    var res = YouTube.Playlists.insert({
-      snippet: {
-        title: title,
-        description: description || ('Playlist kegiatan: ' + title)
-      },
-      status: { privacyStatus: privacy }
-    }, 'snippet,status');
-    var pid = res && res.id;
-    if (!pid) return { ok: false, error: 'Gagal membuat playlist (tidak ada ID)' };
-    return {
-      ok: true,
-      playlistId: pid,
-      playlistUrl: 'https://www.youtube.com/playlist?list=' + pid,
-      title: title,
-      privacy: privacy
-    };
-  } catch (err) {
-    return { ok: false, error: 'YouTube Playlists.insert gagal: ' + String(err.message || err) + '. Aktifkan YouTube Data API v3 (Advanced services) dan authorize ulang.' };
-  }
-}
-
-/** Tambahkan video (array youtubeId) ke playlist */
-function addVideosToPlaylist_(body) {
-  var playlistId = String((body && (body.playlistId || body.playlist)) || '').trim();
-  var ids = (body && body.videoIds) || (body && body.ids) || [];
-  if (!playlistId) return { ok: false, error: 'playlistId wajib' };
-  if (!ids || !ids.length) return { ok: false, error: 'videoIds kosong' };
-  var added = [];
-  var errors = [];
-  for (var i = 0; i < ids.length; i++) {
-    var vid = String(ids[i] || '').trim();
-    if (!vid) continue;
-    try {
-      YouTube.PlaylistItems.insert({
-        snippet: {
-          playlistId: playlistId,
-          resourceId: { kind: 'youtube#video', videoId: vid },
-          position: i
-        }
-      }, 'snippet');
-      added.push(vid);
-    } catch (err) {
-      errors.push({ youtubeId: vid, error: String(err.message || err) });
-    }
-    // jeda ringan hindari rate limit
-    if (i > 0 && i % 10 === 0) Utilities.sleep(300);
-  }
-  return {
-    ok: errors.length === 0,
-    playlistId: playlistId,
-    added: added.length,
-    total: ids.length,
-    videoIds: added,
-    errors: errors
-  };
-}
-
-/**
- * Upload SATU file Drive ke YouTube (judul dari body.title atau nama file).
- * Privacy default: public.
- * Batasan: file sangat besar bisa timeout (Apps Script ~6 menit).
- * Untuk banyak video, panggil berulang dari admin (satu per satu / antrean).
- */
-function uploadDriveVideoToYt_(body) {
-  var fileId = String((body && (body.fileId || body.driveFileId)) || '').trim();
-  var title = String((body && body.title) || '').trim();
-  var description = String((body && body.description) || '').trim();
-  var privacy = String((body && body.privacy) || 'public').toLowerCase();
-  if (privacy !== 'public' && privacy !== 'unlisted' && privacy !== 'private') privacy = 'public';
-  if (!fileId) return { ok: false, error: 'fileId Drive wajib' };
-
-  try {
-    var file = DriveApp.getFileById(fileId);
-    if (!title) {
-      title = file.getName().replace(/\.(mp4|mov|webm|mkv|avi|m4v|3gp)$/i, '');
-    }
-    // YouTube advanced service — cocok untuk file tidak terlalu besar
-    var resource = {
-      snippet: {
-        title: title.substring(0, 100),
-        description: description || '',
-        categoryId: '22'
-      },
-      status: {
-        privacyStatus: privacy,
-        selfDeclaredMadeForKids: false
-      }
-    };
-    var blob = file.getBlob();
-    var res = YouTube.Videos.insert(resource, 'snippet,status', blob);
-    var ytId = res && res.id;
-    if (!ytId) return { ok: false, error: 'Upload gagal — tidak ada video ID' };
-    return {
-      ok: true,
-      youtubeId: ytId,
-      title: title,
-      url: 'https://www.youtube.com/watch?v=' + ytId,
-      thumb: 'https://img.youtube.com/vi/' + ytId + '/hqdefault.jpg',
-      privacy: privacy,
-      driveFileId: fileId
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      error: 'Upload gagal: ' + String(err.message || err),
-      hint: 'File terlalu besar atau YouTube API belum diaktifkan / belum di-authorize. Coba file lebih kecil atau upload manual lalu pakai mode "hanya playlist".'
-    };
-  }
-}
-
-/**
- * Alur lengkap (mode fleksibel):
- * body = {
- *   groupName, folderUrl,
- *   mode: 'playlist_only' | 'upload_and_playlist',
- *   fileIds: [] (opsional, subset),
- *   existingVideoIds: [] (opsional, sudah di YT),
- *   privacy: 'public'
- * }
- *
- * playlist_only: buat playlist + masukkan existingVideoIds + generate struktur videoGroup
- * upload_and_playlist: scan folder → upload berurutan (hati-hati timeout) → playlist → videoGroup
- */
-function driveFolderToVideoGroup_(body) {
-  body = body || {};
-  var groupName = String(body.groupName || body.name || '').trim();
-  var folderUrl = String(body.folderUrl || body.url || '').trim();
-  var mode = String(body.mode || 'playlist_only').toLowerCase();
-  var privacy = String(body.privacy || 'public').toLowerCase();
-  if (!groupName) return { ok: false, error: 'Nama grup wajib' };
-
-  var items = [];
-  var uploadResults = [];
-  var playlistResult = null;
-
-  // 1) Upload dari Drive jika diminta
-  if (mode === 'upload_and_playlist') {
-    var scan = scanDriveFolder_(folderUrl);
-    if (!scan.ok) return scan;
-    var files = scan.files || [];
-    if (body.fileIds && body.fileIds.length) {
-      var want = {};
-      (body.fileIds || []).forEach(function (id) { want[id] = 1; });
-      files = files.filter(function (f) { return want[f.id]; });
-    }
-    for (var i = 0; i < files.length; i++) {
-      var partTitle = groupName + ' – Bagian ' + (i + 1);
-      var up = uploadDriveVideoToYt_({
-        fileId: files[i].id,
-        title: partTitle,
-        description: groupName + ' (bagian ' + (i + 1) + ' dari ' + files.length + ')',
-        privacy: privacy
-      });
-      uploadResults.push(up);
-      if (up.ok) {
-        items.push({
-          youtubeId: up.youtubeId,
-          title: partTitle,
-          order: i + 1,
-          thumb: up.thumb,
-          driveFileId: files[i].id,
-          driveName: files[i].name
-        });
-      }
-      // jeda antar upload
-      Utilities.sleep(500);
-    }
-  }
-
-  // 2) Video yang sudah ada di YouTube
-  var existing = body.existingVideoIds || body.videoIds || [];
-  if (existing && existing.length) {
-    for (var j = 0; j < existing.length; j++) {
-      var eid = String(existing[j] || '').trim();
-      if (!eid) continue;
-      items.push({
-        youtubeId: eid,
-        title: groupName + ' – Bagian ' + (items.length + 1),
-        order: items.length + 1,
-        thumb: 'https://img.youtube.com/vi/' + eid + '/hqdefault.jpg'
-      });
-    }
-  }
-
-  // 3) Items dari body.items (sudah lengkap)
-  if (body.items && body.items.length) {
-    body.items.forEach(function (it, idx) {
-      if (!it || !it.youtubeId) return;
-      items.push({
-        youtubeId: it.youtubeId,
-        title: it.title || (groupName + ' – Bagian ' + (idx + 1)),
-        order: it.order || (idx + 1),
-        thumb: it.thumb || ('https://img.youtube.com/vi/' + it.youtubeId + '/hqdefault.jpg'),
-        driveFileId: it.driveFileId || '',
-        driveName: it.driveName || ''
-      });
-    });
-  }
-
-  if (!items.length) {
-    return {
-      ok: false,
-      error: 'Tidak ada video untuk dimasukkan ke playlist. Upload dulu atau kirim existingVideoIds / items.',
-      uploadResults: uploadResults
-    };
-  }
-
-  // 4) Buat playlist
-  playlistResult = createYtPlaylist_({
-    title: groupName,
-    description: 'Kegiatan: ' + groupName + ' — SDIT Daarul Istiqomah',
-    privacy: privacy
-  });
-  if (!playlistResult.ok) {
-    return { ok: false, error: playlistResult.error, items: items, uploadResults: uploadResults };
-  }
-
-  // 5) Masukkan ke playlist
-  var ids = items.map(function (it) { return it.youtubeId; });
-  var addRes = addVideosToPlaylist_({ playlistId: playlistResult.playlistId, videoIds: ids });
-
-  // 6) Struktur videoGroup untuk site.json
-  var groupId = 'vg_' + groupName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').substring(0, 40);
-  var videoGroup = {
-    id: groupId,
-    name: groupName,
-    playlistUrl: playlistResult.playlistUrl,
-    playlistId: playlistResult.playlistId,
-    sourceDriveFolder: folderUrl || '',
-    items: items
-  };
-
-  return {
-    ok: true,
-    videoGroup: videoGroup,
-    playlist: playlistResult,
-    addToPlaylist: addRes,
-    uploadResults: uploadResults,
-    count: items.length
-  };
-}
-
-/** Jalankan sekali dari editor untuk memicu dialog izin YouTube + Drive */
-function forceAuthYouTube() {
-  DriveApp.getRootFolder();
-  try {
-    YouTube.Channels.list('snippet', { mine: true, maxResults: 1 });
-  } catch (e) {
-    Logger.log('YouTube auth trigger: ' + e);
-  }
-  Logger.log('OK — authorize dialog should have appeared if scopes were missing');
 }
