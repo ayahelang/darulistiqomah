@@ -1564,14 +1564,15 @@
       const fac = (data.facilities || []).length;
       const tea = (data.teachers || []).length;
       const ach = (data.achievements || []).length;
+      const vg = (data.videoGroups || []).length;
+      const gg = (data.galleryGroups || []).length;
       status('✓ Tersimpan ke Google Sheets · ' + (j.updatedAt || '') +
         ' · media:' + (cnt.media || 0) +
-        ' carousel:' + (cnt.carousel || 0) +
         ' artikel:' + (cnt.articles || 0) +
+        ' grupFoto:' + (cnt.galleryGroups != null ? cnt.galleryGroups : gg) +
+        ' grupVideo:' + (cnt.videoGroups != null ? cnt.videoGroups : vg) +
         ' fasilitas:' + fac +
-        ' guru:' + tea +
-        ' prestasi:' + ach +
-        ' — buka website publik (hard refresh) untuk melihat.');
+        ' — buka website publik (hard refresh).');
     } catch (e) {
       status('✗ Gagal simpan ke Sheets: ' + e.message);
     }
@@ -2728,6 +2729,20 @@ const btnVgFetch = $('btnVgFetchPlaylist');
       }
       if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
       const driveFolder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
+      // Rapikan field item agar JSON tidak membengkak (batas Sheets)
+      items = items.map(function (it) {
+        return {
+          source: it.source || (it.driveFileId ? 'drive' : 'youtube'),
+          driveFileId: it.driveFileId || '',
+          youtubeId: it.youtubeId || '',
+          title: it.title || '',
+          desc: it.desc || '',
+          thumb: it.thumb || '',
+          embedUrl: it.embedUrl || '',
+          url: it.url || '',
+          date: it.date || ''
+        };
+      });
       data.videoGroups.unshift({
         id: 'vg' + Date.now(),
         name: name,
