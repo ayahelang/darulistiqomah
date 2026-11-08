@@ -2736,6 +2736,79 @@
     };
   }
 
+  /* Panel progress upload (hemat ruang, selebar kartu) */
+  function ensureVgProgressPanel() {
+    let el = document.getElementById('vgProgressPanel');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'vgProgressPanel';
+    el.style.cssText = 'display:none;margin-top:.75rem;padding:.85rem 1rem;border-radius:12px;border:1px solid rgba(11,110,79,.25);background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.08)';
+    el.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.4rem">' +
+      '<strong id="vgProgTitle" style="font-size:.92rem">Proses upload</strong>' +
+      '<span id="vgProgFrac" class="meta" style="font-size:.85rem">0/0</span></div>' +
+      '<div style="height:10px;background:#e8f0ec;border-radius:999px;overflow:hidden;margin-bottom:.45rem">' +
+      '<div id="vgProgBar" style="height:100%;width:0%;background:#0b6e4f;transition:width .25s ease"></div></div>' +
+      '<div id="vgProgStage" style="font-size:.82rem;color:#334155;margin-bottom:.25rem">—</div>' +
+      '<div id="vgProgDetail" style="font-size:.78rem;color:#64748b;word-break:break-all">—</div>' +
+      '<div id="vgProgLog" style="margin-top:.5rem;max-height:110px;overflow:auto;font-size:.75rem;line-height:1.35;color:#475569;border-top:1px solid rgba(0,0,0,.06);padding-top:.4rem"></div>' +
+      '<div id="vgProgActions" style="margin-top:.55rem;display:none;gap:.4rem;flex-wrap:wrap"></div>';
+    const anchor = $('vgDriveStatus') || $('btnVgDriveToGroup');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(el, anchor.nextSibling);
+    else document.body.appendChild(el);
+    return el;
+  }
+
+  function setVgProgress(opts) {
+    opts = opts || {};
+    const panel = ensureVgProgressPanel();
+    panel.style.display = 'block';
+    const total = opts.total || 0;
+    const current = opts.current || 0;
+    const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : (opts.pct || 0);
+    const bar = $('vgProgBar');
+    const frac = $('vgProgFrac');
+    const stage = $('vgProgStage');
+    const detail = $('vgProgDetail');
+    const title = $('vgProgTitle');
+    if (title && opts.title) title.textContent = opts.title;
+    if (frac) frac.textContent = total ? (current + '/' + total + ' (' + pct + '%)') : (pct + '%');
+    if (bar) bar.style.width = pct + '%';
+    if (stage) stage.textContent = opts.stage || '';
+    if (detail) detail.textContent = opts.detail || '';
+    if (opts.logLine) {
+      const log = $('vgProgLog');
+      if (log) {
+        const line = document.createElement('div');
+        line.textContent = opts.logLine;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+    if (opts.clearLog) {
+      const log = $('vgProgLog');
+      if (log) log.innerHTML = '';
+    }
+  }
+
+  function setVgProgressActions(buttons) {
+    const box = $('vgProgActions');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!buttons || !buttons.length) { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    buttons.forEach(function (b) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn ' + (b.primary ? 'btn-primary' : 'btn-ghost');
+      btn.textContent = b.label;
+      btn.onclick = b.onClick;
+      box.appendChild(btn);
+    });
+  }
+
+  const MAX_AUTO_UPLOAD_MB = 100;
+
   const btnVgDriveGroup = $('btnVgDriveToGroup');
   if (btnVgDriveGroup) {
     btnVgDriveGroup.onclick = async function () {
@@ -2745,7 +2818,6 @@
       if (!name) { if (st) st.textContent = 'Nama grup wajib.'; return; }
       if (!folder) { if (st) st.textContent = 'Link folder Drive wajib.'; return; }
 
-      // Ambil file tercentang (urutan sesuai scan = natural sort)
       let selectedIds = [];
       document.querySelectorAll('.vg-drive-cb:checked').forEach(function (cb) {
         const id = cb.getAttribute('data-id');
@@ -2759,46 +2831,125 @@
         return;
       }
 
-      if (st) st.textContent = 'Membuat playlist & grup video (bisa memakan waktu)…';
-      btnVgDriveGroup.disabled = true;
-      try {
-        // Mode playlist_only + items kosong dulu: kita upload satu-per-satu agar tidak timeout sekaligus
-        const items = [];
-        const files = (window.__vgDriveScan && window.__vgDriveScan.files) || [];
-        const byId = {};
-        files.forEach(function (f) { byId[f.id] = f; });
+      const files = (window.__vgDriveScan && window.__vgDriveScan.files) || [];
+      const byId = {};
+      files.forEach(function (f) { byId[f.id] = f; });
 
-        for (let i = 0; i < selectedIds.length; i++) {
-          const fid = selectedIds[i];
-          const meta = byId[fid] || { name: fid };
-          const partTitle = name + ' – Bagian ' + (i + 1);
-          if (st) st.textContent = 'Upload ' + (i + 1) + '/' + selectedIds.length + ': ' + (meta.name || fid) + '…';
-          const up = await apiDriveAction('uploadDriveVideo', {
-            fileId: fid,
-            title: partTitle,
-            description: name + ' (bagian ' + (i + 1) + ' dari ' + selectedIds.length + ')',
-            privacy: 'public'
+      const queue = [];
+      const skippedHuge = [];
+      selectedIds.forEach(function (id) {
+        const meta = byId[id] || { id: id, name: id, sizeMb: 0 };
+        if ((meta.sizeMb || 0) > MAX_AUTO_UPLOAD_MB) skippedHuge.push(meta);
+        else queue.push(meta);
+      });
+
+      if (st) st.textContent = '';
+      setVgProgress({
+        title: 'Proses: ' + name,
+        current: 0,
+        total: queue.length,
+        pct: 0,
+        stage: 'Tahap 1/3 — Upload ke YouTube',
+        detail: queue.length + ' file akan di-upload' +
+          (skippedHuge.length ? (' · ' + skippedHuge.length + ' dilewati (> ' + MAX_AUTO_UPLOAD_MB + ' MB)') : ''),
+        clearLog: true,
+        logLine: skippedHuge.length
+          ? ('Lewati ' + skippedHuge.length + ' file besar (upload manual di YouTube Studio).')
+          : ('Mulai upload ' + queue.length + ' file…')
+      });
+      setVgProgressActions([]);
+      btnVgDriveGroup.disabled = true;
+      if (btnVgScan) btnVgScan.disabled = true;
+
+      const items = [];
+      const fails = [];
+
+      try {
+        for (let i = 0; i < queue.length; i++) {
+          const meta = queue[i];
+          const partTitle = name + ' – Bagian ' + (items.length + fails.length + 1);
+          setVgProgress({
+            current: i,
+            total: queue.length,
+            stage: 'Tahap 1/3 — Upload ke YouTube',
+            detail: 'Sedang: ' + (meta.name || meta.id) + ' (' + (meta.sizeMb || '?') + ' MB)',
+            logLine: '[' + (i + 1) + '/' + queue.length + '] Upload ' + (meta.name || '') + '…'
           });
+
+          let up = null;
+          try {
+            up = await apiDriveAction('uploadDriveVideo', {
+              fileId: meta.id,
+              title: partTitle,
+              description: name + ' (bagian ' + (i + 1) + ' dari ' + queue.length + ')',
+              privacy: 'public'
+            });
+          } catch (netErr) {
+            up = { ok: false, error: String(netErr.message || netErr) };
+          }
+
           if (up && up.ok && up.youtubeId) {
             items.push({
               youtubeId: up.youtubeId,
               title: partTitle,
-              order: i + 1,
+              order: items.length + 1,
               thumb: up.thumb || ('https://img.youtube.com/vi/' + up.youtubeId + '/hqdefault.jpg'),
-              driveFileId: fid,
+              driveFileId: meta.id,
               driveName: meta.name || ''
             });
+            setVgProgress({
+              current: i + 1,
+              total: queue.length,
+              stage: 'Tahap 1/3 — Upload ke YouTube',
+              detail: 'Berhasil: ' + partTitle,
+              logLine: '  ✓ ' + up.youtubeId
+            });
           } else {
-            if (st) st.textContent = '✗ Upload gagal pada bagian ' + (i + 1) + ': ' + ((up && up.error) || 'unknown') +
-              ' — lanjut video berikutnya jika ada.';
+            const errMsg = (up && (up.error || up.hint)) || 'gagal tanpa pesan';
+            fails.push({ name: meta.name, error: errMsg, sizeMb: meta.sizeMb });
+            setVgProgress({
+              current: i + 1,
+              total: queue.length,
+              stage: 'Tahap 1/3 — Upload ke YouTube',
+              detail: 'Gagal: ' + (meta.name || ''),
+              logLine: '  ✗ ' + errMsg
+            });
           }
         }
 
+        setVgProgress({
+          current: queue.length,
+          total: queue.length,
+          pct: 100,
+          stage: 'Tahap 1 selesai',
+          detail: 'Sukses ' + items.length + ' · Gagal ' + fails.length +
+            (skippedHuge.length ? (' · Dilewati ' + skippedHuge.length) : '')
+        });
+
         if (!items.length) {
-          throw new Error('Tidak ada video berhasil di-upload. Coba file lebih kecil, atau upload manual lalu pakai form playlist di bawah.');
+          setVgProgress({
+            stage: 'Gagal — tidak ada video masuk YouTube',
+            detail: 'Kemungkinan: YouTube API belum di-authorize, kuota, atau file terlalu besar untuk Apps Script.',
+            logLine: 'Saran: di Apps Script Run forceAuthYouTube(), atau upload manual di Studio lalu pakai form playlist.'
+          });
+          setVgProgressActions([{
+            label: 'Tutup',
+            onClick: function () {
+              const p = $('vgProgressPanel');
+              if (p) p.style.display = 'none';
+            }
+          }]);
+          if (st) st.textContent = '✗ 0 berhasil dari ' + queue.length + ' upload. Lihat log panel progress.';
+          return;
         }
 
-        if (st) st.textContent = 'Membuat playlist YouTube (' + items.length + ' video)…';
+        setVgProgress({
+          pct: 92,
+          stage: 'Tahap 2/3 — Buat playlist YouTube',
+          detail: 'Menambahkan ' + items.length + ' video ke playlist…',
+          logLine: 'Membuat playlist "' + name + '"…'
+        });
+
         const groupRes = await apiDriveAction('driveFolderToVideoGroup', {
           groupName: name,
           folderUrl: folder,
@@ -2809,6 +2960,13 @@
         if (!groupRes || !groupRes.ok) {
           throw new Error((groupRes && groupRes.error) || 'Gagal membuat playlist/grup');
         }
+
+        setVgProgress({
+          pct: 98,
+          stage: 'Tahap 3/3 — Simpan Grup Video',
+          detail: 'Menulis ke data website…',
+          logLine: 'Playlist: ' + ((groupRes.playlist && groupRes.playlist.playlistUrl) || (groupRes.videoGroup && groupRes.videoGroup.playlistUrl) || '')
+        });
 
         const vg = groupRes.videoGroup;
         if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
@@ -2828,12 +2986,54 @@
         if (db) { db.hidden = false; db.style.display = 'block'; }
         try { renderVideoGroupsAdmin(); } catch (_) {}
         try { renderLists(); } catch (_) {}
-        if (st) st.textContent = '✓ Grup "' + name + '" + playlist siap (' + items.length + ' video). Simpan ke Google Sheets.';
+
+        setVgProgress({
+          pct: 100,
+          stage: 'Selesai',
+          detail: 'Grup "' + name + '" siap · ' + items.length + ' video. Klik Simpan ke Google Sheets.',
+          logLine: fails.length
+            ? ('Catatan: ' + fails.length + ' file gagal di-upload.')
+            : 'Semua file dalam antrean berhasil.'
+        });
+        setVgProgressActions([
+          {
+            label: 'Simpan ke Google Sheets',
+            primary: true,
+            onClick: function () {
+              status('Klik tombol Simpan ke Google Sheets di toolbar atas.');
+            }
+          },
+          {
+            label: 'Tutup panel',
+            onClick: function () {
+              const p = $('vgProgressPanel');
+              if (p) p.style.display = 'none';
+            }
+          }
+        ]);
+        if (st) {
+          st.textContent = '✓ Selesai: ' + items.length + ' video' +
+            (fails.length ? (', ' + fails.length + ' gagal') : '') +
+            '. Simpan ke Google Sheets.';
+        }
         status('Grup video dari Drive ditambahkan. Simpan ke Google Sheets.');
       } catch (err) {
+        setVgProgress({
+          stage: 'Error',
+          detail: String(err.message || err),
+          logLine: '✗ ' + String(err.message || err)
+        });
+        setVgProgressActions([{
+          label: 'Tutup',
+          onClick: function () {
+            const p = $('vgProgressPanel');
+            if (p) p.style.display = 'none';
+          }
+        }]);
         if (st) st.textContent = '✗ ' + (err.message || err);
       } finally {
         btnVgDriveGroup.disabled = false;
+        if (btnVgScan) btnVgScan.disabled = false;
       }
     };
   }
