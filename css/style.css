@@ -1731,3 +1731,21 @@ body.admin-edit-armed [data-admin-edit]:hover {
 .gallery-stack > .vg-group.is-collapsed {
   display: contents;
 }
+
+
+.vg-summary-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .55rem 1.1rem;
+  background: linear-gradient(90deg, #0B6E4F, #0a5c43);
+  color: #fff;
+  font-size: .85rem;
+  font-weight: 600;
+  min-height: 2.5rem;
+  box-sizing: border-box;
+}
+.vg-foot-count { letter-spacing: .02em; }
+.vg-foot-hint { opacity: .92; font-weight: 700; }
+.vg-group.is-collapsed .vg-summary-card h3 { padding-bottom: .65rem; }

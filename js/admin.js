@@ -2573,6 +2573,34 @@
   }
 
   
+
+  function sortVideoItemsChrono(items) {
+    function keyOf(it) {
+      var name = String(it.fileName || it.title || it.name || '');
+      var m = name.match(/(20\d{6})[_-]?(\d{4,8})/);
+      if (m) return 't' + m[1] + m[2];
+      var nums = name.match(/\d+/g);
+      if (nums && nums.length) {
+        return 'n' + nums.map(function (n) { return ('0000000000' + n).slice(-10); }).join('');
+      }
+      return 'd' + String(it.date || it.modifiedTime || '') + '\0' + name.toLowerCase();
+    }
+    return (items || []).slice().sort(function (a, b) {
+      var ka = keyOf(a), kb = keyOf(b);
+      if (ka < kb) return -1;
+      if (ka > kb) return 1;
+      return 0;
+    });
+  }
+  function applyGroupVideoTitles(items, groupName) {
+    var gname = String(groupName || 'Video').trim() || 'Video';
+    var sorted = sortVideoItemsChrono(items);
+    sorted.forEach(function (it, i) {
+      it.title = gname + ' - Video ' + (i + 1);
+    });
+    return sorted;
+  }
+
   async function apiFetchDriveFolderVideos(folderUrl, pageToken) {
     const cfg = window.SDIT_CONFIG || {};
     const base = (cfg.sheetsApiUrl || '').replace(/\?.*$/, '');
@@ -2672,16 +2700,17 @@ const btnVgFetch = $('btnVgFetchPlaylist');
       if (st) st.textContent = 'Memindai folder Drive (batch 20 file)…';
       btnVgDrive.disabled = true;
       try {
-        const items = await fetchAllDriveFolderVideos(url, function (p) {
+        var items = await fetchAllDriveFolderVideos(url, function (p) {
           if (st) {
             st.textContent = 'Drive batch ke-' + p.page + ': +' + p.batch + ' file (total ' + p.total + ')' +
               (p.done ? ' — selesai.' : ' — lanjut…');
           }
         });
         if (!items.length) throw new Error('Tidak ada file video di folder (atau folder tidak bisa diakses).');
+        items = sortVideoItemsChrono(items);
         window.__vgFetchedItems = items;
-        if (st) st.textContent = '✓ ' + items.length + ' video Drive terdeteksi. Klik + Tambah / Generate Grup Video, lalu Simpan ke Sheets.';
-        status('Drive: ' + items.length + ' video');
+        if (st) st.textContent = '✓ ' + items.length + ' video Drive terdeteksi & diurutkan. Isi nama grup, lalu + Tambah. Judul otomatis: "Nama Grup - Video 1" dst.';
+        status('Drive: ' + items.length + ' video (terurut)');
       } catch (err) {
         if (st) st.textContent = '✗ ' + (err.message || err);
         status('✗ Deteksi Drive gagal: ' + (err.message || err));
@@ -2729,6 +2758,7 @@ const btnVgFetch = $('btnVgFetchPlaylist');
       }
       if (!Array.isArray(data.videoGroups)) data.videoGroups = [];
       const driveFolder = (($('vgDriveFolder') && $('vgDriveFolder').value) || '').trim();
+      items = applyGroupVideoTitles(items, name);
       // Rapikan field item agar JSON tidak membengkak (batas Sheets)
       items = items.map(function (it) {
         return {
@@ -2737,6 +2767,7 @@ const btnVgFetch = $('btnVgFetchPlaylist');
           youtubeId: it.youtubeId || '',
           title: it.title || '',
           desc: it.desc || '',
+          fileName: it.fileName || '',
           thumb: it.thumb || '',
           embedUrl: it.embedUrl || '',
           url: it.url || '',

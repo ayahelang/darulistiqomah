@@ -975,7 +975,7 @@ function listDriveFolderVideos_(folderUrl, pageToken, pageSize) {
     + '?q=' + encodeURIComponent(q)
     + '&fields=' + encodeURIComponent('nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,modifiedTime)')
     + '&pageSize=' + size
-    + '&orderBy=name'
+    + '&orderBy=modifiedTime'
     + '&supportsAllDrives=true'
     + '&includeItemsFromAllDrives=true';
   if (pageToken) api += '&pageToken=' + encodeURIComponent(pageToken);

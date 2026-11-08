@@ -975,12 +975,11 @@
         thumbWrap.appendChild(el('div', { class: 'video-placeholder' }, ['Video']));
       }
       thumbWrap.appendChild(el('div', { class: 'play' }, [el('span', {}, ['▶'])]));
-      // badge jumlah
-      thumbWrap.appendChild(el('span', { class: 'vg-badge' }, [String(items.length) + ' video']));
       summary.appendChild(thumbWrap);
-      summary.appendChild(el('h3', {}, [
-        gg.name || 'Playlist',
-        el('span', { class: 'vg-open-hint' }, [' · buka grup'])
+      summary.appendChild(el('h3', {}, [gg.name || 'Playlist']));
+      summary.appendChild(el('div', { class: 'vg-summary-foot' }, [
+        el('span', { class: 'vg-foot-count' }, [String(items.length) + ' video']),
+        el('span', { class: 'vg-foot-hint' }, ['Buka grup ▸'])
       ]));
       groupEl.appendChild(summary);
       return groupEl;
