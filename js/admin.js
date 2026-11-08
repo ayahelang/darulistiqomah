@@ -2575,22 +2575,38 @@
   async function apiFetchDriveFolderVideos(folderUrl, pageToken) {
     const cfg = window.SDIT_CONFIG || {};
     const base = (cfg.sheetsApiUrl || '').replace(/\?.*$/, '');
-    const token = cfg.apiToken || '';
+    // Token dari sesi login admin (bukan config.js)
+    const token = (typeof getToken === 'function' ? getToken() : '')
+      || sessionStorage.getItem('sdit_di_admin_token_v1') || '';
     if (!base) throw new Error('sheetsApiUrl belum diisi di js/config.js');
-    const res = await fetch(base, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'listDriveFolderVideos',
-        token: token,
-        url: folderUrl,
-        folderUrl: folderUrl,
-        pageToken: pageToken || '',
-        pageSize: 20
-      })
-    });
-    const json = await res.json();
-    if (!json || json.ok === false) throw new Error((json && json.error) || 'Gagal list folder Drive');
+    if (!token) throw new Error('Sesi admin habis / belum login. Login dulu di panel admin, lalu coba lagi.');
+    // text/plain menghindari CORS preflight (sama seperti saveSite / fetchYtPlaylist)
+    var res;
+    try {
+      res = await fetch(base, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'listDriveFolderVideos',
+          token: token,
+          url: folderUrl,
+          folderUrl: folderUrl,
+          pageToken: pageToken || '',
+          pageSize: 20
+        })
+      });
+    } catch (netErr) {
+      throw new Error('Gagal menghubungi Apps Script (Failed to fetch). Cek koneksi, pastikan Code.gs sudah di-deploy ulang (New version), dan Web App: Execute as Me + Who has access Anyone.');
+    }
+    var json;
+    try {
+      json = await res.json();
+    } catch (_e) {
+      throw new Error('Respons Apps Script bukan JSON (HTTP ' + res.status + '). Redeploy Code.gs.');
+    }
+    if (!json || json.ok === false) {
+      throw new Error((json && json.error) || 'Gagal list folder Drive');
+    }
     return json;
   }
 
