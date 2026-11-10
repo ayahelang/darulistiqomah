@@ -1,0 +1,15 @@
+RESTORE POINT — 10 November 2026
+================================
+Titik aman terkini sebelum fitur Idle Guide (carousel video + tur section + TTS).
+
+Repo trial : darulistiqomah.silverhawk.web.id
+Repo prod  : sditdaarulistiqomah.sch.id
+
+Jika pengembangan berikutnya bermasalah, kembalikan file ke kondisi commit
+GitHub pada tanggal ini (sebelum merge Idle Guide), atau hapus:
+  - js/idle-guide.js
+  - css/idle-guide.css
+  - referensi script/link di index.html
+  - baris setupIdleGuide di js/app.js (jika ada)
+
+Data Google Sheets / Apps Script tidak diubah oleh restore point ini.
