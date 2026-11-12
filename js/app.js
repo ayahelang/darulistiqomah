@@ -643,7 +643,10 @@
 
     function makeGroupSummary(gg, gIdx, gKey) {
       const files = Array.isArray(gg.files) ? gg.files : [];
-      const first = fileToCard(gg, files[0], 0, gIdx);
+      var coverIdx = parseInt(gg.coverIndex, 10);
+      if (Number.isNaN(coverIdx) || coverIdx < 0) coverIdx = 0;
+      if (files.length && coverIdx >= files.length) coverIdx = 0;
+      const first = files.length ? fileToCard(gg, files[coverIdx], coverIdx, gIdx) : null;
       const groupEl = el('div', {
         class: 'gallery-group is-collapsed',
         'data-gg-key': gKey,
@@ -670,7 +673,7 @@
         }
       }, []);
       const thumbWrap = el('div', { class: 'gg-summary-thumb' }, []);
-      if (first.image) {
+      if (first && first.image) {
         thumbWrap.appendChild(el('img', { src: first.image, alt: first.title || '', loading: 'lazy' }));
       } else {
         thumbWrap.appendChild(el('div', { class: 'gallery-placeholder' }, ['Foto']));
