@@ -787,6 +787,7 @@
     }
     if (type === 'galleryGroups') {
       if (!item.id) item.id = 'gg_' + Date.now();
+      if (!item.date) item.date = new Date().toISOString();
       if (item.active === undefined || item.active === '') item.active = true;
       if (typeof item.active === 'string') item.active = (item.active.toLowerCase() !== 'false');
       if (item.order !== undefined && item.order !== '') item.order = parseInt(item.order, 10) || 0;
@@ -3089,7 +3090,7 @@ const btnVgFetch = $('btnVgFetchPlaylist');
         name: name,
         playlistUrl: playlist,
         driveFolderUrl: driveFolder,
-        date: new Date().toISOString().slice(0, 10),
+        date: new Date().toISOString(),
         order: 0,
         active: true,
         items: items
