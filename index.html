@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDIT Daarul Istiqomah — Membentuk Generasi Qurani</title>
+  <meta name="description" content="Website resmi SDIT Daarul Istiqomah (sditdaarulistiqomah.sch.id) Tajurhalang, Bogor. Sekolah Dasar Islam Terpadu, Akreditasi A. PPDB online.">
+  <meta name="theme-color" content="#0B6E4F">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://sditdaarulistiqomah.sch.id/">
+
+  <!-- Open Graph (WhatsApp, Facebook, Telegram, dll.) -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="id_ID">
+  <meta property="og:site_name" content="SDIT Daarul Istiqomah">
+  <meta property="og:title" content="SDIT Daarul Istiqomah — Generasi Qurani, Cerdas, Berakhlak Mulia">
+  <meta property="og:description" content="Sekolah Dasar Islam Terpadu di Tajurhalang, Bogor. Akreditasi A. Program Tahfidz, Kurikulum Merdeka, PPDB online.">
+  <meta property="og:url" content="https://sditdaarulistiqomah.sch.id/">
+  <meta property="og:image" content="https://sditdaarulistiqomah.sch.id/images/og-cover.jpg">
+  <meta property="og:image:secure_url" content="https://sditdaarulistiqomah.sch.id/images/og-cover.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="SDIT Daarul Istiqomah Tajurhalang Bogor">
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SDIT Daarul Istiqomah — Generasi Qurani">
+  <meta name="twitter:description" content="SD Islam Terpadu, Akreditasi A, Tajurhalang Bogor. PPDB online.">
+  <meta name="twitter:image" content="https://sditdaarulistiqomah.sch.id/images/og-cover.jpg">
+
+  <link rel="icon" href="images/logo.png" type="image/jpeg">
+  <link rel="apple-touch-icon" href="images/logo.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/lock.css">
+</head>
+<body
+  data-shlock-mode="ultimate"
+  data-shlock-domain="sditdaarulistiqomah.sch.id,sditdaarulistiqomah.web.id,darulistiqomah.silverhawk.web.id,localhost,127.0.0.1"
+  data-shlock-brand="SDIT Daarul Istiqomah"
+  data-shlock-social="https://www.instagram.com/sdit_daarul_istiqomah/"
+>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="#beranda">
+        <img class="brand-logo-img" src="images/logo.png" alt="Logo SDIT Daarul Istiqomah" width="44" height="44">
+        <div class="brand-text">
+          <strong id="schoolName">SDIT Daarul Istiqomah</strong>
+          <span>Tajurhalang · Bogor</span>
+        </div>
+      </a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu"><span></span><span></span><span></span></button>
+      <nav class="nav-links" id="navLinks">
+        <a href="#beranda">Beranda</a>
+        <a href="#tentang">Tentang</a>
+        <a href="#program">Program</a>
+        <a href="#berita">Berita</a>
+        <div class="nav-dropdown nav-galeri" id="navGaleri">
+          <button type="button" class="nav-dropdown-toggle" id="navGaleriBtn" aria-expanded="false" aria-haspopup="true">
+            Galeri <span class="nav-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="nav-dropdown-menu" id="navGaleriMenu" role="menu">
+            <a href="#galeri" role="menuitem">Foto</a>
+            <a href="#video" role="menuitem">Video</a>
+          </div>
+        </div>
+        <a href="#kegiatan">Kegiatan</a>
+        <a href="#ppdb">PPDB</a>
+        <div class="nav-dropdown" id="navMore" hidden>
+          <button type="button" class="nav-dropdown-toggle" id="navMoreBtn" aria-expanded="false" aria-haspopup="true">
+            Info lainnya <span class="nav-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="nav-dropdown-menu" id="navMoreMenu" role="menu">
+            <a href="#visi" data-show-if="visionMission" role="menuitem">Visi &amp; Misi</a>
+            <a href="#fasilitas" data-show-if="facilities" role="menuitem">Fasilitas</a>
+            <a href="#guru" data-show-if="teachers" role="menuitem">Guru</a>
+            <a href="#prestasi" data-show-if="achievements" role="menuitem">Prestasi</a>
+            <a href="#kalender" data-show-if="calendar" role="menuitem">Kalender</a>
+            <a href="#biaya" data-show-if="fees" role="menuitem">Biaya</a>
+          </div>
+        </div>
+        <a href="#kontak">Kontak</a>
+        <a class="btn btn-primary nav-cta" href="#ppdb">Daftar</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Pengumuman dinamis -->
+    <div id="annRoot" aria-live="polite"></div>
+    <section class="hero" id="beranda">
+      <div class="carousel" id="carousel" aria-label="Carousel">
+        <div class="carousel-loading" id="carouselLoading" aria-live="polite" aria-busy="true">
+          <p class="typewriter" id="typewriterText"><span class="tw-text"></span><span class="tw-cursor" aria-hidden="true">|</span></p>
+        </div>
+      </div>
+      <div class="carousel-nav" id="carouselDots"></div>
+    </section>
+
+    <div class="container">
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <section id="tentang">
+      <div class="container about-panel">
+        <div class="copy">
+          <div class="label" style="color:var(--primary);font-weight:800;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;">Profil Sekolah</div>
+          <h2 id="schoolFullName">Sekolah Dasar Islam Terpadu Daarul Istiqomah</h2>
+          <p id="schoolTagline">Membentuk Generasi Qurani, Cerdas, dan Berakhlak Mulia</p>
+          <p>
+            SDIT Daarul Istiqomah berkomitmen menghadirkan pendidikan dasar yang memadukan
+            ilmu pengetahuan, adab Islami, dan pembiasaan Qurani. Kami mendampingi tumbuh kembang
+            anak dalam lingkungan yang aman, hangat, dan inspiratif.
+          </p>
+          <p>
+            Terletak di Tajurhalang, Kabupaten Bogor, sekolah ini mengutamakan kolaborasi
+            antara guru, orang tua, dan komunitas untuk membentuk karakter peserta didik.
+          </p>
+          <a class="btn btn-primary" href="#program">Lihat Program Unggulan</a>
+        </div>
+        <div class="visual">
+          <div>
+            <strong>A</strong>
+            Akreditasi Sekolah
+            <p style="opacity:.85;margin-top:.5rem;font-size:.95rem;">NPSN 70045471 · Kurikulum Merdeka</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="program" style="background:#fff;">
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Program</div>
+          <h2>Program Unggulan</h2>
+          <p>Pembelajaran terpadu yang menumbuhkan iman, ilmu, dan keterampilan hidup.</p>
+        </div>
+        <div class="grid-3" id="programs"></div>
+      </div>
+    </section>
+
+    <section id="berita">
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Informasi</div>
+          <h2>Berita & Artikel</h2>
+          <p>Kabar kegiatan, prestasi, dan informasi terbaru dari sekolah.</p>
+        </div>
+        <div class="grid-3" id="articles"></div>
+        <div class="load-more-wrap" id="articlesMoreWrap" hidden>
+          <button type="button" class="btn btn-ghost load-more-btn" id="articlesMore">Muat lebih banyak</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="galeri" style="background:#fff;">
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Galeri</div>
+          <h2>Galeri Foto</h2>
+          <p>Momen belajar, ibadah, dan kebersamaan siswa.</p>
+        </div>
+        <div class="gallery-grid" id="gallery"></div>
+        <div class="load-more-wrap" id="galleryMoreWrap" hidden>
+          <button type="button" class="btn btn-ghost load-more-btn" id="galleryMore">Muat lebih banyak</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="video">
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Video</div>
+          <h2>Galeri Video</h2>
+          <p>Cuplikan kegiatan dan dokumentasi sekolah.</p>
+        </div>
+        <div class="grid-2" id="videos"></div>
+        <div class="load-more-wrap" id="videosMoreWrap" hidden>
+          <button type="button" class="btn btn-ghost load-more-btn" id="videosMore">Muat lebih banyak</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="kegiatan" style="background:#fff;">
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Rutinitas</div>
+          <h2>Kegiatan Siswa</h2>
+          <p>Aktivitas harian dan mingguan yang membentuk kebiasaan baik.</p>
+        </div>
+        <div class="activity-list" id="activities"></div>
+      </div>
+    </section>
+
+
+    <!-- Visi & Misi: disembunyikan jika kosong -->
+    <section id="visi" class="sec-optional" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Landasan</div>
+          <h2>Visi &amp; Misi</h2>
+        </div>
+        <div class="vm-grid">
+          <article class="card vm-card" id="visionCard" hidden>
+            <h3>Visi</h3>
+            <p id="visionText"></p>
+          </article>
+          <article class="card vm-card" id="missionCard" hidden>
+            <h3>Misi</h3>
+            <ul id="missionList"></ul>
+          </article>
+        </div>
+        <p class="vm-motto" id="mottoText" hidden></p>
+      </div>
+    </section>
+
+    <!-- Pimpinan -->
+    <section id="pimpinan" class="sec-optional" style="background:#fff;" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Kepemimpinan</div>
+          <h2>Pimpinan Sekolah</h2>
+        </div>
+        <div class="grid-3" id="leadershipGrid"></div>
+      </div>
+    </section>
+
+    <!-- Fasilitas -->
+    <section id="fasilitas" class="sec-optional" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Sarana</div>
+          <h2>Fasilitas Sekolah</h2>
+        </div>
+        <div class="grid-3" id="facilitiesGrid"></div>
+      </div>
+    </section>
+
+    <!-- Guru -->
+    <section id="guru" class="sec-optional" style="background:#fff;" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Tenaga Pendidik</div>
+          <h2>Guru &amp; Staff</h2>
+        </div>
+        <div class="grid-3" id="teachersGrid"></div>
+      </div>
+    </section>
+
+    <!-- Prestasi -->
+    <section id="prestasi" class="sec-optional" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Capaian</div>
+          <h2>Prestasi</h2>
+        </div>
+        <div class="grid-3" id="achievementsGrid"></div>
+      </div>
+    </section>
+
+    <!-- Kalender -->
+    <section id="kalender" class="sec-optional" style="background:#fff;" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Agenda</div>
+          <h2>Kalender Akademik</h2>
+        </div>
+        <div class="calendar-list" id="calendarList"></div>
+      </div>
+    </section>
+
+    <section id="ppdb">
+      <div class="container">
+        <div class="ppdb-box">
+          <div>
+            <h2 id="ppdbYear">PPDB Tahun Ajaran 2026/2027</h2>
+            <p id="ppdbNote">Pendaftaran online dibuka. Isi formulir di bawah ini. Data siap diekspor untuk Dapodik &amp; aplikasi PPDB.</p>
+            <p id="ppdbQuota" class="ppdb-quota" hidden></p>
+            <ul id="ppdbReqs"></ul>
+            <div class="ppdb-actions">
+              <button type="button" class="btn btn-accent" id="btnShowPpdbForm">Isi Formulir Online</button>
+              <a class="btn btn-ghost-light" id="waLink" href="https://wa.me/62895355357028" target="_blank" rel="noopener">Chat WhatsApp</a>
+              <a class="btn btn-ghost-light" href="#kontak">Kontak Sekolah</a>
+            </div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:3rem;margin-bottom:.5rem;">📝</div>
+            <p style="opacity:.9;" id="ppdbSideNote">Siapkan berkas (Akta, KK, KTP) dan lengkapi formulir. Observasi &amp; wawancara dijadwalkan oleh panitia.</p>
+          </div>
+        </div>
+
+        <div id="ppdbStepsWrap" class="ppdb-extra" hidden>
+          <h3 class="ppdb-extra-title">Alur Pendaftaran</h3>
+          <ol class="ppdb-steps" id="ppdbSteps"></ol>
+        </div>
+        <div id="ppdbScheduleWrap" class="ppdb-extra" hidden>
+          <h3 class="ppdb-extra-title">Jadwal PPDB</h3>
+          <div class="calendar-list" id="ppdbSchedule"></div>
+        </div>
+        <div id="ppdbFaqWrap" class="ppdb-extra" hidden>
+          <h3 class="ppdb-extra-title">FAQ PPDB</h3>
+          <div class="faq-list" id="ppdbFaq"></div>
+        </div>
+
+        <!-- Formulir PPDB Online — field selaras Dapodik -->
+        <div class="ppdb-form-wrap is-hidden" id="ppdbForm" hidden>
+          <div class="section-head" style="margin-top:2.5rem;">
+            <div class="label">Formulir Online</div>
+            <h2>Pendaftaran Peserta Didik Baru</h2>
+            <p>Data di bawah mengikuti struktur standar Dapodik agar mudah diimpor ke aplikasi PPDB sekolah. Tanda <span class="req">*</span> wajib diisi.</p>
+            <p style="margin-top:.5rem"><button type="button" class="btn btn-ghost" id="btnHidePpdbForm">Tutup formulir</button></p>
+          </div>
+
+          <form id="ppdbRegistrationForm" class="ppdb-form" novalidate>
+            <input type="hidden" name="tahun_ajaran" value="2026/2027">
+            <input type="hidden" name="jenjang" value="SD">
+            <input type="hidden" name="sekolah" value="SDIT Daarul Istiqomah">
+            <input type="hidden" name="npsn" value="70045471">
+
+            <!-- DATA SISWA -->
+            <fieldset class="ppdb-fieldset">
+              <legend>1. Data Calon Siswa</legend>
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label for="nama_lengkap">Nama Lengkap <span class="req">*</span></label>
+                  <input type="text" id="nama_lengkap" name="nama_lengkap" required maxlength="100" autocomplete="name" placeholder="Sesuai Akta Kelahiran">
+                </div>
+                <div class="form-group">
+                  <label for="nik">NIK Siswa <span class="req">*</span></label>
+                  <input type="text" id="nik" name="nik" required pattern="[0-9]{16}" maxlength="16" inputmode="numeric" placeholder="16 digit NIK">
+                </div>
+                <div class="form-group">
+                  <label for="nisn">NISN <span class="opt">(jika ada)</span></label>
+                  <input type="text" id="nisn" name="nisn" pattern="[0-9]{10}" maxlength="10" inputmode="numeric" placeholder="10 digit NISN">
+                </div>
+                <div class="form-group">
+                  <label for="no_akta_lahir">No. Akta Kelahiran</label>
+                  <input type="text" id="no_akta_lahir" name="no_akta_lahir" maxlength="50" placeholder="Nomor akta">
+                </div>
+                <div class="form-group">
+                  <label for="tempat_lahir">Tempat Lahir <span class="req">*</span></label>
+                  <input type="text" id="tempat_lahir" name="tempat_lahir" required maxlength="50" placeholder="Kota/Kabupaten">
+                </div>
+                <div class="form-group">
+                  <label for="tanggal_lahir">Tanggal Lahir <span class="req">*</span></label>
+                  <input type="date" id="tanggal_lahir" name="tanggal_lahir" required>
+                </div>
+                <div class="form-group">
+                  <label for="jenis_kelamin">Jenis Kelamin <span class="req">*</span></label>
+                  <select id="jenis_kelamin" name="jenis_kelamin" required>
+                    <option value="">— Pilih —</option>
+                    <option value="L">Laki-laki</option>
+                    <option value="P">Perempuan</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="agama">Agama <span class="req">*</span></label>
+                  <select id="agama" name="agama" required>
+                    <option value="">— Pilih —</option>
+                    <option value="Islam" selected>Islam</option>
+                    <option value="Kristen">Kristen</option>
+                    <option value="Katolik">Katolik</option>
+                    <option value="Hindu">Hindu</option>
+                    <option value="Buddha">Buddha</option>
+                    <option value="Konghucu">Konghucu</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="kewarganegaraan">Kewarganegaraan</label>
+                  <select id="kewarganegaraan" name="kewarganegaraan">
+                    <option value="WNI" selected>WNI</option>
+                    <option value="WNA">WNA</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="anak_ke">Anak ke-</label>
+                  <input type="number" id="anak_ke" name="anak_ke" min="1" max="20" placeholder="1">
+                </div>
+                <div class="form-group">
+                  <label for="jumlah_saudara">Jumlah Saudara Kandung</label>
+                  <input type="number" id="jumlah_saudara" name="jumlah_saudara" min="0" max="20" placeholder="0">
+                </div>
+                <div class="form-group">
+                  <label for="kebutuhan_khusus">Berkebutuhan Khusus</label>
+                  <select id="kebutuhan_khusus" name="kebutuhan_khusus">
+                    <option value="Tidak" selected>Tidak</option>
+                    <option value="Ya">Ya (sebutkan di catatan)</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- ALAMAT -->
+            <fieldset class="ppdb-fieldset">
+              <legend>2. Alamat Tempat Tinggal</legend>
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label for="alamat_jalan">Alamat Jalan / Dusun <span class="req">*</span></label>
+                  <input type="text" id="alamat_jalan" name="alamat_jalan" required maxlength="200" placeholder="Jl. ... RT/RW akan diisi terpisah">
+                </div>
+                <div class="form-group">
+                  <label for="rt">RT</label>
+                  <input type="text" id="rt" name="rt" maxlength="3" inputmode="numeric" placeholder="001">
+                </div>
+                <div class="form-group">
+                  <label for="rw">RW</label>
+                  <input type="text" id="rw" name="rw" maxlength="3" inputmode="numeric" placeholder="001">
+                </div>
+                <div class="form-group">
+                  <label for="desa_kelurahan">Desa / Kelurahan <span class="req">*</span></label>
+                  <input type="text" id="desa_kelurahan" name="desa_kelurahan" required maxlength="60" placeholder="Nama desa/kelurahan">
+                </div>
+                <div class="form-group">
+                  <label for="kecamatan">Kecamatan <span class="req">*</span></label>
+                  <input type="text" id="kecamatan" name="kecamatan" required maxlength="60" placeholder="Kecamatan">
+                </div>
+                <div class="form-group">
+                  <label for="kabupaten_kota">Kabupaten / Kota <span class="req">*</span></label>
+                  <input type="text" id="kabupaten_kota" name="kabupaten_kota" required maxlength="60" placeholder="Kab. Bogor / Kota ...">
+                </div>
+                <div class="form-group">
+                  <label for="provinsi">Provinsi <span class="req">*</span></label>
+                  <input type="text" id="provinsi" name="provinsi" required maxlength="60" value="Jawa Barat">
+                </div>
+                <div class="form-group">
+                  <label for="kode_pos">Kode Pos</label>
+                  <input type="text" id="kode_pos" name="kode_pos" pattern="[0-9]{5}" maxlength="5" inputmode="numeric" placeholder="16320">
+                </div>
+                <div class="form-group">
+                  <label for="jarak_km">Jarak ke Sekolah (km)</label>
+                  <input type="number" id="jarak_km" name="jarak_km" min="0" max="100" step="0.1" placeholder="1.5">
+                </div>
+                <div class="form-group">
+                  <label for="transportasi">Alat Transportasi</label>
+                  <select id="transportasi" name="transportasi">
+                    <option value="">— Pilih —</option>
+                    <option value="Jalan kaki">Jalan kaki</option>
+                    <option value="Sepeda">Sepeda</option>
+                    <option value="Motor">Motor</option>
+                    <option value="Mobil pribadi">Mobil pribadi</option>
+                    <option value="Antar jemput sekolah">Antar jemput sekolah</option>
+                    <option value="Angkutan umum">Angkutan umum</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- ASAL SEKOLAH -->
+            <fieldset class="ppdb-fieldset">
+              <legend>3. Asal Sekolah / Pendidikan Sebelumnya</legend>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="asal_sekolah">Nama TK / PAUD / RA</label>
+                  <input type="text" id="asal_sekolah" name="asal_sekolah" maxlength="100" placeholder="Nama lembaga (jika ada)">
+                </div>
+                <div class="form-group">
+                  <label for="asal_sekolah_alamat">Alamat Asal Sekolah</label>
+                  <input type="text" id="asal_sekolah_alamat" name="asal_sekolah_alamat" maxlength="150" placeholder="Kota/Kabupaten">
+                </div>
+                <div class="form-group">
+                  <label for="tahun_lulus_asal">Tahun Lulus / Selesai</label>
+                  <input type="number" id="tahun_lulus_asal" name="tahun_lulus_asal" min="2018" max="2026" placeholder="2026">
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- DATA AYAH -->
+            <fieldset class="ppdb-fieldset">
+              <legend>4. Data Ayah Kandung</legend>
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label for="ayah_nama">Nama Ayah <span class="req">*</span></label>
+                  <input type="text" id="ayah_nama" name="ayah_nama" required maxlength="100" placeholder="Nama lengkap ayah">
+                </div>
+                <div class="form-group">
+                  <label for="ayah_nik">NIK Ayah</label>
+                  <input type="text" id="ayah_nik" name="ayah_nik" pattern="[0-9]{16}" maxlength="16" inputmode="numeric" placeholder="16 digit">
+                </div>
+                <div class="form-group">
+                  <label for="ayah_pendidikan">Pendidikan Terakhir</label>
+                  <select id="ayah_pendidikan" name="ayah_pendidikan">
+                    <option value="">— Pilih —</option>
+                    <option value="Tidak sekolah">Tidak sekolah</option>
+                    <option value="SD">SD / sederajat</option>
+                    <option value="SMP">SMP / sederajat</option>
+                    <option value="SMA">SMA / sederajat</option>
+                    <option value="D1">D1</option>
+                    <option value="D2">D2</option>
+                    <option value="D3">D3</option>
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="S3">S3</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="ayah_pekerjaan">Pekerjaan</label>
+                  <input type="text" id="ayah_pekerjaan" name="ayah_pekerjaan" maxlength="60" placeholder="Contoh: Karyawan swasta">
+                </div>
+                <div class="form-group">
+                  <label for="ayah_penghasilan">Penghasilan Bulanan</label>
+                  <select id="ayah_penghasilan" name="ayah_penghasilan">
+                    <option value="">— Pilih —</option>
+                    <option value="< 1 juta">&lt; Rp 1.000.000</option>
+                    <option value="1-2 juta">Rp 1.000.000 – 2.000.000</option>
+                    <option value="2-3 juta">Rp 2.000.000 – 3.000.000</option>
+                    <option value="3-5 juta">Rp 3.000.000 – 5.000.000</option>
+                    <option value="> 5 juta">&gt; Rp 5.000.000</option>
+                    <option value="Tidak berpenghasilan">Tidak berpenghasilan</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- DATA IBU -->
+            <fieldset class="ppdb-fieldset">
+              <legend>5. Data Ibu Kandung</legend>
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label for="ibu_nama">Nama Ibu <span class="req">*</span></label>
+                  <input type="text" id="ibu_nama" name="ibu_nama" required maxlength="100" placeholder="Nama lengkap ibu">
+                </div>
+                <div class="form-group">
+                  <label for="ibu_nik">NIK Ibu</label>
+                  <input type="text" id="ibu_nik" name="ibu_nik" pattern="[0-9]{16}" maxlength="16" inputmode="numeric" placeholder="16 digit">
+                </div>
+                <div class="form-group">
+                  <label for="ibu_pendidikan">Pendidikan Terakhir</label>
+                  <select id="ibu_pendidikan" name="ibu_pendidikan">
+                    <option value="">— Pilih —</option>
+                    <option value="Tidak sekolah">Tidak sekolah</option>
+                    <option value="SD">SD / sederajat</option>
+                    <option value="SMP">SMP / sederajat</option>
+                    <option value="SMA">SMA / sederajat</option>
+                    <option value="D1">D1</option>
+                    <option value="D2">D2</option>
+                    <option value="D3">D3</option>
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="S3">S3</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="ibu_pekerjaan">Pekerjaan</label>
+                  <input type="text" id="ibu_pekerjaan" name="ibu_pekerjaan" maxlength="60" placeholder="Contoh: Ibu rumah tangga">
+                </div>
+                <div class="form-group">
+                  <label for="ibu_penghasilan">Penghasilan Bulanan</label>
+                  <select id="ibu_penghasilan" name="ibu_penghasilan">
+                    <option value="">— Pilih —</option>
+                    <option value="< 1 juta">&lt; Rp 1.000.000</option>
+                    <option value="1-2 juta">Rp 1.000.000 – 2.000.000</option>
+                    <option value="2-3 juta">Rp 2.000.000 – 3.000.000</option>
+                    <option value="3-5 juta">Rp 3.000.000 – 5.000.000</option>
+                    <option value="> 5 juta">&gt; Rp 5.000.000</option>
+                    <option value="Tidak berpenghasilan">Tidak berpenghasilan</option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- WALI & KONTAK -->
+            <fieldset class="ppdb-fieldset">
+              <legend>6. Wali &amp; Kontak (jika berbeda dari orang tua)</legend>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="wali_nama">Nama Wali</label>
+                  <input type="text" id="wali_nama" name="wali_nama" maxlength="100" placeholder="Kosongkan jika orang tua">
+                </div>
+                <div class="form-group">
+                  <label for="wali_hubungan">Hubungan dengan Siswa</label>
+                  <input type="text" id="wali_hubungan" name="wali_hubungan" maxlength="40" placeholder="Contoh: Kakek / Paman">
+                </div>
+                <div class="form-group">
+                  <label for="no_hp">No. HP / WhatsApp Orang Tua <span class="req">*</span></label>
+                  <input type="tel" id="no_hp" name="no_hp" required maxlength="16" inputmode="tel" placeholder="08xxxxxxxxxx">
+                </div>
+                <div class="form-group">
+                  <label for="email_ortu">Email Orang Tua</label>
+                  <input type="email" id="email_ortu" name="email_ortu" maxlength="80" placeholder="email@contoh.com">
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- TAMBAHAN SDIT -->
+            <fieldset class="ppdb-fieldset">
+              <legend>7. Informasi Tambahan</legend>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="minat_program">Minat Program Unggulan</label>
+                  <select id="minat_program" name="minat_program">
+                    <option value="">— Pilih —</option>
+                    <option value="Tahfidz Al-Qur'an">Tahfidz Al-Qur'an</option>
+                    <option value="Sains &amp; Teknologi">Sains &amp; Teknologi</option>
+                    <option value="Bahasa">Bahasa</option>
+                    <option value="Olahraga">Olahraga</option>
+                    <option value="Seni Islami">Seni Islami</option>
+                    <option value="Umum">Umum / Belum ditentukan</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="tinggi_badan">Tinggi Badan (cm)</label>
+                  <input type="number" id="tinggi_badan" name="tinggi_badan" min="80" max="180" placeholder="110">
+                </div>
+                <div class="form-group">
+                  <label for="berat_badan">Berat Badan (kg)</label>
+                  <input type="number" id="berat_badan" name="berat_badan" min="10" max="80" step="0.1" placeholder="20">
+                </div>
+                <div class="form-group full">
+                  <label for="catatan">Catatan / Keterangan Lain</label>
+                  <textarea id="catatan" name="catatan" rows="3" maxlength="500" placeholder="Alergi, riwayat kesehatan, atau info penting lainnya"></textarea>
+                </div>
+              </div>
+            </fieldset>
+
+            <p id="ppdbPrivacyNote" class="ppdb-privacy" hidden></p>
+            <div class="ppdb-consent">
+              <label class="checkbox-label">
+                <input type="checkbox" id="persetujuan" name="persetujuan" required>
+                <span>Saya menyatakan data yang diisi benar dan bersedia mengirimkan berkas pendukung ke sekolah. Data akan digunakan untuk keperluan PPDB dan pelaporan Dapodik sesuai ketentuan yang berlaku. <span class="req">*</span></span>
+              </label>
+            </div>
+
+            <div class="ppdb-form-actions">
+              <button type="submit" class="btn btn-accent" id="ppdbSubmitBtn">Kirim Pendaftaran</button>
+              <button type="reset" class="btn btn-ghost">Reset Form</button>
+            </div>
+            <div id="ppdbFormStatus" class="ppdb-form-status" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+
+    <section id="biaya" class="sec-optional" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Transparansi</div>
+          <h2 id="feesTitle">Informasi Biaya Pendidikan</h2>
+          <p id="feesNote"></p>
+        </div>
+        <div class="fees-table-wrap" id="feesTableWrap"></div>
+      </div>
+    </section>
+
+    <section id="kontak" style="background:#fff;">
+      <div class="container">
+        <div class="section-head">
+          <div class="label">Hubungi Kami</div>
+          <h2>Kontak & Lokasi</h2>
+          <p>Silakan kunjungi atau hubungi sekretariat sekolah.</p>
+        </div>
+        <div class="contact-grid">
+          <div class="contact-card">
+            <h3>Informasi Kontak</h3>
+            <p id="schoolAddress">Jl. Manunggal RT.03/12, Tajur Halang, Kec. Tajurhalang, Kab. Bogor</p>
+            <a id="schoolEmail" href="mailto:darulistiqomahsdit@gmail.com">darulistiqomahsdit@gmail.com</a>
+            <a id="igLink" href="https://www.instagram.com/sdit_daarul_istiqomah/" target="_blank" rel="noopener">Instagram @sdit_daarul_istiqomah</a>
+            <p id="schoolHours" class="meta-line" hidden></p>
+            <p id="schoolPrincipal" class="meta-line" hidden></p>
+            <p id="schoolYayasan" class="meta-line" hidden></p>
+            <p id="officialLinks" class="meta-line" hidden></p>
+            <div id="complaintCard" class="complaint-box" hidden>
+              <h4>Saran &amp; Pengaduan</h4>
+              <p id="complaintNote"></p>
+              <div class="ppdb-actions" id="complaintActions"></div>
+            </div>
+          </div>
+          <div class="map-card">
+            <iframe id="mapFrame" title="Peta lokasi sekolah" loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps?q=-6.4804,106.7577&z=16&output=embed"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <h4>SDIT Daarul Istiqomah</h4>
+          <p id="footerAddress">Jl. Manunggal RT.03/12, Tajur Halang, Kab. Bogor</p>
+          <p id="footerEmail">darulistiqomahsdit@gmail.com</p>
+        </div>
+        <div>
+          <h4>Menu</h4>
+          <p><a href="#program">Program</a></p>
+          <p><a href="#berita">Berita</a></p>
+          <p><a href="#galeri">Galeri</a></p>
+          <p><a href="#ppdb">PPDB</a></p>
+        </div>
+        <div>
+          <h4>Media</h4>
+          <p><a href="https://www.instagram.com/sdit_daarul_istiqomah/" target="_blank" rel="noopener">Instagram Utama</a></p>
+          <p><a href="https://www.instagram.com/sd_it_darul_istiqomah/" target="_blank" rel="noopener">Instagram Alternatif</a></p>
+          
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year"></span> SDIT Daarul Istiqomah. Semua hak dilindungi.</span>
+        <span class="powered">Powered by <a href="https://silverhawk.web.id" target="_blank" rel="noopener">silverhawk.web.id</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+    <button class="lightbox-close" type="button" aria-label="Tutup">×</button>
+    <img id="lightboxImg" alt="">
+  </div>
+  <div class="modal" id="videoModal" role="dialog" aria-modal="true">
+    <div class="modal-inner">
+      <button class="modal-close" type="button" aria-label="Tutup">×</button>
+      <iframe id="videoFrame" allow="autoplay; encrypted-media" allowfullscreen title="Video"></iframe>
+    </div>
+  </div>
+
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/lock.js"></script>
+</body>
+</html>

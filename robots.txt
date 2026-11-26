@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+
+Sitemap: https://sditdaarulistiqomah.sch.id/sitemap.xml
+Sitemap: https://sditdaarulistiqomah.web.id/sitemap.xml
