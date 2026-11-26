@@ -1977,16 +1977,228 @@
     document.title = `${school.name} — ${school.tagline}`;
   }
 
+  /* ——— Lightbox zoom (Ctrl+scroll desktop, pinch mobile, drag pan) ——— */
+  const _lbZoom = {
+    scale: 1,
+    tx: 0,
+    ty: 0,
+    min: 1,
+    max: 5,
+    bound: false
+  };
+
+  function lbEls() {
+    return {
+      lb: document.getElementById('lightbox'),
+      img: document.getElementById('lightboxImg'),
+      vp: document.getElementById('lightboxViewport')
+    };
+  }
+
+  function lbApplyTransform() {
+    const { img, vp } = lbEls();
+    if (!img) return;
+    img.style.transform =
+      'translate(' + _lbZoom.tx + 'px,' + _lbZoom.ty + 'px) scale(' + _lbZoom.scale + ')';
+    if (vp) {
+      vp.classList.toggle('is-zoomed', _lbZoom.scale > 1.02);
+    }
+  }
+
+  function lbResetZoom() {
+    _lbZoom.scale = 1;
+    _lbZoom.tx = 0;
+    _lbZoom.ty = 0;
+    lbApplyTransform();
+    const { vp } = lbEls();
+    if (vp) {
+      vp.classList.remove('is-zoomed', 'is-panning');
+    }
+  }
+
+  function lbClampPan() {
+    // biarkan pan bebas saat zoom; batasi kasar agar tidak hilang dari layar
+    const lim = 800 * _lbZoom.scale;
+    if (_lbZoom.tx > lim) _lbZoom.tx = lim;
+    if (_lbZoom.tx < -lim) _lbZoom.tx = -lim;
+    if (_lbZoom.ty > lim) _lbZoom.ty = lim;
+    if (_lbZoom.ty < -lim) _lbZoom.ty = -lim;
+  }
+
+  function lbZoomAt(factor, cx, cy) {
+    const { img, vp } = lbEls();
+    if (!img || !vp) return;
+    const prev = _lbZoom.scale;
+    let next = prev * factor;
+    if (next < _lbZoom.min) next = _lbZoom.min;
+    if (next > _lbZoom.max) next = _lbZoom.max;
+    if (Math.abs(next - prev) < 0.0001) return;
+
+    // zoom mengarah ke titik kursor/jari (koordinat relatif viewport)
+    const rect = vp.getBoundingClientRect();
+    const px = (typeof cx === 'number' ? cx : rect.left + rect.width / 2) - rect.left - rect.width / 2;
+    const py = (typeof cy === 'number' ? cy : rect.top + rect.height / 2) - rect.top - rect.height / 2;
+    const ratio = next / prev;
+    _lbZoom.tx = px - (px - _lbZoom.tx) * ratio;
+    _lbZoom.ty = py - (py - _lbZoom.ty) * ratio;
+    _lbZoom.scale = next;
+    if (_lbZoom.scale <= 1.02) {
+      _lbZoom.scale = 1;
+      _lbZoom.tx = 0;
+      _lbZoom.ty = 0;
+    } else {
+      lbClampPan();
+    }
+    lbApplyTransform();
+  }
+
+  function setupLightboxZoom() {
+    if (_lbZoom.bound) return;
+    const { lb, img, vp } = lbEls();
+    if (!lb || !img || !vp) return;
+    _lbZoom.bound = true;
+
+    // Desktop: Ctrl + wheel zoom
+    lb.addEventListener('wheel', function (e) {
+      if (!lb.classList.contains('open')) return;
+      if (!e.ctrlKey && !e.metaKey) {
+        // tanpa ctrl: cegah scroll halaman di belakang
+        e.preventDefault();
+        return;
+      }
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      lbZoomAt(factor, e.clientX, e.clientY);
+    }, { passive: false });
+
+    // Double-click / double-tap toggle zoom
+    let lastTap = 0;
+    img.addEventListener('dblclick', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (_lbZoom.scale > 1.05) {
+        lbResetZoom();
+      } else {
+        lbZoomAt(2.2, e.clientX, e.clientY);
+      }
+    });
+
+    // Mobile pinch + pan
+    let pinchStartDist = 0;
+    let pinchStartScale = 1;
+    let panActive = false;
+    let panId = null;
+    let panLastX = 0;
+    let panLastY = 0;
+    const pointers = new Map();
+
+    function dist(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    function mid(a, b) {
+      return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+
+    vp.addEventListener('pointerdown', function (e) {
+      if (!lb.classList.contains('open')) return;
+      if (e.target.closest && e.target.closest('.lightbox-close')) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { vp.setPointerCapture(e.pointerId); } catch (_) {}
+
+      if (pointers.size === 2) {
+        panActive = false;
+        vp.classList.remove('is-panning');
+        const pts = Array.from(pointers.values());
+        pinchStartDist = dist(pts[0], pts[1]) || 1;
+        pinchStartScale = _lbZoom.scale;
+      } else if (pointers.size === 1 && _lbZoom.scale > 1.02) {
+        panActive = true;
+        panId = e.pointerId;
+        panLastX = e.clientX;
+        panLastY = e.clientY;
+        vp.classList.add('is-panning');
+      }
+
+      // double-tap mobile
+      if (e.pointerType === 'touch' && pointers.size === 1) {
+        const now = Date.now();
+        if (now - lastTap < 280) {
+          e.preventDefault();
+          if (_lbZoom.scale > 1.05) lbResetZoom();
+          else lbZoomAt(2.2, e.clientX, e.clientY);
+          lastTap = 0;
+        } else {
+          lastTap = now;
+        }
+      }
+    });
+
+    vp.addEventListener('pointermove', function (e) {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 2) {
+        const pts = Array.from(pointers.values());
+        const d = dist(pts[0], pts[1]) || 1;
+        const m = mid(pts[0], pts[1]);
+        const target = pinchStartScale * (d / pinchStartDist);
+        const factor = target / (_lbZoom.scale || 1);
+        lbZoomAt(factor, m.x, m.y);
+        pinchStartDist = d;
+        pinchStartScale = _lbZoom.scale;
+      } else if (panActive && e.pointerId === panId && _lbZoom.scale > 1.02) {
+        const dx = e.clientX - panLastX;
+        const dy = e.clientY - panLastY;
+        panLastX = e.clientX;
+        panLastY = e.clientY;
+        _lbZoom.tx += dx;
+        _lbZoom.ty += dy;
+        lbClampPan();
+        lbApplyTransform();
+      }
+    });
+
+    function endPointer(e) {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) {
+        pinchStartDist = 0;
+      }
+      if (pointers.size === 0) {
+        panActive = false;
+        panId = null;
+        vp.classList.remove('is-panning');
+      } else if (panId === e.pointerId) {
+        panActive = false;
+        panId = null;
+        vp.classList.remove('is-panning');
+      }
+    }
+    vp.addEventListener('pointerup', endPointer);
+    vp.addEventListener('pointercancel', endPointer);
+
+    // Klik backdrop (bukan gambar) menutup — ditangani di init; cegah bubble dari img saat drag
+    img.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+  }
+
   function openLightbox(src, title) {
-    const lb = document.getElementById('lightbox');
-    const img = document.getElementById('lightboxImg');
+    const { lb, img } = lbEls();
     if (!lb || !img) return;
+    setupLightboxZoom();
+    lbResetZoom();
     img.src = src;
     img.alt = title || '';
     lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
   }
   function closeLightbox() {
-    document.getElementById('lightbox')?.classList.remove('open');
+    const lb = document.getElementById('lightbox');
+    if (lb) lb.classList.remove('open');
+    lbResetZoom();
+    document.body.style.overflow = '';
   }
   function openVideo(id) {
     const m = document.getElementById('videoModal');
@@ -2982,7 +3194,20 @@
     setupSecretAdminEntry();
     setupQuickAdminEdit();
     document.getElementById('lightbox')?.addEventListener('click', (e) => {
-      if (e.target.id === 'lightbox' || e.target.classList.contains('lightbox-close')) closeLightbox();
+      if (e.target.classList.contains('lightbox-close')) {
+        closeLightbox();
+        return;
+      }
+      // tutup hanya jika klik area kosong (bukan img) dan tidak sedang zoom
+      if (e.target.id === 'lightbox' || e.target.id === 'lightboxViewport') {
+        if (_lbZoom.scale <= 1.02) closeLightbox();
+      }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        const lb = document.getElementById('lightbox');
+        if (lb && lb.classList.contains('open')) closeLightbox();
+      }
     });
     document.getElementById('videoModal')?.addEventListener('click', (e) => {
       if (e.target.id === 'videoModal' || e.target.classList.contains('modal-close')) closeVideo();
