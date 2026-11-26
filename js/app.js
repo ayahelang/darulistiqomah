@@ -102,6 +102,35 @@
       return 6;
     }
   }
+
+  function bindPwdToggles(root) {
+    const scope = root || document;
+    scope.querySelectorAll('.pwd-wrap').forEach(function (wrap) {
+      if (wrap.getAttribute('data-pwd-bound') === '1') return;
+      const input = wrap.querySelector('input');
+      const btn = wrap.querySelector('.pwd-toggle');
+      if (!input || !btn) return;
+      wrap.setAttribute('data-pwd-bound', '1');
+      btn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.classList.toggle('is-visible', show);
+        btn.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+        btn.setAttribute('title', show ? 'Sembunyikan password' : 'Tampilkan password');
+        try { input.focus(); } catch (_) {}
+      });
+    });
+  }
+
+  function pwdToggleHtml() {
+    return '<button type="button" class="pwd-toggle" aria-label="Tampilkan password" title="Tampilkan / sembunyikan password">' +
+      '<svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+      '<svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>' +
+      '</button>';
+  }
+
   const PAGE = { articles: 6, gallery: 6, videos: 4, galleryGroup: adaptiveGalleryGroupPage(), videoGroup: adaptiveGalleryGroupPage() };
   const shown = { articles: 0, gallery: 0, videos: 0 };
   let _lists = { articles: [], gallery: [], videos: [] };
@@ -2440,7 +2469,7 @@
       <h3>📋 Pendaftaran PPDB</h3>
       <p id="ppdbNotifText">Memeriksa notifikasi…</p>
       <div class="err" id="ppdbNotifErr"></div>
-      <input type="password" id="ppdbNotifPass" placeholder="Password admin" autocomplete="current-password">
+      <div class="pwd-wrap"><input type="password" id="ppdbNotifPass" placeholder="Password admin" autocomplete="current-password"><button type="button" class="pwd-toggle" aria-label="Tampilkan password" title="Tampilkan / sembunyikan password"><svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></button></div>
       <div class="actions">
         <button type="button" class="btn btn-accent" id="ppdbNotifGo">Buka Panel Admin</button>
         <button type="button" class="btn btn-ghost" id="ppdbNotifClose">Tutup</button>
@@ -2453,6 +2482,7 @@
     const badge = document.getElementById('ppdbNotifBadge');
     const text = document.getElementById('ppdbNotifText');
     const errEl = document.getElementById('ppdbNotifErr');
+    try { bindPwdToggles(panel); } catch (_) {}
     const passEl = document.getElementById('ppdbNotifPass');
 
     function setCount(n, meta) {
@@ -3089,11 +3119,81 @@
     } catch (_) {}
   }
 
+  function feAskPasswordModal() {
+    return new Promise(function (resolve) {
+      let modal = document.getElementById('fePassModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'fePassModal';
+        modal.className = 'fe-pass-modal';
+        modal.innerHTML =
+          '<div class="fe-pass-card" role="dialog" aria-modal="true" aria-labelledby="fePassTitle">' +
+            '<h3 id="fePassTitle">Password admin</h3>' +
+            '<p>Masukkan password untuk mengedit konten dari frontend.</p>' +
+            '<div class="pwd-wrap">' +
+              '<input type="password" id="fePassInput" placeholder="Password admin" autocomplete="current-password">' +
+              pwdToggleHtml() +
+            '</div>' +
+            '<div class="err" id="fePassErr"></div>' +
+            '<div class="fe-pass-actions">' +
+              '<button type="button" class="btn btn-ghost" id="fePassCancel">Batal</button>' +
+              '<button type="button" class="btn btn-primary" id="fePassOk">Lanjut</button>' +
+            '</div>' +
+          '</div>';
+        document.body.appendChild(modal);
+      }
+      const input = modal.querySelector('#fePassInput');
+      const err = modal.querySelector('#fePassErr');
+      const btnOk = modal.querySelector('#fePassOk');
+      const btnCancel = modal.querySelector('#fePassCancel');
+      if (err) err.textContent = '';
+      if (input) {
+        input.type = 'password';
+        input.value = '';
+      }
+      const toggle = modal.querySelector('.pwd-toggle');
+      if (toggle) {
+        toggle.classList.remove('is-visible');
+        toggle.setAttribute('aria-label', 'Tampilkan password');
+      }
+      // re-bind toggle (modal may be reused)
+      modal.querySelectorAll('.pwd-wrap').forEach(function (w) { w.removeAttribute('data-pwd-bound'); });
+      try { bindPwdToggles(modal); } catch (_) {}
+
+      function close(val) {
+        modal.classList.remove('open');
+        document.removeEventListener('keydown', onKey);
+        resolve(val);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') close(null);
+        if (e.key === 'Enter') submit();
+      }
+      function submit() {
+        const v = (input && input.value != null) ? String(input.value).trim() : '';
+        if (!v) {
+          if (err) err.textContent = 'Password wajib diisi.';
+          if (input) input.focus();
+          return;
+        }
+        close(v);
+      }
+      btnOk.onclick = submit;
+      btnCancel.onclick = function () { close(null); };
+      modal.onclick = function (e) {
+        if (e.target === modal) close(null);
+      };
+      document.addEventListener('keydown', onKey);
+      modal.classList.add('open');
+      setTimeout(function () { try { input && input.focus(); } catch (_) {} }, 30);
+    });
+  }
+
   async function feEnsureAdminToken() {
     const existing = feReadValidSessionToken();
     if (existing) return existing;
 
-    const pass = window.prompt('Password admin untuk mengedit:');
+    const pass = await feAskPasswordModal();
     if (pass === null) return null;
     if (!pass) { window.alert('Password wajib.'); return null; }
     const conf = window.SDIT_CONFIG || {};

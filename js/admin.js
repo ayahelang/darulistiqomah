@@ -20,6 +20,28 @@
 
   // --- Auth ---
   const AUTH_KEY = 'sdit_di_admin_auth_v1';
+
+  function bindPwdToggles(root) {
+    const scope = root || document;
+    scope.querySelectorAll('.pwd-wrap').forEach(function (wrap) {
+      if (wrap.getAttribute('data-pwd-bound') === '1') return;
+      const input = wrap.querySelector('input');
+      const btn = wrap.querySelector('.pwd-toggle');
+      if (!input || !btn) return;
+      wrap.setAttribute('data-pwd-bound', '1');
+      btn.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.classList.toggle('is-visible', show);
+        btn.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+        btn.setAttribute('title', show ? 'Sembunyikan password' : 'Tampilkan password');
+        try { input.focus(); } catch (_) {}
+      });
+    });
+  }
+
   const TOKEN_KEY = 'sdit_di_admin_token_v1';
 
   function isAuthed() {
@@ -164,6 +186,7 @@
   }
   lockAdmin();
 
+  try { bindPwdToggles(); } catch (_) {}
   const btnLogin = document.getElementById('btnLogin');
   const inpLogin = document.getElementById('loginPass');
   if (btnLogin) btnLogin.onclick = tryLogin;

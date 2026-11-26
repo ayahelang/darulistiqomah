@@ -1,1 +1,1 @@
-Zoom foto lightbox: Ctrl+scroll desktop, pinch mobile, seret, double-tap
+Toggle mata di semua field password (admin login, multi-editor, PPDB, frontend edit)

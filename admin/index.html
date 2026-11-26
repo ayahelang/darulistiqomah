@@ -479,7 +479,13 @@
       <h1>🔒 Admin SDIT Daarul Istiqomah</h1>
       <p>Masukkan password admin untuk mengakses panel.</p>
       <div class="err" id="loginErr"></div>
-      <input type="password" id="loginPass" placeholder="Password admin" autocomplete="current-password">
+      <div class="pwd-wrap">
+        <input type="password" id="loginPass" placeholder="Password admin" autocomplete="current-password">
+        <button type="button" class="pwd-toggle" aria-label="Tampilkan password" title="Tampilkan / sembunyikan password">
+          <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
       <button class="btn btn-primary" type="button" id="btnLogin" data-tip="Masuk ke panel admin setelah password diisi dengan benar." style="width:100%">Masuk</button>
       <p style="margin-top:1rem;font-size:.8rem;text-align:center"><a href="../">← Kembali ke website</a></p>
     </div>
@@ -943,9 +949,21 @@
         <label>Label (nama guru / peran)</label>
         <input type="text" id="edLabel" placeholder="Contoh: Bu Siti / Wali Kelas 3">
         <label>Password baru</label>
-        <input type="password" id="edPass" placeholder="Minimal 4 karakter" autocomplete="new-password">
+        <div class="pwd-wrap">
+          <input type="password" id="edPass" placeholder="Minimal 4 karakter" autocomplete="new-password">
+          <button type="button" class="pwd-toggle" aria-label="Tampilkan password" title="Tampilkan / sembunyikan password">
+          <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+        </div>
         <label>Ulangi password</label>
-        <input type="password" id="edPass2" placeholder="Ketik ulang" autocomplete="new-password">
+        <div class="pwd-wrap">
+          <input type="password" id="edPass2" placeholder="Ketik ulang" autocomplete="new-password">
+          <button type="button" class="pwd-toggle" aria-label="Tampilkan password" title="Tampilkan / sembunyikan password">
+          <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+        </div>
         <div class="actions" style="margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem">
           <button class="btn btn-primary" type="button" id="btnAddEditor">+ Tambah password editor</button>
           <button class="btn btn-ghost" type="button" id="btnRefreshEditors">Refresh daftar</button>

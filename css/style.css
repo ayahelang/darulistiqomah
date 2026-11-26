@@ -1840,3 +1840,106 @@ body.admin-edit-armed [data-admin-edit]:hover {
     align-self: center;
   }
 }
+
+
+/* Password field + toggle mata */
+.pwd-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+.pwd-wrap input[type="password"],
+.pwd-wrap input[type="text"] {
+  width: 100%;
+  padding-right: 2.75rem !important;
+  box-sizing: border-box;
+}
+.pwd-toggle {
+  position: absolute;
+  right: .45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.1rem;
+  height: 2.1rem;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #5B6575;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 0;
+}
+.pwd-toggle:hover {
+  background: rgba(11, 110, 79, 0.08);
+  color: #084C37;
+}
+.pwd-toggle:focus-visible {
+  outline: 2px solid #C9A227;
+  outline-offset: 1px;
+}
+.pwd-toggle svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.pwd-toggle .icon-eye-off { display: none; }
+.pwd-toggle.is-visible .icon-eye { display: none; }
+.pwd-toggle.is-visible .icon-eye-off { display: block; }
+
+/* Modal password frontend edit */
+.fe-pass-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100050;
+  background: rgba(8, 76, 55, 0.82);
+  display: none;
+  place-items: center;
+  padding: 1rem;
+  backdrop-filter: blur(5px);
+}
+.fe-pass-modal.open { display: grid; }
+.fe-pass-modal .fe-pass-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.25rem 1.35rem;
+  width: min(380px, 100%);
+  border: 2px solid rgba(201, 162, 39, 0.45);
+  box-shadow: 0 24px 60px rgba(8, 76, 55, 0.35);
+}
+.fe-pass-modal h3 {
+  margin: 0 0 .35rem;
+  color: #084C37;
+  font-size: 1.05rem;
+}
+.fe-pass-modal p {
+  margin: 0 0 .85rem;
+  color: #5B6575;
+  font-size: .88rem;
+  line-height: 1.45;
+}
+.fe-pass-modal .fe-pass-actions {
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+  margin-top: .9rem;
+}
+.fe-pass-modal .err {
+  color: #b91c1c;
+  font-size: .82rem;
+  min-height: 1.1em;
+  margin: .35rem 0 0;
+}
+
+/* PPDB panel: password wrap spacing */
+.ppdb-notif-panel .pwd-wrap {
+  margin-bottom: .65rem;
+}
+.ppdb-notif-panel .pwd-wrap input {
+  margin-bottom: 0;
+}
