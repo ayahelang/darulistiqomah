@@ -1,1 +1,1 @@
-Toggle mata di semua field password (admin login, multi-editor, PPDB, frontend edit)
+Fix: nonaktif deteksi DevTools via ukuran jendela (false positive saat zoom)

@@ -122,15 +122,11 @@ box - shadow: 0 10px 25px rgba(0, 0, 0, .25);
             document.body.innerHTML = "Embedding blocked";
         }
 
-        setInterval(() => {
-            const w = window.outerWidth - window.innerWidth > 160;
-            const h = window.outerHeight - window.innerHeight > 160;
-
-            if (w || h) {
-                document.body.innerHTML =
-                    "<div style='padding:40px;font-family:Arial'>Developer Tools Detected</div>";
-            }
-        }, 1500);
+        /* DevTools size-check DINONAKTIFKAN:
+           outerWidth-innerWidth sering >160 saat browser zoom (Ctrl+scroll / pinch
+           touchscreen) → false positive "Developer Tools Detected" + layar putih.
+           Proteksi domain/right-click/ultimate tetap aktif. */
+        // (no-op)
     }
 
     /* ---------- ULTIMATE ---------- */
