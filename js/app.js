@@ -590,7 +590,7 @@
           el('div', { class: 'article-body' }, bodyKids)
         ]);
         box.appendChild(art);
-        attachEngagement(art, 'articles', a.id || ('articles-' + idx));
+        attachEngagement(art, 'articles', a.id || stableEngageKey('article', a.title || idx));
       });
       updateMoreBtn('articlesMoreWrap', 'articles');
     };
@@ -844,7 +844,7 @@
         const g = fileToCard(gg, pair.f, pair.i, gIdx);
         const card = makeGalleryCard(g);
         grid.appendChild(card);
-        attachEngagement(card, 'gallery', g._edit);
+        attachEngagement(card, 'gallery', engageIdPhoto(g));
       });
       groupEl.appendChild(grid);
 
@@ -945,7 +945,7 @@
         if (tile.kind === 'card') {
           const card = makeGalleryCard(tile.card);
           grid.appendChild(card);
-          attachEngagement(card, 'gallery', tile.card._edit || ('gallery-' + Math.random()));
+          attachEngagement(card, 'gallery', engageIdPhoto(tile.card));
         } else if (tile.kind === 'group') {
           if (_ggOpen[tile.gKey]) {
             // tutup grid saat ini, sisipkan grup full-width di sini
@@ -1145,7 +1145,7 @@
         const v = itemToVideoCard(gg, pair.it, pair.i, gIdx);
         const card = makeVideoCard(v);
         grid.appendChild(card);
-        attachEngagement(card, 'videos', v._edit);
+        attachEngagement(card, 'videos', engageIdVideo(v));
       });
       groupEl.appendChild(grid);
 
@@ -1237,7 +1237,7 @@
         if (tile.kind === 'card') {
           const card = makeVideoCard(tile.card);
           grid.appendChild(card);
-          attachEngagement(card, 'videos', tile.card._edit || ('video-' + Math.random()));
+          attachEngagement(card, 'videos', engageIdVideo(tile.card));
         } else if (tile.kind === 'group') {
           if (_vgOpen[tile.gKey]) {
             flushGrid();
@@ -1396,6 +1396,40 @@
     setTimeout(() => node.remove(), 320);
   }
 
+
+  /** ID engagement stabil (bukan index array yang berubah saat sort/reorder). */
+  function shortHash(s) {
+    var h = 0;
+    s = String(s || '');
+    for (var i = 0; i < s.length; i++) h = ((h << 5) - h) + s.charCodeAt(i) | 0;
+    return (h >>> 0).toString(36);
+  }
+  function stableEngageKey(prefix, key) {
+    key = String(key || '').replace(/\\/g, '/').replace(/^\.\//, '').trim();
+    if (!key) key = 'unknown';
+    // batasi panjang query string Apps Script
+    if (key.length > 96) key = key.slice(0, 48) + '~' + shortHash(key);
+    return String(prefix || 'item') + ':' + key;
+  }
+  function engageIdPhoto(g) {
+    if (!g) return '';
+    if (g.image) return stableEngageKey('photo', g.image);
+    if (g.file && g.folder) return stableEngageKey('photo', String(g.folder).replace(/\/+$/, '') + '/' + g.file);
+    if (g.file) return stableEngageKey('photo', g.file);
+    if (g._edit && String(g._edit).indexOf('gallery-') !== 0 && String(g._edit).indexOf('Math') < 0)
+      return stableEngageKey('legacy', g._edit);
+    return stableEngageKey('photo', (g.title || '') + '|' + (g._idx != null ? g._idx : ''));
+  }
+  function engageIdVideo(v) {
+    if (!v) return '';
+    if (v.driveFileId) return stableEngageKey('vdrive', v.driveFileId);
+    if (v.youtubeId) return stableEngageKey('vyt', v.youtubeId);
+    if (v.embedUrl) return stableEngageKey('vemb', v.embedUrl);
+    if (v.url) return stableEngageKey('vurl', v.url);
+    if (v._edit && String(v._edit).indexOf('video-') !== 0)
+      return stableEngageKey('legacy', v._edit);
+    return stableEngageKey('video', (v.title || '') + '|' + (v._idx != null ? v._idx : ''));
+  }
 
   function engagementFingerprint() {
     try {
